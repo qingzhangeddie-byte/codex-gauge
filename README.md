@@ -9,17 +9,34 @@
 
 **A simple, safe macOS menu bar app to check Codex usage, track the Codex 5-hour limit, and watch your Codex 7-day quota at a glance.**
 
-Codex Gauge is an **Unofficial** macOS menu bar app for people who use Codex heavily and want a Codex rate limit tracker that stays local. It shows remaining 5-hour and 7-day quota without opening a dashboard, reading browser cookies, or exposing local auth files to a menu bar process.
+Codex Gauge is an **Unofficial** macOS menu bar app for people who use Codex heavily and want a Codex rate limit tracker that stays local.
+
+Codex Gauge 是一个**非官方** macOS 菜单栏工具，适合频繁使用 Codex、想要本地查看 Codex rate limit 的用户。
+
+It shows remaining Codex 5-hour usage and Codex 7-day quota without opening a dashboard, reading browser cookies, or exposing local auth files to a menu bar process.
+
+它可以直接显示 Codex 5 小时剩余额度和 Codex 7 天剩余额度，不需要打开 dashboard，不读取浏览器 Cookie，也不会把本地登录文件暴露给菜单栏进程。
+
+Search phrases this project is designed to answer naturally: **check Codex usage**, **OpenAI Codex usage monitor**, **Codex quota tracker**, **Codex rate limit tracker**, **Codex 5-hour limit**, **Codex 7-day quota**, **macOS Codex menu bar app**, and **Codex usage menubar**.
+
+这个项目自然覆盖的中文搜索词包括：**查看 Codex 使用量**、**Codex 额度监控**、**Codex 菜单栏工具**、**Codex 5 小时限制**、**Codex 7 天额度**、**OpenAI Codex 使用量监控**。
 
 ## What You Get
 
-- Compact menu bar gauge for Codex 5-hour and 7-day quota
-- Dropdown detail view with reset timing and last refresh time
-- Adaptive refresh: 5 minutes normally, 3 minutes when low, 2 minutes when critical, 1 minute after transient errors
-- Self-contained app bundle with its helper inside `Contents/Resources`
-- User LaunchAgent keeps the installed menu bar app resident without browser-cookie access
-- Bounded local snapshot fallback with an explicit **Snapshot** label when live data is unavailable
-- Runtime logs in `~/Library/Application Support/CodexGauge`, rotated locally
+- Compact menu bar gauge for Codex 5-hour and 7-day quota  
+  菜单栏紧凑显示 Codex 5 小时额度和 7 天额度
+- Dropdown detail view with reset timing and last refresh time  
+  下拉菜单显示额度重置时间和上次刷新时间
+- Adaptive refresh: 5 minutes normally, 3 minutes when low, 2 minutes when critical, 1 minute after transient errors  
+  自适应刷新：正常 5 分钟，额度偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
+- Self-contained app bundle with its helper inside `Contents/Resources`  
+  自包含 App bundle，helper 打包在 `Contents/Resources` 内
+- User LaunchAgent keeps the installed menu bar app resident without browser-cookie access  
+  用户级 LaunchAgent 保持菜单栏 App 常驻，不读取浏览器 Cookie
+- Bounded local snapshot fallback with an explicit **Snapshot** label when live data is unavailable  
+  实时数据不可用时使用有边界的本地快照 fallback，并明确标记为 **Snapshot**
+- Runtime logs in `~/Library/Application Support/CodexGauge`, rotated locally  
+  运行日志写入 `~/Library/Application Support/CodexGauge`，并在本地轮转
 
 ![Codex Gauge menu](docs/assets/codex-gauge-menu.svg)
 
@@ -27,11 +44,27 @@ Codex Gauge is an **Unofficial** macOS menu bar app for people who use Codex hea
 
 ![Codex Gauge four-bar mockup](docs/design/codex-gauge-four-bar-mockup.svg)
 
-The compact menu bar gauge uses the selected mood-lane design: one row for 5-hour quota and one row for 7-day quota. The four signals are 5-hour quota left, 5-hour reset countdown, 7-day quota left, and 7-day reset countdown. Quota rails keep the green-to-red health scale; reset lanes move from red through coral and orange into warm yellow. The tiny vector face slides right and morphs from frown to smile as reset approaches, so countdown reads as time movement instead of danger.
+The compact menu bar gauge uses the selected mood-lane design: one row for 5-hour quota and one row for 7-day quota.
+
+紧凑菜单栏仪表使用 mood-lane 设计：一行显示 5 小时窗口，一行显示 7 天窗口。
+
+The four signals are 5-hour quota left, 5-hour reset countdown, 7-day quota left, and 7-day reset countdown.
+
+四个信号分别是 5 小时额度剩余、5 小时重置倒计时、7 天额度剩余、7 天重置倒计时。
+
+Quota rails keep the green-to-red health scale; reset lanes move from red through coral and orange into warm yellow.
+
+额度条保留绿色到红色的健康刻度；重置轨道从红色过渡到珊瑚色、橙色，最后变成温暖黄色。
+
+The tiny vector face slides right and morphs from frown to smile as reset approaches, so countdown reads as time movement instead of danger.
+
+小表情是原生绘制的矢量脸，会随着重置临近向右移动，并从皱眉过渡到微笑，所以倒计时读起来是时间移动，不是危险警报。
 
 ![Codex Gauge color states](docs/assets/codex-gauge-color-states.svg)
 
 The color-state preview is simulated so the README can show healthy, watch, and critical states without pretending those are your current live quota values.
+
+颜色状态图是模拟示例，用来展示健康、偏低、严重偏低时的视觉变化，不假装这些就是当前实时额度。
 
 ## Quick Start
 
@@ -67,6 +100,18 @@ The installer also writes `~/Library/LaunchAgents/app.codexgauge.menubar.plist` 
 | Setup | Local clone, one install command, no network-piped shell script |
 
 Many usage tools are broad dashboards, token log readers, or browser-session helpers. Codex Gauge is intentionally narrower: it is a small macOS status gauge for the question you ask all day - "how much Codex do I have left?"
+
+很多使用量工具是大而全的 dashboard、token log reader 或浏览器 session helper。Codex Gauge 刻意做得更窄：它只是一个 macOS 状态栏仪表，回答你一天里最常问的问题：“我还剩多少 Codex？”
+
+## SEO Keywords
+
+- OpenAI Codex usage monitor / OpenAI Codex 使用量监控
+- Codex quota tracker / Codex 额度监控
+- Codex rate limit tracker / Codex rate limit 追踪
+- Codex 5-hour limit menu bar / Codex 5 小时限制菜单栏
+- Codex 7-day quota monitor / Codex 7 天额度监控
+- macOS Codex menu bar app / macOS Codex 菜单栏 App
+- safe Codex usage checker / 安全的 Codex 使用量查看工具
 
 ## Safety Model
 

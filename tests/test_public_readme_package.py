@@ -29,9 +29,30 @@ class PublicReadmePackageTests(unittest.TestCase):
             "Codex rate limit tracker",
             "Codex 5-hour limit",
             "Codex 7-day quota",
+            "OpenAI Codex usage monitor",
+            "Codex quota tracker",
+            "macOS Codex menu bar app",
+            "查看 Codex 使用量",
+            "Codex 额度监控",
+            "Codex 菜单栏工具",
             "## FAQ",
             "Does Codex Gauge read browser cookies?",
             "Does this trigger the 5-hour window?",
+        ]:
+            self.assertIn(phrase, readme)
+
+    def test_readme_has_line_by_line_chinese_explanation(self):
+        readme = pathlib.Path("README.md").read_text(encoding="utf-8")
+
+        for phrase in [
+            "Codex Gauge 是一个**非官方** macOS 菜单栏工具",
+            "它可以直接显示 Codex 5 小时剩余额度和 Codex 7 天剩余额度",
+            "菜单栏紧凑显示 Codex 5 小时额度和 7 天额度",
+            "下拉菜单显示额度重置时间和上次刷新时间",
+            "紧凑菜单栏仪表使用 mood-lane 设计",
+            "四个信号分别是 5 小时额度剩余",
+            "很多使用量工具是大而全的 dashboard",
+            "## SEO Keywords",
         ]:
             self.assertIn(phrase, readme)
 
