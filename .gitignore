@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+*.log
+*.app
+.DS_Store
+.env
+.venv/
+.ai/
+.superpowers/
+native/build/
+native/dist/
+docs/superpowers/
+
+# Local/private agent notes
+CLAUDE.md
+AGENTS.md
+AI_CONTEXT.md
+RUNBOOK.md
+.claude/
+.agents/
+docs/reference/
+docs/adr/

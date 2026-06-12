@@ -1,0 +1,142 @@
+import pathlib
+import subprocess
+import unittest
+
+
+class PublicReleaseHygieneTests(unittest.TestCase):
+    def test_gitignore_excludes_private_runtime_artifacts(self):
+        gitignore = pathlib.Path(".gitignore").read_text()
+
+        for pattern in [
+            ".venv/",
+            "*.log",
+            "*.app",
+            ".env",
+            "native/build/",
+            "native/dist/",
+        ]:
+            self.assertIn(pattern, gitignore)
+        self.assertNotIn("menubar/", gitignore)
+
+    def test_public_package_does_not_ship_legacy_python_menubar_app(self):
+        self.assertFalse(pathlib.Path("menubar").exists())
+        self.assertFalse(list(pathlib.Path("docs").glob("screenshot-*.png")))
+
+    def test_public_package_does_not_ship_legacy_cli_surface(self):
+        install = pathlib.Path("install.sh").read_text()
+        public_docs = "\n".join(
+            pathlib.Path(path).read_text(encoding="utf-8")
+            for path in ["README.md", "README.zh-CN.md", "docs/PRIVACY.md", "docs/PUBLISHING.md"]
+        )
+
+        self.assertFalse(pathlib.Path("usage.py").exists())
+        self.assertFalse(pathlib.Path("requirements.txt").exists())
+        for text in [install, public_docs]:
+            self.assertNotIn("usage.py", text)
+            self.assertNotIn("requirements.txt", text)
+            self.assertNotIn("browser-cookie3", text)
+            self.assertNotIn("<your-fork-url>", text)
+            self.assertNotIn("ai-limit", text)
+            self.assertNotIn(".claude", text)
+            self.assertNotIn("--allow-browser-cookies", text)
+            self.assertNotIn("--allow-codex-auth", text)
+
+    def test_ci_runs_unit_tests(self):
+        workflow = pathlib.Path(".github/workflows/test.yml").read_text()
+
+        self.assertIn("python -m unittest discover -s tests", workflow)
+        self.assertIn("macos-", workflow)
+        self.assertIn("python-version: [\"3.9\", \"3.11\"]", workflow)
+        self.assertIn("./script/build_and_run.sh --build-only", workflow)
+
+    def test_publishing_docs_cover_privacy_signing_and_homebrew(self):
+        docs = pathlib.Path("docs/PUBLISHING.md").read_text()
+
+        self.assertIn("Privacy", docs)
+        self.assertIn("Codex Gauge", docs)
+        self.assertIn("codesign", docs)
+        self.assertIn("notarization", docs)
+        self.assertIn("Homebrew", docs)
+        self.assertIn("do not publish logs", docs)
+        self.assertIn("clean orphan history", docs)
+        self.assertIn("git clone https://github.com/qingzhangeddie-byte/codex-gauge.git", docs)
+
+    def test_public_release_docs_exist(self):
+        changelog = pathlib.Path("CHANGELOG.md").read_text(encoding="utf-8")
+        security = pathlib.Path("SECURITY.md").read_text(encoding="utf-8")
+        notice = pathlib.Path("NOTICE").read_text(encoding="utf-8")
+
+        self.assertIn("v0.4.0", changelog)
+        self.assertIn("Codex Gauge", changelog)
+        self.assertIn("Security Policy", security)
+        self.assertIn("does not read browser cookies", security)
+        self.assertIn("does not read `~/.codex/auth.json`", security)
+        self.assertIn("Codex Gauge contributors", notice)
+        self.assertIn("original upstream work", notice)
+        self.assertIn("Apache License, Version 2.0", notice)
+
+    def test_release_check_script_covers_public_release_gates(self):
+        script_path = pathlib.Path("script/release_check.sh")
+        script = script_path.read_text()
+
+        self.assertTrue(script_path.exists())
+        self.assertIn("python3 -m unittest discover -s tests -v", script)
+        self.assertIn("./script/build_and_run.sh --build-only", script)
+        self.assertIn("ditto --norsrc --noextattr", script)
+        self.assertIn("codesign --verify --deep --strict", script)
+        self.assertIn("CFBundleShortVersionString", script)
+        self.assertIn("CodexGaugeReleaseURL", script)
+        self.assertIn("git ls-files", script)
+        self.assertIn("pixelWidth: 1280", script)
+        self.assertIn("Codex Gauge release check passed.", script)
+
+    def test_public_visual_assets_exist_and_are_bounded(self):
+        live = pathlib.Path("docs/assets/codex-gauge-menubar-live.png")
+        social = pathlib.Path("docs/assets/codex-gauge-social-preview.png")
+
+        self.assertTrue(live.exists())
+        self.assertTrue(social.exists())
+        self.assertLess(live.stat().st_size, 2_000_000)
+        self.assertLess(social.stat().st_size, 3_000_000)
+
+        result = subprocess.run(
+            ["sips", "-g", "pixelWidth", "-g", "pixelHeight", str(social)],
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+        )
+        self.assertIn("pixelWidth: 1280", result.stdout)
+        self.assertIn("pixelHeight: 640", result.stdout)
+
+    def test_build_script_installs_public_app_name_and_removes_legacy_app(self):
+        script = pathlib.Path("script/build_and_run.sh").read_text()
+        install = pathlib.Path("install.sh").read_text()
+
+        self.assertIn('APP_NAME="CodexGauge"', script)
+        self.assertIn('CFBundleName</key>', script)
+        self.assertIn("Codex Gauge", script)
+        self.assertIn("CodexGaugeUsagePath", script)
+        self.assertIn('LEGACY_APP_NAME="AiLimitStatus"', script)
+        self.assertIn('LEGACY_APP_DEST="/Applications/AiLimitStatus.app"', install)
+        self.assertIn('APP_DEST="/Applications/CodexGauge.app"', install)
+        self.assertNotIn("CLI_BIN", install)
+        self.assertNotIn("venv", install.lower())
+
+    def test_publishing_docs_include_github_web_checklist_and_release_tag(self):
+        docs = pathlib.Path("docs/PUBLISHING.md").read_text()
+
+        for phrase in [
+            "git@github.com:qingzhangeddie-byte/codex-gauge.git",
+            "git push -u origin main --tags",
+            "v0.4.0",
+            "repository social preview",
+            "docs/assets/codex-gauge-social-preview.png",
+            "private vulnerability reporting",
+            "macos",
+            "usage-monitor",
+        ]:
+            self.assertIn(phrase, docs)
+
+
+if __name__ == "__main__":
+    unittest.main()

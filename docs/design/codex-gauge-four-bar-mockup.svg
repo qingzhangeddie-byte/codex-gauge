@@ -1,0 +1,262 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Codex Gauge Mood Lane menu design</title>
+  <desc id="desc">A compact GitHub explanation image for Codex Gauge showing a large two-row menu bar gauge, state examples, and a small color legend.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#182532"/>
+      <stop offset=".56" stop-color="#101820"/>
+      <stop offset="1" stop-color="#080d12"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".5" cy=".2" r=".75">
+      <stop offset="0" stop-color="#1e6b67" stop-opacity=".42"/>
+      <stop offset=".48" stop-color="#142733" stop-opacity=".20"/>
+      <stop offset="1" stop-color="#080d12" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="resetRamp" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d63b40"/>
+      <stop offset=".28" stop-color="#e96a2e"/>
+      <stop offset=".58" stop-color="#f0a135"/>
+      <stop offset="1" stop-color="#ffd65a"/>
+    </linearGradient>
+    <linearGradient id="quotaRamp" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c93362"/>
+      <stop offset=".35" stop-color="#f37745"/>
+      <stop offset=".64" stop-color="#c9c35a"/>
+      <stop offset="1" stop-color="#24c99a"/>
+    </linearGradient>
+    <filter id="softShadow" x="-15%" y="-25%" width="130%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000000" flood-opacity=".28"/>
+    </filter>
+    <filter id="tightShadow" x="-10%" y="-20%" width="120%" height="145%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity=".22"/>
+    </filter>
+    <style>
+      .title { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Arial, sans-serif; font-size: 44px; font-weight: 700; fill: #f5f8fb; letter-spacing: 0; }
+      .sub { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Arial, sans-serif; font-size: 18px; font-weight: 400; fill: #9dacbb; letter-spacing: 0; }
+      .label { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Arial, sans-serif; font-size: 17px; font-weight: 700; fill: #eef5f7; letter-spacing: 0; }
+      .note { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Arial, sans-serif; font-size: 14px; font-weight: 500; fill: #a7b5c2; letter-spacing: 0; }
+      .small { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Arial, sans-serif; font-size: 12px; font-weight: 600; fill: #d9e3e8; letter-spacing: 0; }
+      .monoHuge { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 42px; font-weight: 700; fill: #f9fcff; letter-spacing: 0; }
+      .monoBig { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 30px; font-weight: 700; fill: #f7fbff; letter-spacing: 0; }
+      .mono { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 18px; font-weight: 700; fill: #f7fbff; letter-spacing: 0; }
+      .monoTiny { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12px; font-weight: 700; fill: #eff7f8; letter-spacing: 0; }
+      .menu { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Arial, sans-serif; font-size: 14px; font-weight: 600; fill: #e9eef2; letter-spacing: 0; }
+      .faceInk { stroke: #16130d; stroke-linecap: round; fill: none; opacity: .68; }
+      .faceEye { fill: #16130d; opacity: .68; }
+      .track { fill: #eaf4f5; opacity: .25; }
+      .resetTrack { fill: #eaf4f5; opacity: .22; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="900" fill="url(#bg)"/>
+  <rect width="1200" height="900" fill="url(#glow)"/>
+
+  <text x="64" y="72" class="title">Codex Gauge Mood Lane</text>
+  <text x="64" y="108" class="sub">Four menu bar signals: quota left and reset timing for both 5-hour and 7-day windows.</text>
+
+  <g transform="translate(64 138)" filter="url(#softShadow)">
+    <rect x="0" y="0" width="1072" height="78" rx="0" fill="#02080a"/>
+    <text x="24" y="46" class="menu">Chrome</text>
+    <text x="104" y="46" class="menu">File</text>
+    <text x="158" y="46" class="menu">Edit</text>
+    <text x="220" y="46" class="menu">View</text>
+    <text x="292" y="46" class="menu">Window</text>
+    <g transform="translate(768 22)">
+      <rect x="0" y="0" width="270" height="36" rx="7" fill="#09272a" stroke="#3f7c76" stroke-width="1.3"/>
+      <text x="12" y="14" class="monoTiny">5h</text>
+      <rect x="42" y="10" width="82" height="5" rx="2.5" class="track"/>
+      <rect x="42" y="10" width="74" height="5" rx="2.5" fill="#24c99a"/>
+      <text x="132" y="15" class="monoTiny">90%</text>
+      <rect x="185" y="10" width="50" height="5" rx="2.5" class="resetTrack"/>
+      <rect x="185" y="10" width="18" height="5" rx="2.5" fill="#e96a2e" opacity=".72"/>
+        <g transform="translate(200 12.5)">
+          <circle r="5.2" fill="#e96a2e"/>
+          <circle cx="-1.7" cy="-1.1" r=".62" class="faceEye"/>
+          <circle cx="1.7" cy="-1.1" r=".62" class="faceEye"/>
+          <path d="M -2.6 1.9 Q 0 .1 2.6 1.9" class="faceInk" stroke-width=".95"/>
+        </g>
+      <text x="242" y="15" class="monoTiny">4h</text>
+      <text x="12" y="30" class="monoTiny">7d</text>
+      <rect x="42" y="25" width="82" height="5" rx="2.5" class="track"/>
+      <rect x="42" y="25" width="66" height="5" rx="2.5" fill="#68ce80"/>
+      <text x="132" y="30" class="monoTiny">80%</text>
+      <rect x="185" y="25" width="50" height="5" rx="2.5" class="resetTrack"/>
+      <rect x="185" y="25" width="7" height="5" rx="2.5" fill="#d63b40" opacity=".72"/>
+        <g transform="translate(188 27.5)">
+          <circle r="5.2" fill="#d63b40"/>
+          <circle cx="-1.7" cy="-1" r=".62" class="faceEye"/>
+          <circle cx="1.7" cy="-1" r=".62" class="faceEye"/>
+          <path d="M -2.7 -2.6 L -.9 -1.9 M .9 -1.9 L 2.7 -2.6" class="faceInk" stroke-width=".9"/>
+          <path d="M -2.6 1.9 Q 0 -.5 2.6 1.9" class="faceInk" stroke-width=".95"/>
+        </g>
+      <text x="242" y="30" class="monoTiny">6d8h</text>
+    </g>
+  </g>
+
+  <g transform="translate(64 262)">
+    <g filter="url(#softShadow)">
+      <rect x="0" y="0" width="735" height="296" rx="26" fill="#0a151c" stroke="#284757" stroke-width="1.2"/>
+      <rect x="32" y="48" width="671" height="188" rx="22" fill="#092527" stroke="#3e827b" stroke-width="2"/>
+
+      <text x="67" y="116" class="monoHuge">5h</text>
+      <rect x="156" y="86" width="270" height="14" rx="7" class="track"/>
+      <rect x="156" y="86" width="243" height="14" rx="7" fill="#24c99a"/>
+      <text x="454" y="105" class="monoBig">90%</text>
+      <rect x="548" y="88" width="112" height="10" rx="5" class="resetTrack"/>
+      <rect x="548" y="88" width="38" height="10" rx="5" fill="#e96a2e" opacity=".76"/>
+      <g transform="translate(586 93)">
+        <circle r="10.5" fill="#e96a2e"/>
+        <circle cx="-3.4" cy="-2.3" r="1.25" class="faceEye"/>
+        <circle cx="3.4" cy="-2.3" r="1.25" class="faceEye"/>
+        <path d="M -5.2 3.8 Q 0 .2 5.2 3.8" class="faceInk" stroke-width="1.9"/>
+      </g>
+      <text x="677" y="105" class="mono">4h</text>
+
+      <text x="67" y="177" class="monoHuge">7d</text>
+      <rect x="156" y="148" width="270" height="14" rx="7" class="track"/>
+      <rect x="156" y="148" width="216" height="14" rx="7" fill="#68ce80"/>
+      <text x="454" y="167" class="monoBig">80%</text>
+      <rect x="548" y="150" width="112" height="10" rx="5" class="resetTrack"/>
+      <rect x="548" y="150" width="16" height="10" rx="5" fill="#d63b40" opacity=".76"/>
+      <g transform="translate(556 155)">
+        <circle r="10.5" fill="#d63b40"/>
+        <circle cx="-3.4" cy="-2" r="1.25" class="faceEye"/>
+        <circle cx="3.4" cy="-2" r="1.25" class="faceEye"/>
+        <path d="M -5.4 -5.2 L -1.8 -3.8 M 1.8 -3.8 L 5.4 -5.2" class="faceInk" stroke-width="1.8"/>
+        <path d="M -5.2 3.8 Q 0 -1 5.2 3.8" class="faceInk" stroke-width="1.9"/>
+      </g>
+      <text x="677" y="167" class="mono">6d8h</text>
+
+      <text x="32" y="266" class="note">Chosen layout: real menu bar footprint above, enlarged reading model here.</text>
+    </g>
+
+    <g transform="translate(782 8)">
+      <text x="0" y="24" class="label">How to read it</text>
+      <g transform="translate(0 55)">
+        <rect x="0" y="0" width="7" height="64" rx="3.5" fill="#24c99a"/>
+        <text x="22" y="16" class="small">Quota rails use remaining percentage.</text>
+        <text x="22" y="40" class="note">Green = room. Orange/red = slow down.</text>
+      </g>
+      <g transform="translate(0 142)">
+        <rect x="0" y="0" width="7" height="64" rx="3.5" fill="url(#resetRamp)"/>
+        <text x="22" y="16" class="small">Reset lanes use time movement.</text>
+        <text x="22" y="40" class="note">Angry red becomes happy yellow near reset.</text>
+      </g>
+      <g transform="translate(0 229)">
+        <rect x="0" y="0" width="7" height="46" rx="3.5" fill="#3f827b"/>
+        <text x="22" y="16" class="small">Two rows stay distinct.</text>
+        <text x="22" y="40" class="note">5h is fast-cycle. 7d is weekly runway.</text>
+      </g>
+    </g>
+  </g>
+
+  <g transform="translate(64 612)">
+    <text x="0" y="0" class="label">State examples</text>
+    <text x="0" y="28" class="note">The same compact layout stays readable as quota pressure changes.</text>
+
+    <g transform="translate(0 54)" filter="url(#tightShadow)">
+      <rect x="0" y="0" width="334" height="128" rx="18" fill="#0d1f20" stroke="#34645f" stroke-width="1.2"/>
+      <text x="22" y="32" class="label">Healthy</text>
+      <text x="22" y="58" class="note">Plenty left</text>
+      <g transform="translate(108 25)">
+        <text x="0" y="15" class="monoTiny">5h</text>
+        <rect x="35" y="10" width="78" height="5" rx="2.5" class="track"/>
+        <rect x="35" y="10" width="73" height="5" rx="2.5" fill="#24c99a"/>
+        <text x="122" y="15" class="monoTiny">93%</text>
+        <rect x="172" y="10" width="47" height="5" rx="2.5" class="resetTrack"/>
+        <rect x="172" y="10" width="13" height="5" rx="2.5" fill="#e96a2e" opacity=".72"/>
+        <g transform="translate(182 12.5)">
+          <circle r="5.2" fill="#e96a2e"/>
+          <circle cx="-1.7" cy="-1.1" r=".62" class="faceEye"/>
+          <circle cx="1.7" cy="-1.1" r=".62" class="faceEye"/>
+          <path d="M -2.6 1.9 Q 0 .1 2.6 1.9" class="faceInk" stroke-width=".95"/>
+        </g>
+        <text x="0" y="48" class="monoTiny">7d</text>
+        <rect x="35" y="43" width="78" height="5" rx="2.5" class="track"/>
+        <rect x="35" y="43" width="62" height="5" rx="2.5" fill="#68ce80"/>
+        <text x="122" y="48" class="monoTiny">80%</text>
+        <rect x="172" y="43" width="47" height="5" rx="2.5" class="resetTrack"/>
+        <rect x="172" y="43" width="7" height="5" rx="2.5" fill="#d63b40" opacity=".72"/>
+        <g transform="translate(176 45.5)">
+          <circle r="5.2" fill="#d63b40"/>
+          <circle cx="-1.7" cy="-1" r=".62" class="faceEye"/>
+          <circle cx="1.7" cy="-1" r=".62" class="faceEye"/>
+          <path d="M -2.7 -2.6 L -.9 -1.9 M .9 -1.9 L 2.7 -2.6" class="faceInk" stroke-width=".9"/>
+          <path d="M -2.6 1.9 Q 0 -.5 2.6 1.9" class="faceInk" stroke-width=".95"/>
+        </g>
+      </g>
+    </g>
+
+    <g transform="translate(369 54)" filter="url(#tightShadow)">
+      <rect x="0" y="0" width="334" height="128" rx="18" fill="#1b1b13" stroke="#705b33" stroke-width="1.2"/>
+      <text x="22" y="32" class="label">Watch</text>
+      <text x="22" y="58" class="note">Manage pace</text>
+      <g transform="translate(108 25)">
+        <text x="0" y="15" class="monoTiny">5h</text>
+        <rect x="35" y="10" width="78" height="5" rx="2.5" class="track"/>
+        <rect x="35" y="10" width="29" height="5" rx="2.5" fill="#f37745"/>
+        <text x="122" y="15" class="monoTiny">37%</text>
+        <rect x="172" y="10" width="47" height="5" rx="2.5" class="resetTrack"/>
+        <rect x="172" y="10" width="37" height="5" rx="2.5" fill="#f8cc48" opacity=".74"/>
+        <g transform="translate(205 12.5)">
+          <circle r="5.2" fill="#f8cc48"/>
+          <circle cx="-1.7" cy="-1.1" r=".62" class="faceEye"/>
+          <circle cx="1.7" cy="-1.1" r=".62" class="faceEye"/>
+          <path d="M -2.6 1.5 Q 0 3.4 2.6 1.5" class="faceInk" stroke-width=".95"/>
+        </g>
+        <text x="0" y="48" class="monoTiny">7d</text>
+        <rect x="35" y="43" width="78" height="5" rx="2.5" class="track"/>
+        <rect x="35" y="43" width="53" height="5" rx="2.5" fill="#9ed36a"/>
+        <text x="122" y="48" class="monoTiny">68%</text>
+        <rect x="172" y="43" width="47" height="5" rx="2.5" class="resetTrack"/>
+        <rect x="172" y="43" width="25" height="5" rx="2.5" fill="#f0a135" opacity=".74"/>
+        <g transform="translate(193 45.5)">
+          <circle r="5.2" fill="#f0a135"/>
+          <circle cx="-1.7" cy="-1.1" r=".62" class="faceEye"/>
+          <circle cx="1.7" cy="-1.1" r=".62" class="faceEye"/>
+          <path d="M -2.5 1.8 L 2.5 1.8" class="faceInk" stroke-width=".95"/>
+        </g>
+      </g>
+    </g>
+
+    <g transform="translate(738 54)" filter="url(#tightShadow)">
+      <rect x="0" y="0" width="334" height="128" rx="18" fill="#241018" stroke="#803149" stroke-width="1.2"/>
+      <text x="22" y="32" class="label">Critical</text>
+      <text x="22" y="58" class="note">Slow down</text>
+      <g transform="translate(108 25)">
+        <text x="0" y="15" class="monoTiny">5h</text>
+        <rect x="35" y="10" width="78" height="5" rx="2.5" class="track"/>
+        <rect x="35" y="10" width="7" height="5" rx="2.5" fill="#c93362"/>
+        <text x="122" y="15" class="monoTiny">08%</text>
+        <rect x="172" y="10" width="47" height="5" rx="2.5" class="resetTrack"/>
+        <rect x="172" y="10" width="44" height="5" rx="2.5" fill="#ffd65a" opacity=".76"/>
+        <g transform="translate(210 12.5)">
+          <circle r="5.2" fill="#ffd65a"/>
+          <circle cx="-1.7" cy="-1.1" r=".62" class="faceEye"/>
+          <circle cx="1.7" cy="-1.1" r=".62" class="faceEye"/>
+          <path d="M -2.6 1.4 Q 0 3.6 2.6 1.4" class="faceInk" stroke-width=".95"/>
+        </g>
+        <text x="0" y="48" class="monoTiny">7d</text>
+        <rect x="35" y="43" width="78" height="5" rx="2.5" class="track"/>
+        <rect x="35" y="43" width="17" height="5" rx="2.5" fill="#ed5a50"/>
+        <text x="122" y="48" class="monoTiny">22%</text>
+        <rect x="172" y="43" width="47" height="5" rx="2.5" class="resetTrack"/>
+        <rect x="172" y="43" width="39" height="5" rx="2.5" fill="#fac94c" opacity=".76"/>
+        <g transform="translate(205 45.5)">
+          <circle r="5.2" fill="#fac94c"/>
+          <circle cx="-1.7" cy="-1.1" r=".62" class="faceEye"/>
+          <circle cx="1.7" cy="-1.1" r=".62" class="faceEye"/>
+          <path d="M -2.6 1.5 Q 0 3.4 2.6 1.5" class="faceInk" stroke-width=".95"/>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <g transform="translate(64 826)">
+    <text x="0" y="14" class="small">Color logic</text>
+    <rect x="108" y="4" width="164" height="10" rx="5" fill="url(#quotaRamp)"/>
+    <text x="286" y="14" class="note">quota: red to green in 10% buckets</text>
+    <rect x="574" y="4" width="164" height="10" rx="5" fill="url(#resetRamp)"/>
+    <text x="752" y="14" class="note">reset: vector frown to smile, red to yellow</text>
+  </g>
+</svg>

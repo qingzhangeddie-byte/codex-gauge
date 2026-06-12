@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1420" height="520" viewBox="0 0 1420 520" role="img" aria-labelledby="title desc">
+  <title id="title">Codex Gauge color states</title>
+  <desc id="desc">Simulated Codex Gauge menu bar examples showing healthy, watch, and critical quota colors with a red-to-yellow vector-face reset lane.</desc>
+  <defs>
+    <filter id="shadow" x="-10%" y="-35%" width="120%" height="190%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#172231"/>
+      <stop offset=".55" stop-color="#101820"/>
+      <stop offset="1" stop-color="#090d12"/>
+    </linearGradient>
+    <style>
+      .title { font: 760 38px -apple-system, BlinkMacSystemFont, "SF Pro Display", Arial, sans-serif; fill: #f5f8fb; }
+      .sub { font: 450 18px -apple-system, BlinkMacSystemFont, "SF Pro Text", Arial, sans-serif; fill: #9aa8b8; }
+      .label { font: 720 19px -apple-system, BlinkMacSystemFont, "SF Pro Text", Arial, sans-serif; fill: #edf3f7; }
+      .note { font: 460 15px -apple-system, BlinkMacSystemFont, "SF Pro Text", Arial, sans-serif; fill: #9ca9b6; }
+      .mono { font: 760 23px "SF Mono", ui-monospace, Menlo, monospace; fill: #f7fbff; }
+      .tiny { font: 720 17px "SF Mono", ui-monospace, Menlo, monospace; fill: #ecf4f7; }
+      .faceInk { stroke: #16130d; stroke-width: 1.15; stroke-linecap: round; fill: none; opacity: .68; }
+      .faceEye { fill: #16130d; opacity: .68; }
+      .dim { fill: #b7c4ce; }
+      .track { fill: #f7fbff; opacity: .22; }
+      .reset { fill: #f7fbff; opacity: .20; }
+    </style>
+  </defs>
+
+  <rect width="1420" height="520" fill="url(#bg)"/>
+  <text x="64" y="74" class="title">Color states for the menu bar gauge</text>
+  <text x="64" y="111" class="sub">Quota uses health colors. Reset lanes start angry red and warm toward a smiling yellow marker.</text>
+
+  <g transform="translate(64 166)">
+    <text x="0" y="45" class="label">Healthy</text>
+    <text x="0" y="74" class="note">Plenty left</text>
+    <g transform="translate(170 0)" filter="url(#shadow)">
+      <rect x="0" y="0" width="470" height="86" rx="12" fill="#0c1d1f" stroke="#35615d" stroke-width="2"/>
+      <text x="22" y="32" class="mono">5h</text>
+      <rect x="72" y="23" width="112" height="7" rx="3.5" class="track"/>
+      <rect x="72" y="23" width="104" height="7" rx="3.5" fill="#24c99a"/>
+      <text x="204" y="32" class="tiny">93%</text>
+      <rect x="304" y="24" width="68" height="5" rx="2.5" class="reset"/>
+      <rect x="304" y="24" width="18" height="5" rx="2.5" fill="#e94f2b" opacity=".68"/>
+      <g transform="translate(318 26.5)">
+        <circle r="6.2" fill="#e94f2b"/>
+        <circle cx="-2" cy="-1.4" r=".75" class="faceEye"/>
+        <circle cx="2" cy="-1.4" r=".75" class="faceEye"/>
+        <path d="M -3.1 2.2 Q 0 .1 3.1 2.2" class="faceInk"/>
+      </g>
+      <text x="392" y="32" class="tiny dim">4h</text>
+      <text x="22" y="64" class="mono">7d</text>
+      <rect x="72" y="55" width="112" height="7" rx="3.5" class="track"/>
+      <rect x="72" y="55" width="90" height="7" rx="3.5" fill="#68ce80"/>
+      <text x="204" y="64" class="tiny">80%</text>
+      <rect x="304" y="56" width="68" height="5" rx="2.5" class="reset"/>
+      <rect x="304" y="56" width="9" height="5" rx="2.5" fill="#d63b40" opacity=".68"/>
+      <g transform="translate(308 58.5)">
+        <circle r="6.2" fill="#d63b40"/>
+        <circle cx="-2" cy="-1.2" r=".75" class="faceEye"/>
+        <circle cx="2" cy="-1.2" r=".75" class="faceEye"/>
+        <path d="M -3.3 -3.2 L -1.1 -2.3 M 1.1 -2.3 L 3.3 -3.2" class="faceInk"/>
+        <path d="M -3.1 2.4 Q 0 -.5 3.1 2.4" class="faceInk"/>
+      </g>
+      <text x="392" y="64" class="tiny dim">6d8h</text>
+    </g>
+  </g>
+
+  <g transform="translate(64 286)">
+    <text x="0" y="45" class="label">Watch</text>
+    <text x="0" y="74" class="note">Getting low</text>
+    <g transform="translate(170 0)" filter="url(#shadow)">
+      <rect x="0" y="0" width="470" height="86" rx="12" fill="#171a16" stroke="#705c37" stroke-width="2"/>
+      <text x="22" y="32" class="mono">5h</text>
+      <rect x="72" y="23" width="112" height="7" rx="3.5" class="track"/>
+      <rect x="72" y="23" width="41" height="7" rx="3.5" fill="#f37745"/>
+      <text x="204" y="32" class="tiny">37%</text>
+      <rect x="304" y="24" width="68" height="5" rx="2.5" class="reset"/>
+      <rect x="304" y="24" width="54" height="5" rx="2.5" fill="#f8cc48" opacity=".68"/>
+      <g transform="translate(352 26.5)">
+        <circle r="6.2" fill="#f8cc48"/>
+        <circle cx="-2" cy="-1.4" r=".75" class="faceEye"/>
+        <circle cx="2" cy="-1.4" r=".75" class="faceEye"/>
+        <path d="M -3.1 1.6 Q 0 4.0 3.1 1.6" class="faceInk"/>
+      </g>
+      <text x="392" y="32" class="tiny dim">1h</text>
+      <text x="22" y="64" class="mono">7d</text>
+      <rect x="72" y="55" width="112" height="7" rx="3.5" class="track"/>
+      <rect x="72" y="55" width="76" height="7" rx="3.5" fill="#9ed36a"/>
+      <text x="204" y="64" class="tiny">68%</text>
+      <rect x="304" y="56" width="68" height="5" rx="2.5" class="reset"/>
+      <rect x="304" y="56" width="37" height="5" rx="2.5" fill="#f0a135" opacity=".68"/>
+      <g transform="translate(337 58.5)">
+        <circle r="6.2" fill="#f0a135"/>
+        <circle cx="-2" cy="-1.4" r=".75" class="faceEye"/>
+        <circle cx="2" cy="-1.4" r=".75" class="faceEye"/>
+        <path d="M -3 2 L 3 2" class="faceInk"/>
+      </g>
+      <text x="392" y="64" class="tiny dim">3d2h</text>
+    </g>
+  </g>
+
+  <g transform="translate(64 406)">
+    <text x="0" y="45" class="label">Critical</text>
+    <text x="0" y="74" class="note">Slow down</text>
+    <g transform="translate(170 0)" filter="url(#shadow)">
+      <rect x="0" y="0" width="470" height="86" rx="12" fill="#211118" stroke="#7d3046" stroke-width="2"/>
+      <text x="22" y="32" class="mono">5h</text>
+      <rect x="72" y="23" width="112" height="7" rx="3.5" class="track"/>
+      <rect x="72" y="23" width="9" height="7" rx="3.5" fill="#c93362"/>
+      <text x="204" y="32" class="tiny">08%</text>
+      <rect x="304" y="24" width="68" height="5" rx="2.5" class="reset"/>
+      <rect x="304" y="24" width="64" height="5" rx="2.5" fill="#ffd65a" opacity=".70"/>
+      <g transform="translate(362 26.5)">
+        <circle r="6.2" fill="#ffd65a"/>
+        <circle cx="-2" cy="-1.4" r=".75" class="faceEye"/>
+        <circle cx="2" cy="-1.4" r=".75" class="faceEye"/>
+        <path d="M -3.2 1.4 Q 0 4.4 3.2 1.4" class="faceInk"/>
+      </g>
+      <text x="392" y="32" class="tiny dim">18m</text>
+      <text x="22" y="64" class="mono">7d</text>
+      <rect x="72" y="55" width="112" height="7" rx="3.5" class="track"/>
+      <rect x="72" y="55" width="25" height="7" rx="3.5" fill="#ed5a50"/>
+      <text x="204" y="64" class="tiny">22%</text>
+      <rect x="304" y="56" width="68" height="5" rx="2.5" class="reset"/>
+      <rect x="304" y="56" width="56" height="5" rx="2.5" fill="#fac94c" opacity=".70"/>
+      <g transform="translate(354 58.5)">
+        <circle r="6.2" fill="#fac94c"/>
+        <circle cx="-2" cy="-1.4" r=".75" class="faceEye"/>
+        <circle cx="2" cy="-1.4" r=".75" class="faceEye"/>
+        <path d="M -3.1 1.6 Q 0 4.0 3.1 1.6" class="faceInk"/>
+      </g>
+      <text x="392" y="64" class="tiny dim">1d4h</text>
+    </g>
+  </g>
+</svg>
