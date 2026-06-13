@@ -31,6 +31,8 @@ Search phrases this project is designed to answer naturally: **check Codex usage
   自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口；下拉菜单显示额度重置时间和上次刷新时间
 - Time-based trends show 5-hour movement in the current reset window and 7-day movement over the last 24 hours
   趋势不再按模糊样本数展示，而是显示当前 5 小时窗口变化，以及过去 24 小时内的 7 天额度变化
+- Signal Console can generate a local 24-hour quota movement report and shows a compact Health strip
+  Signal Console 可生成本地 24 小时额度变化报告，并用紧凑 Health 状态条显示本地组件状态
 - Adaptive refresh: 5 minutes normally, 3 minutes when low, 2 minutes when critical, 1 minute after transient errors  
   自适应刷新：正常 5 分钟，额度偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
 - Preferences for Adaptive, 5-minute, or 10-minute refresh plus launch-at-login control

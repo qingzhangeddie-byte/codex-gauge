@@ -8,6 +8,7 @@
 - Added an explicit unavailable menu bar state that says to open Codex instead of showing stale percentages.
 - Added source explanations, bounded local trend history, Setup Doctor, and safe diagnostics copy.
 - Changed trend windows from a vague sample count to 5-hour current-window movement and 7-day 24-hour movement.
+- Added a compact Health strip and local 24-hour quota movement report in the Signal Console.
 - Polished Preferences with Test Refresh, Setup Doctor, and Copy Diagnostics controls.
 
 ## v0.5.0 - 2026-06-13

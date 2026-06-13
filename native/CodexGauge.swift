@@ -35,6 +35,27 @@ private struct DoctorCheck {
     let detail: String
 }
 
+private struct TrendContext {
+    let sampleCount: Int
+    let liveSampleCount: Int
+    let firstTime: String?
+    let lastTime: String?
+    let latestSource: String?
+    let summaryText: String
+}
+
+private struct UsageReportSummary {
+    let windowLabel: String
+    let firstFiveHourLeft: Int?
+    let latestFiveHourLeft: Int?
+    let firstSevenDayLeft: Int?
+    let latestSevenDayLeft: Int?
+    let largestFiveHourDrop: Int?
+    let largestSevenDayDrop: Int?
+    let sourceCounts: [String: Int]
+    let generatedAt: Date
+}
+
 private struct GaugePalette {
     let background: NSColor
     let border: NSColor
@@ -62,6 +83,8 @@ private struct SignalConsoleModel {
     let sevenDayHistory: [Int]
     let fiveHourTrendText: String
     let sevenDayTrendText: String
+    let trendContextText: String
+    let healthSummaryText: String
     let doctorChecks: [DoctorCheck]
     let lastRefreshText: String
     let source: String?
@@ -73,6 +96,7 @@ private final class SignalConsolePanelView: NSView {
     private let model: SignalConsoleModel
     private weak var target: AnyObject?
     private let runCheckAction: Selector
+    private let generateReportAction: Selector
     private let copyDiagnosticsAction: Selector
     private let openCodexAction: Selector
     private let refreshAction: Selector
@@ -88,6 +112,7 @@ private final class SignalConsolePanelView: NSView {
         model: SignalConsoleModel,
         target: AnyObject,
         runCheckAction: Selector,
+        generateReportAction: Selector,
         copyDiagnosticsAction: Selector,
         openCodexAction: Selector,
         refreshAction: Selector,
@@ -97,6 +122,7 @@ private final class SignalConsolePanelView: NSView {
         self.model = model
         self.target = target
         self.runCheckAction = runCheckAction
+        self.generateReportAction = generateReportAction
         self.copyDiagnosticsAction = copyDiagnosticsAction
         self.openCodexAction = openCodexAction
         self.refreshAction = refreshAction
@@ -118,7 +144,8 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func addSignalConsoleButtons() {
-        addButton(title: "Run Check...", frame: NSRect(x: 518, y: 498, width: 90, height: 28), action: runCheckAction, style: .filled)
+        addButton(title: "Generate", frame: NSRect(x: 528, y: 500, width: 82, height: 28), action: generateReportAction, style: .filled)
+        addButton(title: "Run Check...", frame: NSRect(x: 518, y: 558, width: 90, height: 28), action: runCheckAction, style: .icon)
         addButton(title: "Copy", frame: NSRect(x: 548, y: 628, width: 60, height: 30), action: copyDiagnosticsAction, style: .icon)
         addButton(title: "Open Codex", frame: NSRect(x: 28, y: 678, width: 160, height: 30), action: openCodexAction, style: .plain)
         addButton(title: "Refresh Now", frame: NSRect(x: 200, y: 678, width: 150, height: 30), action: refreshAction, style: .plain)
@@ -173,8 +200,10 @@ private final class SignalConsolePanelView: NSView {
         drawResetSection()
         drawDivider(y: 374)
         drawTrendSection()
-        drawDivider(y: 482)
-        drawDoctorSection()
+        drawDivider(y: 490)
+        drawReportSection()
+        drawDivider(y: 548)
+        drawHealthSection()
         drawDivider(y: 614)
         drawDiagnosticsSection()
         drawDivider(y: 668)
@@ -254,6 +283,11 @@ private final class SignalConsolePanelView: NSView {
         drawSectionLabel("Trend", y: 402)
         drawTrendRow(label: "5-hour trend", text: model.fiveHourTrendText, values: model.fiveHourHistory, y: 398)
         drawTrendRow(label: "7-day trend", text: model.sevenDayTrendText, values: model.sevenDayHistory, y: 438)
+        drawTrendContext()
+    }
+
+    private func drawTrendContext() {
+        drawText(model.trendContextText, x: 158, y: 466, width: 430, height: 18, size: 11, weight: .regular, color: textMuted)
     }
 
     private func drawTrendRow(label: String, text: String, values: [Int], y: CGFloat) {
@@ -263,15 +297,20 @@ private final class SignalConsolePanelView: NSView {
         drawPill(text: values.isEmpty ? "--" : deltaPill(values), rect: NSRect(x: 586, y: y - 7, width: 34, height: 24), color: NSColor.white.withAlphaComponent(0.07))
     }
 
-    private func drawDoctorSection() {
-        drawSectionLabel("Doctor", y: 510)
-        let rows = model.doctorChecks.prefix(5)
-        for (index, check) in rows.enumerated() {
-            let y = 500 + CGFloat(index) * 22
-            let color = doctorColor(check.state)
-            drawCircle(center: NSPoint(x: 164, y: y + 10), radius: 5, color: color, stroke: nil)
-            drawText(check.title, x: 178, y: y, width: 190, height: 20, size: 13, weight: .regular, color: textPrimary)
-            drawText(doctorDetailText(check.detail), x: 410, y: y, width: 100, height: 20, size: 13, weight: .regular, color: textSecondary)
+    private func drawReportSection() {
+        drawSectionLabel("Report", y: 512)
+        drawText("Usage Report", x: 158, y: 506, width: 112, height: 22, size: 14, weight: .regular, color: textPrimary)
+        drawText("24h quota summary", x: 286, y: 506, width: 160, height: 22, size: 13, weight: .regular, color: textSecondary)
+    }
+
+    private func drawHealthSection() {
+        drawSectionLabel("Health", y: 570)
+        drawText(model.healthSummaryText, x: 158, y: 562, width: 96, height: 22, size: 13, weight: .medium, color: textPrimary)
+        let checks = Array(model.doctorChecks.prefix(5))
+        for (index, check) in checks.enumerated() {
+            let x = 270 + CGFloat(index) * 47
+            drawCircle(center: NSPoint(x: x, y: 573), radius: 4.5, color: doctorColor(check.state), stroke: nil)
+            drawText(healthShortLabel(check.title), x: x + 8, y: 563, width: 38, height: 18, size: 10, weight: .regular, color: textSecondary)
         }
     }
 
@@ -493,6 +532,23 @@ private final class SignalConsolePanelView: NSView {
         }
     }
 
+    private func healthShortLabel(_ title: String) -> String {
+        switch title {
+        case "Codex app found":
+            return "Codex"
+        case "Helper works":
+            return "Helper"
+        case "Live data available":
+            return "Live"
+        case "LaunchAgent running":
+            return "Login"
+        case "Notifications permission":
+            return "Alerts"
+        default:
+            return title
+        }
+    }
+
     private func resetTextColor(_ value: String) -> NSColor {
         value == "--" ? textMuted : textPrimary
     }
@@ -670,6 +726,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             model: signalConsoleModel(),
             target: self,
             runCheckAction: #selector(openSetupDoctor),
+            generateReportAction: #selector(generateUsageReport),
             copyDiagnosticsAction: #selector(copyDiagnostics),
             openCodexAction: #selector(openCodexApp),
             refreshAction: #selector(refreshNow),
@@ -687,13 +744,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let samples = readHistorySamples()
         let doctorChecks = runSetupDoctorChecks()
         let now = Date()
+        let lastDaySamples = historySamples(since: now.addingTimeInterval(-24 * 60 * 60), from: samples)
 
         if let snapshot {
             let status = snapshot.codex
             let unavailable = isUnavailableStatus(status)
             let title = signalStateTitle(status)
             let fiveHourSamples = currentFiveHourWindowSamples(from: samples, resetEpoch: status.fiveHourReset, now: now)
-            let sevenDaySamples = historySamples(since: now.addingTimeInterval(-24 * 60 * 60), from: samples)
+            let sevenDaySamples = lastDaySamples
             let fiveHourHistory = quotaHistoryValues(fiveHourSamples, \.fiveHourLeft)
             let sevenDayHistory = quotaHistoryValues(sevenDaySamples, \.sevenDayLeft)
             return SignalConsoleModel(
@@ -713,6 +771,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 sevenDayHistory: sevenDayHistory,
                 fiveHourTrendText: trendText(values: fiveHourHistory, suffix: "this window"),
                 sevenDayTrendText: trendText(values: sevenDayHistory, suffix: "in 24h"),
+                trendContextText: trendContextText(samples: lastDaySamples, latestSource: status.source),
+                healthSummaryText: healthSummaryText(doctorChecks),
                 doctorChecks: doctorChecks,
                 lastRefreshText: shortTime(status.dataTime ?? snapshot.updatedAt),
                 source: status.source,
@@ -723,7 +783,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
         let detail = lastError == nil ? "Live data is unavailable until Codex is open." : clipped(lastError ?? "", limit: 96)
         let fiveHourSamples = currentFiveHourWindowSamples(from: samples, resetEpoch: nil, now: now)
-        let sevenDaySamples = historySamples(since: now.addingTimeInterval(-24 * 60 * 60), from: samples)
+        let sevenDaySamples = lastDaySamples
         let fiveHourHistory = quotaHistoryValues(fiveHourSamples, \.fiveHourLeft)
         let sevenDayHistory = quotaHistoryValues(sevenDaySamples, \.sevenDayLeft)
         return SignalConsoleModel(
@@ -743,6 +803,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             sevenDayHistory: sevenDayHistory,
             fiveHourTrendText: trendText(values: fiveHourHistory, suffix: "this window"),
             sevenDayTrendText: trendText(values: sevenDayHistory, suffix: "in 24h"),
+            trendContextText: trendContextText(samples: lastDaySamples, latestSource: nil),
+            healthSummaryText: healthSummaryText(doctorChecks),
             doctorChecks: doctorChecks,
             lastRefreshText: "none",
             source: nil,
@@ -779,6 +841,35 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         return "\(sign)\(delta)% \(suffix)"
     }
 
+    private func trendContextText(samples: [HistorySample], latestSource: String?) -> String {
+        let usable = samples.filter { sample in
+            historyDate(sample) != nil && (sample.fiveHourLeft != nil || sample.sevenDayLeft != nil)
+        }
+        guard usable.count >= 2, let first = usable.first, let latest = usable.last else {
+            return "Collecting enough samples for a useful trend"
+        }
+        if let latestSource, latestSource != "live" {
+            return "Trend uses local history; latest source is \(sourceDisplayName(latestSource))"
+        }
+        let prefix = "Based on"
+        let liveCount = usable.filter { $0.source == "live" }.count
+        let sampleKind = liveCount == usable.count ? "live samples" : "samples"
+        return "\(prefix) \(usable.count) \(sampleKind) from \(shortTime(first.time)) to \(shortTime(latest.time))"
+    }
+
+    private func healthSummaryText(_ checks: [DoctorCheck]) -> String {
+        let okCount = checks.filter { $0.state == "green" }.count
+        let optionalCount = checks.filter { $0.state == "grey" }.count
+        let issueCount = checks.count - okCount - optionalCount
+        if issueCount > 0 {
+            return "\(okCount) OK · \(issueCount) check"
+        }
+        if optionalCount > 0 {
+            return "\(okCount) OK · \(optionalCount) optional"
+        }
+        return "\(okCount) OK"
+    }
+
     @objc private func refreshNow() {
         timer?.invalidate()
         refresh()
@@ -813,6 +904,38 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(safeDiagnosticsText(), forType: .string)
         appendLog("safe diagnostics copied")
+    }
+
+    @objc private func generateUsageReport() {
+        let samples = historySamples(since: Date().addingTimeInterval(-24 * 60 * 60), from: readHistorySamples())
+        guard let report = usageReportText(samples: samples, status: snapshot?.codex) else {
+            showReportAlert(title: "Not enough history yet", detail: "Codex Gauge needs at least two local samples before it can summarize quota movement.")
+            return
+        }
+        NSPasteboard.general.clearContents()
+        guard NSPasteboard.general.setString(report, forType: .string) else {
+            showReportAlert(title: "Usage report not copied", detail: "The pasteboard did not accept the generated report.")
+            return
+        }
+
+        let reportURL = URL(fileURLWithPath: supportDir).appendingPathComponent("CodexGauge-usage-report.md")
+        do {
+            try report.write(to: reportURL, atomically: true, encoding: .utf8)
+            showReportAlert(title: "Usage report copied", detail: "Copied to clipboard and saved to Application Support.")
+            appendLog("usage report copied path=\(reportURL.path)")
+        } catch {
+            showReportAlert(title: "Usage report copied", detail: "Copied to clipboard. File save failed: \(error.localizedDescription)")
+            appendLog("usage report save failed=\(error.localizedDescription)")
+        }
+    }
+
+    private func showReportAlert(title: String, detail: String) {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = detail
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
     }
 
     @objc private func openCodexApp() {
@@ -2019,6 +2142,116 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func quotaHistoryValues(_ samples: [HistorySample], _ keyPath: KeyPath<HistorySample, Int?>) -> [Int] {
         samples.compactMap { $0[keyPath: keyPath] }
+    }
+
+    private func usageReportSummary(samples: [HistorySample], status: ServiceStatus?) -> UsageReportSummary? {
+        let usable = samples.filter { sample in
+            historyDate(sample) != nil && (sample.fiveHourLeft != nil || sample.sevenDayLeft != nil)
+        }
+        guard usable.count >= 2 else {
+            return nil
+        }
+        return UsageReportSummary(
+            windowLabel: "24h",
+            firstFiveHourLeft: firstValue(in: usable, \.fiveHourLeft),
+            latestFiveHourLeft: latestValue(in: usable, \.fiveHourLeft),
+            firstSevenDayLeft: firstValue(in: usable, \.sevenDayLeft),
+            latestSevenDayLeft: latestValue(in: usable, \.sevenDayLeft),
+            largestFiveHourDrop: largestDrop(in: quotaHistoryValues(usable, \.fiveHourLeft)),
+            largestSevenDayDrop: largestDrop(in: quotaHistoryValues(usable, \.sevenDayLeft)),
+            sourceCounts: sourceCounts(in: usable, status: status),
+            generatedAt: Date()
+        )
+    }
+
+    private func usageReportText(samples: [HistorySample], status: ServiceStatus?) -> String? {
+        guard let summary = usageReportSummary(samples: samples, status: status) else {
+            return nil
+        }
+        return [
+            "# Codex Gauge Usage Report",
+            "",
+            "Generated: \(reportDateString(summary.generatedAt))",
+            "Window: \(summary.windowLabel)",
+            "Current source: \(sourceDisplayName(status?.source))",
+            "",
+            "## Quota movement estimate",
+            movementLine(label: "5-hour", first: summary.firstFiveHourLeft, latest: summary.latestFiveHourLeft, largestDrop: summary.largestFiveHourDrop),
+            movementLine(label: "7-day", first: summary.firstSevenDayLeft, latest: summary.latestSevenDayLeft, largestDrop: summary.largestSevenDayDrop),
+            "",
+            "## Source mix",
+            sourceCountsText(summary.sourceCounts),
+            "",
+            "## Limitations",
+            "This report estimates quota movement from local snapshots.",
+            "It is not token accounting, billing, or spend.",
+        ].joined(separator: "\n")
+    }
+
+    private func firstValue(in samples: [HistorySample], _ keyPath: KeyPath<HistorySample, Int?>) -> Int? {
+        samples.compactMap { $0[keyPath: keyPath] }.first
+    }
+
+    private func latestValue(in samples: [HistorySample], _ keyPath: KeyPath<HistorySample, Int?>) -> Int? {
+        samples.compactMap { $0[keyPath: keyPath] }.last
+    }
+
+    private func largestDrop(in values: [Int]) -> Int? {
+        guard values.count >= 2 else {
+            return nil
+        }
+        let drops = zip(values, values.dropFirst()).map { previous, current in
+            max(0, previous - current)
+        }
+        return drops.max()
+    }
+
+    private func movementLine(label: String, first: Int?, latest: Int?, largestDrop: Int?) -> String {
+        guard let first, let latest else {
+            return "- \(label): unavailable"
+        }
+        let delta = latest - first
+        let sign = delta > 0 ? "+" : ""
+        return "- \(label): \(first)% -> \(latest)% (\(sign)\(delta)%), largest observed drop \(largestDrop ?? 0)%"
+    }
+
+    private func sourceCounts(in samples: [HistorySample], status: ServiceStatus?) -> [String: Int] {
+        var counts = Dictionary(grouping: samples, by: \.source).mapValues { $0.count }
+        if let source = status?.source, counts[source] == nil {
+            counts[source] = 0
+        }
+        return counts
+    }
+
+    private func sourceCountsText(_ counts: [String: Int]) -> String {
+        if counts.isEmpty {
+            return "- none"
+        }
+        return counts.keys.sorted().map { key in
+            "- \(sourceDisplayName(key)): \(counts[key] ?? 0)"
+        }.joined(separator: "\n")
+    }
+
+    private func sourceDisplayName(_ source: String?) -> String {
+        switch source {
+        case "live":
+            return "Live"
+        case "last_live":
+            return "Last live"
+        case "local_snapshot":
+            return "Snapshot"
+        case .some(let value):
+            return value.replacingOccurrences(of: "_", with: " ").capitalized
+        case nil:
+            return "Unavailable"
+        }
+    }
+
+    private func reportDateString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 
     private func trendSummary() -> String {

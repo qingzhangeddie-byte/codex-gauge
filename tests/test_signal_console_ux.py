@@ -60,7 +60,7 @@ class SignalConsoleUXTests(unittest.TestCase):
             "Quota",
             "Reset",
             "Trend",
-            "Doctor",
+            "Health",
             "Diagnostics",
             "5-hour trend",
             "7-day trend",
@@ -77,8 +77,39 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("drawTrendSparkline", source)
         self.assertIn("signalConsoleModel", source)
         self.assertIn("runSetupDoctorChecks()", source)
+        self.assertNotIn('drawSectionLabel("Doctor"', source)
         self.assertNotIn('"5-hour  (last 48)"', source)
         self.assertNotIn('"7-day  (last 48)"', source)
+
+    def test_signal_console_has_command_center_sections(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for label in [
+            "Based on",
+            "Usage Report",
+            "24h quota summary",
+            "Generate",
+            "Health",
+            "Copy Safe Diagnostics...",
+        ]:
+            self.assertIn(f'"{label}"', source)
+        self.assertIn("drawTrendContext", source)
+        self.assertIn("drawReportSection", source)
+        self.assertIn("drawHealthSection", source)
+        self.assertIn("healthSummaryText", source)
+        self.assertIn("generateUsageReport", source)
+
+    def test_usage_report_is_safe_and_honest(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("Codex Gauge Usage Report", source)
+        self.assertIn("Quota movement estimate", source)
+        self.assertIn("This report estimates quota movement from local snapshots.", source)
+        self.assertIn("It is not token accounting, billing, or spend.", source)
+        self.assertIn("CodexGauge-usage-report.md", source)
+        self.assertIn("NSPasteboard.general", source)
+        self.assertNotIn("promptText", source)
+        self.assertNotIn("responseText", source)
 
     def test_native_app_stores_bounded_safe_history(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
