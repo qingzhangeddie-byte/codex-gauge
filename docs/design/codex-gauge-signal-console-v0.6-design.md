@@ -43,7 +43,7 @@ Order:
    - `Open Codex to refresh live usage`
 3. Quota rows for 5-hour and 7-day windows when values are available.
 4. Reset rows for 5-hour and 7-day reset timing.
-5. Trend row from recent local samples, e.g. `Trend: 5h -8% in 1h - 7d stable`.
+5. Trend row from recent local samples, e.g. `Trend: 5h -8% this window - 7d stable in 24h`.
 6. Doctor summary row with the worst current check state and a `Run Check` action.
 7. Actions: `Refresh Now`, `Setup Doctor`, `Preferences`, `Copy Diagnostics`, support folder, quit.
 
@@ -76,9 +76,9 @@ Store a bounded local history in Application Support. Keep only lightweight reco
 
 Rules:
 
-- Keep at most 48 samples.
+- Keep at most 720 samples and prune records older than 48 hours.
 - Do not store prompts, responses, session paths, auth data, cookies, or logs.
-- Use the history only for trend copy and future local reports.
+- Use the history only for trend copy and future local reports. The Signal Console shows 5-hour movement within the current reset window and 7-day movement over the last 24 hours.
 - If history is missing or too sparse, show `Trend: collecting samples`.
 
 ## Reset Highlight
@@ -132,7 +132,7 @@ Add static and behavioral tests for:
 - Source-state copy for live, last-live, snapshot, unavailable.
 - Unavailable state not drawing stale percentages.
 - Setup Doctor check labels and safe status categories.
-- History storage bounded to 48 samples and containing only allowed fields.
+- History storage bounded to 720 samples / 48 hours and containing only allowed fields.
 - Diagnostics export excluding blocked private/auth/log/session content.
 - Preferences includes Test Refresh, Setup Doctor, and Copy Diagnostics.
 - Release check still passes.

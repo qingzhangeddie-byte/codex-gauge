@@ -252,14 +252,14 @@ private final class SignalConsolePanelView: NSView {
 
     private func drawTrendSection() {
         drawSectionLabel("Trend", y: 402)
-        drawTrendRow(label: "5-hour  (last 48)", text: model.fiveHourTrendText, values: model.fiveHourHistory, y: 398)
-        drawTrendRow(label: "7-day  (last 48)", text: model.sevenDayTrendText, values: model.sevenDayHistory, y: 438)
+        drawTrendRow(label: "5-hour trend", text: model.fiveHourTrendText, values: model.fiveHourHistory, y: 398)
+        drawTrendRow(label: "7-day trend", text: model.sevenDayTrendText, values: model.sevenDayHistory, y: 438)
     }
 
     private func drawTrendRow(label: String, text: String, values: [Int], y: CGFloat) {
         drawText(label, x: 158, y: y - 3, width: 150, height: 22, size: 14, weight: .regular, color: textPrimary)
-        drawText(text, x: 320, y: y - 3, width: 110, height: 22, size: 13, weight: .regular, color: textSecondary)
-        drawTrendSparkline(values: values, rect: NSRect(x: 440, y: y - 6, width: 132, height: 30))
+        drawText(text, x: 314, y: y - 3, width: 132, height: 22, size: 13, weight: .regular, color: textSecondary)
+        drawTrendSparkline(values: values, rect: NSRect(x: 456, y: y - 6, width: 116, height: 30))
         drawPill(text: values.isEmpty ? "--" : deltaPill(values), rect: NSRect(x: 586, y: y - 7, width: 34, height: 24), color: NSColor.white.withAlphaComponent(0.07))
     }
 
@@ -549,7 +549,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let failureRefreshInterval: TimeInterval = 60
     private let moodAnimationFrameLimit = 8
     private let maxRuntimeLogBytes: UInt64 = 512 * 1024
-    private let maxHistorySamples = 48
+    private let maxHistorySamples = 720
+    private let historyRetentionWindow: TimeInterval = 48 * 60 * 60
     private let statusItemWidth: CGFloat = 196
     private let statusImageSize = NSSize(width: 190, height: 22)
     private let signalPopoverSize = NSSize(width: 640, height: 750)
@@ -684,14 +685,17 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func signalConsoleModel() -> SignalConsoleModel {
         let samples = readHistorySamples()
-        let fiveHourHistory = samples.compactMap(\.fiveHourLeft)
-        let sevenDayHistory = samples.compactMap(\.sevenDayLeft)
         let doctorChecks = runSetupDoctorChecks()
+        let now = Date()
 
         if let snapshot {
             let status = snapshot.codex
             let unavailable = isUnavailableStatus(status)
             let title = signalStateTitle(status)
+            let fiveHourSamples = currentFiveHourWindowSamples(from: samples, resetEpoch: status.fiveHourReset, now: now)
+            let sevenDaySamples = historySamples(since: now.addingTimeInterval(-24 * 60 * 60), from: samples)
+            let fiveHourHistory = quotaHistoryValues(fiveHourSamples, \.fiveHourLeft)
+            let sevenDayHistory = quotaHistoryValues(sevenDaySamples, \.sevenDayLeft)
             return SignalConsoleModel(
                 planName: status.ok ? planTitle(status) : "Codex Gauge",
                 sourcePill: "Source: Menu Bar",
@@ -707,8 +711,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 sevenDayResetProgress: unavailable ? nil : resetProgressPercent(epoch: status.sevenDayReset, windowHours: 24 * 7),
                 fiveHourHistory: fiveHourHistory,
                 sevenDayHistory: sevenDayHistory,
-                fiveHourTrendText: trendText(values: fiveHourHistory),
-                sevenDayTrendText: trendText(values: sevenDayHistory),
+                fiveHourTrendText: trendText(values: fiveHourHistory, suffix: "this window"),
+                sevenDayTrendText: trendText(values: sevenDayHistory, suffix: "in 24h"),
                 doctorChecks: doctorChecks,
                 lastRefreshText: shortTime(status.dataTime ?? snapshot.updatedAt),
                 source: status.source,
@@ -718,6 +722,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
 
         let detail = lastError == nil ? "Live data is unavailable until Codex is open." : clipped(lastError ?? "", limit: 96)
+        let fiveHourSamples = currentFiveHourWindowSamples(from: samples, resetEpoch: nil, now: now)
+        let sevenDaySamples = historySamples(since: now.addingTimeInterval(-24 * 60 * 60), from: samples)
+        let fiveHourHistory = quotaHistoryValues(fiveHourSamples, \.fiveHourLeft)
+        let sevenDayHistory = quotaHistoryValues(sevenDaySamples, \.sevenDayLeft)
         return SignalConsoleModel(
             planName: "Codex Gauge",
             sourcePill: "Source: Menu Bar",
@@ -733,8 +741,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             sevenDayResetProgress: nil,
             fiveHourHistory: fiveHourHistory,
             sevenDayHistory: sevenDayHistory,
-            fiveHourTrendText: trendText(values: fiveHourHistory),
-            sevenDayTrendText: trendText(values: sevenDayHistory),
+            fiveHourTrendText: trendText(values: fiveHourHistory, suffix: "this window"),
+            sevenDayTrendText: trendText(values: sevenDayHistory, suffix: "in 24h"),
             doctorChecks: doctorChecks,
             lastRefreshText: "none",
             source: nil,
@@ -759,16 +767,16 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func trendText(values: [Int]) -> String {
+    private func trendText(values: [Int], suffix: String) -> String {
         guard values.count >= 2, let first = values.first, let last = values.last else {
             return "No data"
         }
         let delta = last - first
         if abs(delta) < 2 {
-            return "Stable"
+            return "Stable \(suffix)"
         }
         let sign = delta > 0 ? "+" : ""
-        return "\(sign)\(delta)%"
+        return "\(sign)\(delta)% \(suffix)"
     }
 
     @objc private func refreshNow() {
@@ -1932,8 +1940,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             sevenDayLeft: status.sevenDayLeft
         )
         var samples = readHistorySamples()
+        if let latest = samples.last,
+           latest.time == sample.time,
+           latest.source == sample.source,
+           latest.fiveHourLeft == sample.fiveHourLeft,
+           latest.sevenDayLeft == sample.sevenDayLeft {
+            return
+        }
         samples.append(sample)
-        samples = Array(samples.suffix(maxHistorySamples))
+        samples = retainedHistorySamples(samples)
         do {
             let data = try JSONEncoder().encode(samples)
             try FileManager.default.createDirectory(
@@ -1953,32 +1968,88 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         else {
             return []
         }
-        return Array(samples.suffix(maxHistorySamples))
+        return retainedHistorySamples(samples)
+    }
+
+    private func retainedHistorySamples(_ samples: [HistorySample], now: Date = Date()) -> [HistorySample] {
+        let cutoff = now.addingTimeInterval(-historyRetentionWindow)
+        let recent = samples.filter { sample in
+            guard let date = historyDate(sample) else {
+                return false
+            }
+            return date >= cutoff
+        }
+        return Array(recent.suffix(maxHistorySamples))
+    }
+
+    private func historyDate(_ sample: HistorySample) -> Date? {
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let plain = ISO8601DateFormatter()
+        plain.formatOptions = [.withInternetDateTime]
+        return fractional.date(from: sample.time) ?? plain.date(from: sample.time)
+    }
+
+    private func historySamples(since start: Date, from samples: [HistorySample]) -> [HistorySample] {
+        samples.filter { sample in
+            guard let date = historyDate(sample) else {
+                return false
+            }
+            return date >= start
+        }
+    }
+
+    private func currentFiveHourWindowSamples(from samples: [HistorySample], resetEpoch: Double?, now: Date) -> [HistorySample] {
+        let fallbackStart = now.addingTimeInterval(-5 * 60 * 60)
+        guard let resetEpoch else {
+            return historySamples(since: fallbackStart, from: samples)
+        }
+        let resetDate = Date(timeIntervalSince1970: resetEpoch)
+        let start = resetDate.addingTimeInterval(-5 * 60 * 60)
+        guard resetDate > now, start <= now else {
+            return historySamples(since: fallbackStart, from: samples)
+        }
+        return samples.filter { sample in
+            guard let date = historyDate(sample) else {
+                return false
+            }
+            return date >= start && date <= now
+        }
+    }
+
+    private func quotaHistoryValues(_ samples: [HistorySample], _ keyPath: KeyPath<HistorySample, Int?>) -> [Int] {
+        samples.compactMap { $0[keyPath: keyPath] }
     }
 
     private func trendSummary() -> String {
         let samples = readHistorySamples()
-        guard samples.count >= 2 else {
+        let now = Date()
+        let fiveHourHistory = quotaHistoryValues(
+            currentFiveHourWindowSamples(from: samples, resetEpoch: snapshot?.codex.fiveHourReset, now: now),
+            \.fiveHourLeft
+        )
+        let sevenDayHistory = quotaHistoryValues(
+            historySamples(since: now.addingTimeInterval(-24 * 60 * 60), from: samples),
+            \.sevenDayLeft
+        )
+        guard fiveHourHistory.count >= 2 || sevenDayHistory.count >= 2 else {
             return "Trend: collecting samples"
         }
-        guard let first = samples.first, let latest = samples.last else {
-            return "Trend: collecting samples"
-        }
-        let five = deltaText(label: "5h", first: first.fiveHourLeft, latest: latest.fiveHourLeft)
-        let seven = deltaText(label: "7d", first: first.sevenDayLeft, latest: latest.sevenDayLeft)
+        let five = deltaText(label: "5h", values: fiveHourHistory, suffix: "this window")
+        let seven = deltaText(label: "7d", values: sevenDayHistory, suffix: "in 24h")
         return "Trend: \(five) - \(seven)"
     }
 
-    private func deltaText(label: String, first: Int?, latest: Int?) -> String {
-        guard let first, let latest else {
+    private func deltaText(label: String, values: [Int], suffix: String) -> String {
+        guard values.count >= 2, let first = values.first, let latest = values.last else {
             return "\(label) collecting"
         }
         let delta = latest - first
         if abs(delta) < 2 {
-            return "\(label) stable"
+            return "\(label) stable \(suffix)"
         }
         let sign = delta > 0 ? "+" : ""
-        return "\(label) \(sign)\(delta)%"
+        return "\(label) \(sign)\(delta)% \(suffix)"
     }
 
     private func appendLog(_ value: String) {

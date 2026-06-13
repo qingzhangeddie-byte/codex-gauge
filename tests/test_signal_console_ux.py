@@ -62,8 +62,10 @@ class SignalConsoleUXTests(unittest.TestCase):
             "Trend",
             "Doctor",
             "Diagnostics",
-            "5-hour  (last 48)",
-            "7-day  (last 48)",
+            "5-hour trend",
+            "7-day trend",
+            "this window",
+            "in 24h",
             "Run Check...",
             "Copy Safe Diagnostics...",
             "Open Codex",
@@ -75,15 +77,22 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("drawTrendSparkline", source)
         self.assertIn("signalConsoleModel", source)
         self.assertIn("runSetupDoctorChecks()", source)
+        self.assertNotIn('"5-hour  (last 48)"', source)
+        self.assertNotIn('"7-day  (last 48)"', source)
 
     def test_native_app_stores_bounded_safe_history(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         self.assertIn("CodexGauge-history.json", source)
-        self.assertIn("maxHistorySamples = 48", source)
+        self.assertIn("maxHistorySamples = 720", source)
+        self.assertIn("historyRetentionWindow: TimeInterval = 48 * 60 * 60", source)
         self.assertIn("appendHistorySample", source)
         self.assertIn("trendSummary", source)
         self.assertIn("HistorySample", source)
+        self.assertIn("historyDate", source)
+        self.assertIn("historySamples(since:", source)
+        self.assertIn("currentFiveHourWindowSamples", source)
+        self.assertIn("24 * 60 * 60", source)
         self.assertIn("fiveHourLeft", source)
         self.assertIn("sevenDayLeft", source)
         self.assertNotIn("promptText", source)
