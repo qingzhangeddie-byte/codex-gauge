@@ -155,6 +155,17 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertNotIn("drawBottomCommands", source)
         self.assertNotIn("signalPopoverSize = NSSize(width: 640, height: 750)", source)
 
+    def test_quota_movement_uses_semantic_colors(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("trendBarColor(value:", source)
+        self.assertIn("trendDeltaPillColor(values:", source)
+        self.assertIn("drawPill(text: values.isEmpty ? \"--\" : deltaPill(values), rect: NSRect(x: 226, y: y - 3, width: 26, height: 22), color: trendDeltaPillColor(values: values))", source)
+        self.assertIn("let color = trendBarColor(value: value).withAlphaComponent(alpha)", source)
+        self.assertIn("return quotaColor(value)", source)
+        self.assertIn("return coralSoft", source)
+        self.assertIn("return mintSoft", source)
+
     def test_usage_report_is_safe_and_honest(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 

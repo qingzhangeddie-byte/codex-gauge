@@ -297,7 +297,7 @@ private final class SignalConsolePanelView: NSView {
         drawText(label, x: 36, y: y - 3, width: 30, height: 20, size: 13, weight: .bold, color: textPrimary, mono: true)
         drawText(shortTrendText(text), x: 76, y: y - 2, width: 62, height: 18, size: 10, weight: .regular, color: textSecondary)
         drawTrendSparkline(values: values, rect: NSRect(x: 136, y: y - 8, width: 84, height: 28))
-        drawPill(text: values.isEmpty ? "--" : deltaPill(values), rect: NSRect(x: 226, y: y - 3, width: 26, height: 22), color: NSColor.white.withAlphaComponent(0.07))
+        drawPill(text: values.isEmpty ? "--" : deltaPill(values), rect: NSRect(x: 226, y: y - 3, width: 26, height: 22), color: trendDeltaPillColor(values: values))
     }
 
     private func drawReportSection() {
@@ -345,8 +345,28 @@ private final class SignalConsolePanelView: NSView {
             let height = max(2, rect.height * CGFloat(max(0, min(100, value))) / 100)
             let x = rect.minX + CGFloat(index) * (barWidth + gap)
             let bar = NSRect(x: x, y: rect.maxY - height, width: barWidth, height: height)
-            drawRoundedRect(bar, radius: 1, fill: NSColor.white.withAlphaComponent(0.18), stroke: nil)
+            let alpha = 0.22 + 0.18 * CGFloat(index + 1) / CGFloat(shown.count)
+            let color = trendBarColor(value: value).withAlphaComponent(alpha)
+            drawRoundedRect(bar, radius: 1, fill: color, stroke: nil)
         }
+    }
+
+    private func trendBarColor(value: Int) -> NSColor {
+        return quotaColor(value)
+    }
+
+    private func trendDeltaPillColor(values: [Int]) -> NSColor {
+        guard let first = values.first, let last = values.last else {
+            return NSColor.white.withAlphaComponent(0.07)
+        }
+        let delta = last - first
+        if delta <= -2 {
+            return coralSoft
+        }
+        if delta >= 2 {
+            return mintSoft
+        }
+        return NSColor.white.withAlphaComponent(0.07)
     }
 
     private func drawSectionLabel(_ text: String, y: CGFloat) {
