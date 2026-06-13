@@ -285,6 +285,18 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn('return "steady"', source)
         self.assertIn('return "collecting"', source)
 
+    def test_quota_movement_delta_badges_do_not_look_like_buttons(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("private func trendDeltaText(_ values: [Int]) -> String", source)
+        self.assertIn('return "stable"', source)
+        self.assertIn('return delta > 0 ? "+\\(delta)%" : "\\(delta)%"', source)
+        self.assertIn("drawTrendDeltaText(values: values", source)
+        self.assertIn("private func drawTrendDeltaText(values: [Int], y: CGFloat)", source)
+        self.assertIn("textMuted", source)
+        self.assertNotIn('drawPill(text: values.isEmpty ? "--" : deltaPill(values)', source)
+        self.assertNotIn("private func deltaPill(_ values: [Int])", source)
+
     def test_signal_console_has_clear_codex_closed_empty_state(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
@@ -310,12 +322,12 @@ class SignalConsoleUXTests(unittest.TestCase):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         self.assertIn("trendBarColor(value:", source)
-        self.assertIn("trendDeltaPillColor(values:", source)
-        self.assertIn("drawPill(text: values.isEmpty ? \"--\" : deltaPill(values), rect: NSRect(x: 226, y: y - 3, width: 26, height: 22), color: trendDeltaPillColor(values: values))", source)
+        self.assertIn("trendDeltaTextColor(values:", source)
+        self.assertIn("drawTrendDeltaText(values: values, y: y)", source)
         self.assertIn("let color = trendBarColor(value: value).withAlphaComponent(alpha)", source)
         self.assertIn("return quotaColor(value)", source)
-        self.assertIn("return coralSoft", source)
-        self.assertIn("return mintSoft", source)
+        self.assertIn("return coralAccent", source)
+        self.assertIn("return mintAccent", source)
 
     def test_usage_report_is_safe_and_honest(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()

@@ -654,7 +654,22 @@ private final class SignalConsolePanelView: NSView {
         let signalText = "\(label) \(trendSignalText(values: values, fallback: text))"
         drawText(signalText, x: 36, y: y - 2, width: 96, height: 18, size: 11, weight: .bold, color: trendSignalColor(values: values), mono: true)
         drawTrendSparkline(values: values, rect: NSRect(x: 136, y: y - 8, width: 84, height: 28))
-        drawPill(text: values.isEmpty ? "--" : deltaPill(values), rect: NSRect(x: 226, y: y - 3, width: 26, height: 22), color: trendDeltaPillColor(values: values))
+        drawTrendDeltaText(values: values, y: y)
+    }
+
+    private func drawTrendDeltaText(values: [Int], y: CGFloat) {
+        let text = trendDeltaText(values)
+        drawText(
+            text,
+            x: 222,
+            y: y,
+            width: 42,
+            height: 16,
+            size: text.count > 6 ? 7.8 : 9.5,
+            weight: .semibold,
+            color: trendDeltaTextColor(values: values),
+            mono: true
+        )
     }
 
     private func drawReportSection() {
@@ -734,18 +749,18 @@ private final class SignalConsolePanelView: NSView {
         return quotaColor(value)
     }
 
-    private func trendDeltaPillColor(values: [Int]) -> NSColor {
+    private func trendDeltaTextColor(values: [Int]) -> NSColor {
         guard let first = values.first, let last = values.last else {
-            return theme.commandButtonBackground
+            return textMuted
         }
         let delta = last - first
         if delta <= -2 {
-            return coralSoft
+            return coralAccent
         }
         if delta >= 2 {
-            return mintSoft
+            return mintAccent
         }
-        return theme.commandButtonBackground
+        return textMuted
     }
 
     private func drawSectionLabel(_ text: String, y: CGFloat) {
@@ -1011,15 +1026,15 @@ private final class SignalConsolePanelView: NSView {
         return CGFloat(max(0, min(100, value))) / 100
     }
 
-    private func deltaPill(_ values: [Int]) -> String {
+    private func trendDeltaText(_ values: [Int]) -> String {
         guard let first = values.first, let last = values.last else {
-            return "--"
+            return "collecting"
         }
         let delta = last - first
         if abs(delta) < 2 {
-            return "-"
+            return "stable"
         }
-        return delta > 0 ? "+\(delta)" : "\(delta)"
+        return delta > 0 ? "+\(delta)%" : "\(delta)%"
     }
 
     private func quotaColor(_ value: Int?) -> NSColor {

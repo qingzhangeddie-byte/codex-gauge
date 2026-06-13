@@ -8,6 +8,27 @@ Codex Gauge 是一个**简单、安全的 Codex 菜单栏额度仪表**，用于
 
 它是非官方本地工具，重点不是做大而全的 dashboard，而是把最常看的信息放到菜单栏：现在还剩多少 Codex。它也可以理解为一个本地的 Codex rate limit tracker，关注 5 小时窗口、7 天额度和重置时间。
 
+不用再猜自己还剩多少 Codex。
+
+Codex Gauge 会把 Codex 5 小时额度、7 天额度、重置倒计时和数据来源直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态。
+
+打开一次 Codex 后保持 Codex Gauge 运行，菜单栏就会自动刷新，不需要额外设置浏览器或复制登录信息。
+
+不读取浏览器 Cookie，不读取 `~/.codex/auth.json`，不记录 prompt 或 response 内容。
+
+从源码安装只需要一条命令：
+
+```bash
+bash install.sh
+```
+
+它和其他工具最大的不同：
+
+- 只做一件事：让 Codex 额度一眼可见。
+- 菜单栏优先，只有点开时才显示更完整的 Signal Console。
+- 清楚标注 Live、Last live、Snapshot 和 Codex closed 状态。
+- 诊断和报告都只在本地生成，避免复制私人的 prompt、session 或日志内容。
+
 ## 核心特点
 
 - 菜单栏同时显示 5 小时和 7 天额度

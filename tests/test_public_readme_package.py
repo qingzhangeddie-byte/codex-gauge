@@ -43,6 +43,24 @@ class PublicReadmePackageTests(unittest.TestCase):
         ]:
             self.assertIn(phrase, readme)
 
+    def test_readme_front_page_explains_value_before_feature_list(self):
+        readme = pathlib.Path("README.md").read_text(encoding="utf-8")
+
+        for phrase in [
+            "Stop guessing how much Codex you have left.",
+            "Codex Gauge puts your 5-hour and 7-day quota directly in the macOS menu bar",
+            "Open Codex once, keep Codex Gauge running, and the menu bar refreshes hands-free.",
+            "No browser cookies. No `~/.codex/auth.json`. No prompt or response logging.",
+            "Install from source with one command:",
+            "bash install.sh",
+            "What makes it different",
+            "Built for one job: Codex quota at a glance.",
+        ]:
+            self.assertIn(phrase, readme)
+
+        self.assertLess(readme.index("Stop guessing how much Codex you have left."), readme.index("## What You Get"))
+        self.assertLess(readme.index("Install from source with one command:"), readme.index("## What You Get"))
+
     def test_readme_has_line_by_line_chinese_explanation(self):
         readme = pathlib.Path("README.md").read_text(encoding="utf-8")
 

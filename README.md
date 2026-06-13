@@ -9,6 +9,33 @@
 
 **A simple, safe macOS menu bar app to check Codex usage, track the Codex 5-hour limit, and watch your Codex 7-day quota at a glance.**
 
+Stop guessing how much Codex you have left.
+
+Codex Gauge puts your 5-hour and 7-day quota directly in the macOS menu bar, with reset countdowns, live-source labels, and a compact Signal Console when you need more detail.
+
+Codex Gauge 会把 Codex 5 小时额度、7 天额度、重置倒计时和数据来源直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态。
+
+Open Codex once, keep Codex Gauge running, and the menu bar refreshes hands-free.
+
+打开一次 Codex 后保持 Codex Gauge 运行，菜单栏就会自动刷新，不需要额外设置浏览器或复制登录信息。
+
+No browser cookies. No `~/.codex/auth.json`. No prompt or response logging.
+
+不读取浏览器 Cookie，不读取 `~/.codex/auth.json`，不记录 prompt 或 response 内容。
+
+Install from source with one command:
+
+```bash
+bash install.sh
+```
+
+What makes it different:
+
+- Built for one job: Codex quota at a glance.
+- Native menu bar first, detailed Signal Console only when you click.
+- Clear labels for Live, Last live, Snapshot, and Codex closed states.
+- Local-only diagnostics and reports, designed to avoid private prompt/session content.
+
 Codex Gauge is an **Unofficial** macOS menu bar app for people who use Codex heavily and want a Codex rate limit tracker that stays local.
 
 Codex Gauge 是一个**非官方** macOS 菜单栏工具，适合频繁使用 Codex、想要本地查看 Codex rate limit 的用户。
