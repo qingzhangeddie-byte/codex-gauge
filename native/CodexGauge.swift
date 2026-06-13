@@ -119,16 +119,16 @@ private func signalDarkTheme() -> SignalConsoleTheme {
         name: "Signal Dark",
         appearance: .darkAqua,
         material: .hudWindow,
-        panelBackground: NSColor(calibratedRed: 0.03, green: 0.07, blue: 0.10, alpha: 0.86),
-        panelStrongBackground: NSColor(calibratedRed: 0.07, green: 0.13, blue: 0.18, alpha: 0.88),
-        panelSoftBackground: NSColor.white.withAlphaComponent(0.055),
-        panelBorder: NSColor(calibratedRed: 0.68, green: 0.81, blue: 0.92, alpha: 0.18),
+        panelBackground: NSColor(calibratedRed: 0.03, green: 0.07, blue: 0.10, alpha: 1.0),
+        panelStrongBackground: NSColor(calibratedRed: 0.07, green: 0.13, blue: 0.18, alpha: 1.0),
+        panelSoftBackground: NSColor.white.withAlphaComponent(0.075),
+        panelBorder: NSColor(calibratedRed: 0.68, green: 0.81, blue: 0.92, alpha: 0.30),
         textPrimary: NSColor(calibratedRed: 0.93, green: 0.97, blue: 1.00, alpha: 0.96),
-        textSecondary: NSColor(calibratedRed: 0.66, green: 0.73, blue: 0.80, alpha: 0.90),
-        textMuted: NSColor(calibratedRed: 0.41, green: 0.48, blue: 0.56, alpha: 0.78),
+        textSecondary: NSColor(calibratedRed: 0.82, green: 0.89, blue: 0.94, alpha: 0.98),
+        textMuted: NSColor(calibratedRed: 0.62, green: 0.70, blue: 0.76, alpha: 0.92),
         buttonPrimaryText: NSColor(calibratedRed: 0.03, green: 0.07, blue: 0.10, alpha: 1.0),
-        secondaryButtonBackground: NSColor.white.withAlphaComponent(0.08),
-        commandButtonBackground: NSColor.white.withAlphaComponent(0.045),
+        secondaryButtonBackground: NSColor.white.withAlphaComponent(0.12),
+        commandButtonBackground: NSColor.white.withAlphaComponent(0.08),
         trackFill: NSColor.white.withAlphaComponent(0.12),
         baselineStroke: NSColor.white.withAlphaComponent(0.16),
         mintAccent: NSColor(calibratedRed: 0.31, green: 0.94, blue: 0.68, alpha: 0.96),
@@ -169,8 +169,8 @@ private func paperConsoleTheme() -> SignalConsoleTheme {
         name: "Paper Console",
         appearance: .aqua,
         material: .popover,
-        panelBackground: NSColor(calibratedRed: 0.94, green: 0.92, blue: 0.86, alpha: 0.94),
-        panelStrongBackground: NSColor(calibratedRed: 0.99, green: 0.98, blue: 0.94, alpha: 0.96),
+        panelBackground: NSColor(calibratedRed: 0.94, green: 0.92, blue: 0.86, alpha: 1.0),
+        panelStrongBackground: NSColor(calibratedRed: 0.99, green: 0.98, blue: 0.94, alpha: 1.0),
         panelSoftBackground: NSColor(calibratedRed: 0.15, green: 0.20, blue: 0.18, alpha: 0.055),
         panelBorder: NSColor(calibratedRed: 0.10, green: 0.16, blue: 0.14, alpha: 0.18),
         textPrimary: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.96),
@@ -219,16 +219,16 @@ private func monoGraphiteTheme() -> SignalConsoleTheme {
         name: "Mono Graphite",
         appearance: .darkAqua,
         material: .hudWindow,
-        panelBackground: monoAccent(0.05, alpha: 0.92),
-        panelStrongBackground: monoAccent(0.12, alpha: 0.92),
-        panelSoftBackground: monoAccent(1.00, alpha: 0.055),
-        panelBorder: monoAccent(1.00, alpha: 0.17),
+        panelBackground: monoAccent(0.05, alpha: 1.0),
+        panelStrongBackground: monoAccent(0.12, alpha: 1.0),
+        panelSoftBackground: monoAccent(1.00, alpha: 0.075),
+        panelBorder: monoAccent(1.00, alpha: 0.30),
         textPrimary: monoAccent(0.94, alpha: 0.96),
-        textSecondary: monoAccent(0.70, alpha: 0.90),
-        textMuted: monoAccent(0.48, alpha: 0.82),
+        textSecondary: monoAccent(0.82, alpha: 0.98),
+        textMuted: monoAccent(0.64, alpha: 0.92),
         buttonPrimaryText: monoAccent(0.05),
-        secondaryButtonBackground: monoAccent(1.00, alpha: 0.08),
-        commandButtonBackground: monoAccent(1.00, alpha: 0.045),
+        secondaryButtonBackground: monoAccent(1.00, alpha: 0.12),
+        commandButtonBackground: monoAccent(1.00, alpha: 0.08),
         trackFill: monoAccent(1.00, alpha: 0.12),
         baselineStroke: monoAccent(1.00, alpha: 0.16),
         mintAccent: monoAccent(0.86, alpha: 0.96),
@@ -419,7 +419,7 @@ private final class SignalConsolePanelView: NSView {
         let rect = bounds.insetBy(dx: 1, dy: 1)
         let background = NSBezierPath(roundedRect: rect, xRadius: 18, yRadius: 18)
         NSGradient(colors: [
-            theme.trackFill.withAlphaComponent(0.32),
+            panelStrongBackground,
             panelBackground,
         ])?.draw(in: background, angle: 90)
         panelBorder.setStroke()
@@ -1206,7 +1206,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let theme = currentSignalConsoleTheme()
         let visual = NSVisualEffectView(frame: NSRect(origin: .zero, size: signalPopoverSize))
         visual.material = theme.material
-        visual.blendingMode = .behindWindow
+        visual.blendingMode = .withinWindow
         visual.state = .active
         visual.appearance = NSAppearance(named: theme.appearance)
         visual.wantsLayer = true

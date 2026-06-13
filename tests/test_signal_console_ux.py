@@ -182,6 +182,30 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn('drawText("window", x: rect.minX + 14, y: rect.minY + 35, width: 48, height: 14, size: 8, weight: .bold, color: textSecondary)', source)
         self.assertIn('drawText("reset", x: rect.minX + 288, y: rect.minY + 12, width: 34, height: 16, size: 10, weight: .medium, color: textSecondary)', source)
 
+    def test_all_themes_use_opaque_panel_backgrounds(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for phrase in [
+            "panelBackground: NSColor(calibratedRed: 0.03, green: 0.07, blue: 0.10, alpha: 1.0)",
+            "panelStrongBackground: NSColor(calibratedRed: 0.07, green: 0.13, blue: 0.18, alpha: 1.0)",
+            "panelBackground: NSColor(calibratedRed: 0.94, green: 0.92, blue: 0.86, alpha: 1.0)",
+            "panelStrongBackground: NSColor(calibratedRed: 0.99, green: 0.98, blue: 0.94, alpha: 1.0)",
+            "panelBackground: monoAccent(0.05, alpha: 1.0)",
+            "panelStrongBackground: monoAccent(0.12, alpha: 1.0)",
+        ]:
+            self.assertIn(phrase, source)
+        self.assertIn("visual.blendingMode = .withinWindow", source)
+        self.assertIn("NSGradient(colors: [\n            panelStrongBackground,\n            panelBackground,", source)
+        self.assertNotIn("theme.trackFill.withAlphaComponent(0.32)", source)
+
+    def test_dark_themes_keep_secondary_text_readable(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("textSecondary: NSColor(calibratedRed: 0.82, green: 0.89, blue: 0.94, alpha: 0.98)", source)
+        self.assertIn("textMuted: NSColor(calibratedRed: 0.62, green: 0.70, blue: 0.76, alpha: 0.92)", source)
+        self.assertIn("textSecondary: monoAccent(0.82, alpha: 0.98)", source)
+        self.assertIn("textMuted: monoAccent(0.64, alpha: 0.92)", source)
+
     def test_signal_console_is_compact_and_avoids_control_overlap(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
