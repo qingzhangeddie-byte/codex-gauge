@@ -1,7 +1,7 @@
 # Codex Gauge Signal Console UX Design
 
 Date: 2026-06-13
-Status: Design selected, awaiting implementation approval
+Status: Implemented in v0.6.0
 Selected visual: `docs/design/codex-gauge-signal-console-v0.6.png`
 
 ## Goal
@@ -10,10 +10,10 @@ Codex Gauge should explain what the user is seeing when Codex live usage is unav
 
 ## Selected Direction
 
-Use the **Signal Console** direction as the visual target. It keeps the app compact and native, but makes the dropdown feel like a small control center:
+Use the **Signal Console** direction as the visual target. It keeps the app compact and native, but makes the click surface feel like a small control center:
 
 - Menu bar remains the primary surface.
-- Dropdown explains data source, trend, doctor status, and diagnostics.
+- A custom dark popover explains data source, trend, doctor status, and diagnostics.
 - Stalled/offline states use plain copy instead of fake percentages.
 - Colors stay functional: teal for live, amber for cached/waiting, blue for snapshot, graphite for unavailable, red only for hard failure.
 
@@ -23,16 +23,16 @@ The existing four-signal gauge remains the default live state.
 
 States:
 
-- **Live**: current compact two-row gauge with normal quota bars and reset mood lanes.
+- **Live**: compact two-row gauge with segmented quota rails, source rail, and reset mood lanes.
 - **Last live**: same layout, amber source marker, slightly dimmed numbers, tooltip `Codex not reachable - showing last live`.
 - **Snapshot**: same layout, blue source marker, cooler tint, tooltip `Codex closed - showing recent local snapshot`.
 - **Unavailable / Stalled**: replace quota numbers with `--`, use grey rails, amber edge marker, and tooltip `Open Codex to refresh live usage`.
 
 The unavailable state must not display old percentages. If there is no usable live, last-live, or fresh snapshot data, the menu bar should clearly read as waiting/offline.
 
-## Dropdown Layout
+## Popover Layout
 
-The dropdown should be compact and grouped by purpose, with lightweight separators rather than card-heavy sections.
+The popover should be compact and grouped by purpose, with lightweight separators rather than card-heavy sections.
 
 Order:
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.6.0 - 2026-06-13
+
+- Implemented the Signal Console UX direction for clearer Live, Last live, Snapshot, and unavailable states.
+- Reworked the live menu bar gauge with segmented signal rails and a source rail so the new UI is visible even when Codex data is healthy.
+- Replaced the plain dropdown menu with a custom dark Signal Console popover showing status, quota, reset timing, trend, doctor checks, diagnostics, and actions.
+- Added an explicit unavailable menu bar state that says to open Codex instead of showing stale percentages.
+- Added source explanations, bounded local trend history, Setup Doctor, and safe diagnostics copy.
+- Polished Preferences with Test Refresh, Setup Doctor, and Copy Diagnostics controls.
+
 ## v0.5.0 - 2026-06-13
 
 - Added a native Preferences window for refresh cadence, opt-in quota notifications, and LaunchAgent login control.

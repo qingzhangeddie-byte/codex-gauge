@@ -1,0 +1,135 @@
+import pathlib
+import unittest
+
+
+class SignalConsoleUXTests(unittest.TestCase):
+    def test_native_app_has_signal_console_source_state_copy(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("sourceStatusTitle", source)
+        self.assertIn("sourceStatusDetail", source)
+        self.assertIn('"Live data is current"', source)
+        self.assertIn('"Showing last live cache"', source)
+        self.assertIn('"Showing recent local snapshot"', source)
+        self.assertIn('"Open Codex to refresh live usage"', source)
+        self.assertIn('"Codex not reachable - showing last live"', source)
+        self.assertIn('"Codex closed - showing recent local snapshot"', source)
+
+    def test_native_app_draws_unavailable_stalled_menu_bar_state(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("drawUnavailableGauge", source)
+        self.assertIn("isUnavailableStatus", source)
+        self.assertIn('"Open Codex"', source)
+        self.assertIn('"--"', source)
+        self.assertIn("unavailableSourceColor", source)
+        self.assertIn("setStatusImage(title: \"Open Codex to refresh live usage\")", source)
+        self.assertIn("makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil", source)
+
+    def test_native_app_draws_distinct_live_signal_console(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("signalRailSegments = 10", source)
+        self.assertIn("drawSignalSourceRail", source)
+        self.assertIn("drawSegmentedQuotaRail", source)
+        self.assertIn("drawSignalSegmentedRail", source)
+        self.assertIn("drawQuotaRail(value: quotaLeft", source)
+        self.assertIn("drawSignalSourceRail(source: source", source)
+
+    def test_native_app_uses_custom_signal_console_popover(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("NSPopover", source)
+        self.assertIn("signalPopover", source)
+        self.assertIn("toggleSignalConsole", source)
+        self.assertIn("makeSignalConsoleViewController", source)
+        self.assertIn("SignalConsolePanelView", source)
+        self.assertIn("NSVisualEffectView", source)
+        self.assertIn("popover.behavior = .transient", source)
+        self.assertIn("popover.show(relativeTo: button.bounds", source)
+        self.assertIn("button.action = #selector(toggleSignalConsole", source)
+        self.assertNotIn("statusItem.menu = menu", source)
+
+    def test_signal_console_popover_matches_selected_sections(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for label in [
+            "Codex Gauge  •  Signal Console",
+            "Source: Menu Bar",
+            "Status",
+            "Quota",
+            "Reset",
+            "Trend",
+            "Doctor",
+            "Diagnostics",
+            "5-hour  (last 48)",
+            "7-day  (last 48)",
+            "Run Check...",
+            "Copy Safe Diagnostics...",
+            "Open Codex",
+            "Quit Codex Gauge",
+        ]:
+            self.assertIn(f'"{label}"', source)
+        self.assertIn("drawSignalConsolePanel", source)
+        self.assertIn("drawSignalHeroCard", source)
+        self.assertIn("drawTrendSparkline", source)
+        self.assertIn("signalConsoleModel", source)
+        self.assertIn("runSetupDoctorChecks()", source)
+
+    def test_native_app_stores_bounded_safe_history(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("CodexGauge-history.json", source)
+        self.assertIn("maxHistorySamples = 48", source)
+        self.assertIn("appendHistorySample", source)
+        self.assertIn("trendSummary", source)
+        self.assertIn("HistorySample", source)
+        self.assertIn("fiveHourLeft", source)
+        self.assertIn("sevenDayLeft", source)
+        self.assertNotIn("promptText", source)
+        self.assertNotIn("responseText", source)
+
+    def test_native_app_has_setup_doctor_and_safe_diagnostics(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("openSetupDoctor", source)
+        self.assertIn("runSetupDoctorChecks", source)
+        self.assertIn('"Setup Doctor"', source)
+        for label in [
+            "Codex app found",
+            "Helper works",
+            "Live data available",
+            "LaunchAgent running",
+            "Notifications permission",
+        ]:
+            self.assertIn(label, source)
+
+        self.assertIn("copyDiagnostics", source)
+        self.assertIn("safeDiagnosticsText", source)
+        self.assertIn('"Copy Diagnostics"', source)
+        self.assertIn('"Test Refresh"', source)
+        for blocked in [
+            "browser cookies",
+            "~/.codex/auth.json",
+            "Session file contents",
+            "Runtime logs",
+        ]:
+            self.assertIn(blocked, source)
+
+    def test_signal_console_docs_are_public_safe(self):
+        spec = pathlib.Path("docs/design/codex-gauge-signal-console-v0.6-design.md").read_text()
+        image = pathlib.Path("docs/design/codex-gauge-signal-console-v0.6.png")
+        plan = pathlib.Path("docs/design/codex-gauge-signal-console-v0.6-implementation-plan.md").read_text()
+
+        self.assertTrue(image.exists())
+        self.assertLess(image.stat().st_size, 2_000_000)
+        self.assertIn("Signal Console", spec)
+        self.assertIn("Open Codex to refresh live usage", spec)
+        self.assertIn("Do not store prompts", spec)
+        self.assertIn("Do not push", plan)
+        self.assertNotIn("/Users/", spec + plan)
+        self.assertNotIn("bustawind", (spec + plan).lower())
+
+
+if __name__ == "__main__":
+    unittest.main()

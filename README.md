@@ -25,14 +25,20 @@ Search phrases this project is designed to answer naturally: **check Codex usage
 
 - Compact menu bar gauge for Codex 5-hour and 7-day quota  
   菜单栏紧凑显示 Codex 5 小时额度和 7 天额度
-- Dropdown detail view with reset timing and last refresh time  
-  下拉菜单显示额度重置时间和上次刷新时间
+- Segmented live signal rails make quota health readable in the menu bar without widening the app
+  分段信号条让菜单栏里的额度健康状态更直观，同时不增加占用宽度
+- Custom Signal Console popover with status, quota, reset timing, trend, doctor checks, diagnostics, and actions
+  自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口；下拉菜单显示额度重置时间和上次刷新时间
 - Adaptive refresh: 5 minutes normally, 3 minutes when low, 2 minutes when critical, 1 minute after transient errors  
   自适应刷新：正常 5 分钟，额度偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
 - Preferences for Adaptive, 5-minute, or 10-minute refresh plus launch-at-login control
   偏好设置支持自适应、5 分钟、10 分钟刷新，也可以控制是否登录时启动
 - Opt-in notifications for low 5-hour quota, restored quota, and prolonged non-live data
   可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
+- Signal Console states explain Live, Last live, Snapshot, and unavailable data directly in the popover
+  Signal Console 会在弹出面板解释 Live、Last live、Snapshot 和不可用状态
+- Setup Doctor and Copy Diagnostics help debug local setup without copying prompts, cookies, auth files, or logs
+  Setup Doctor 和 Copy Diagnostics 可帮助排查本地设置，但不会复制 prompts、Cookie、auth 文件或日志
 - Self-contained app bundle with its helper inside `Contents/Resources`  
   自包含 App bundle，helper 打包在 `Contents/Resources` 内
 - User LaunchAgent keeps the installed menu bar app resident without browser-cookie access  
@@ -56,9 +62,9 @@ The four signals are 5-hour quota left, 5-hour reset countdown, 7-day quota left
 
 四个信号分别是 5 小时额度剩余、5 小时重置倒计时、7 天额度剩余、7 天重置倒计时。
 
-Quota rails keep the green-to-red health scale; reset lanes move from red through coral and orange into warm yellow.
+Quota rails use segmented signal cells with a green-to-red health scale; reset lanes move from red through coral and orange into warm yellow.
 
-额度条保留绿色到红色的健康刻度；重置轨道从红色过渡到珊瑚色、橙色，最后变成温暖黄色。
+额度条使用分段信号格，并保留绿色到红色的健康刻度；重置轨道从红色过渡到珊瑚色、橙色，最后变成温暖黄色。
 
 The tiny vector face slides right and morphs from frown to smile as reset approaches, so countdown reads as time movement instead of danger.
 
@@ -113,6 +119,9 @@ The generated zip includes `CodexGauge.app`, `Install Codex Gauge.command`, and 
 | Refresh behavior | Adaptive refresh instead of constant polling: 5 minutes normally, 3 minutes when low, 2 minutes when critical, with quick retry after transient errors |
 | Preferences | Built-in refresh cadence, notifications, and launch-at-login controls |
 | Notifications | Opt-in alerts for the moments users actually care about |
+| Signal Console | Explains whether data is live, cached, snapshot-based, or unavailable |
+| Setup Doctor | Local checks for Codex app, helper, live data, LaunchAgent, and notifications |
+| Diagnostics | Safe copy-only diagnostics that exclude prompts, cookies, auth files, session contents, and logs |
 | Reset timing | Reset timing is visible in the dropdown |
 | Setup | Local clone, one install command, no network-piped shell script |
 

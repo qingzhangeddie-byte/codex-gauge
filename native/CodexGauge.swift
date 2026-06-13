@@ -22,6 +22,19 @@ private struct ServiceStatus: Decodable {
     let error: String?
 }
 
+private struct HistorySample: Codable {
+    let time: String
+    let source: String
+    let fiveHourLeft: Int?
+    let sevenDayLeft: Int?
+}
+
+private struct DoctorCheck {
+    let title: String
+    let state: String
+    let detail: String
+}
+
 private struct GaugePalette {
     let background: NSColor
     let border: NSColor
@@ -32,12 +45,491 @@ private struct GaugePalette {
     let mutedText: NSColor
 }
 
+private struct SignalConsoleModel {
+    let planName: String
+    let sourcePill: String
+    let stateTitle: String
+    let stateDetail: String
+    let statusTitle: String
+    let statusDetail: String
+    let fiveHourLeft: Int?
+    let sevenDayLeft: Int?
+    let fiveHourResetText: String
+    let sevenDayResetText: String
+    let fiveHourResetProgress: Int?
+    let sevenDayResetProgress: Int?
+    let fiveHourHistory: [Int]
+    let sevenDayHistory: [Int]
+    let fiveHourTrendText: String
+    let sevenDayTrendText: String
+    let doctorChecks: [DoctorCheck]
+    let lastRefreshText: String
+    let source: String?
+    let isUnavailable: Bool
+    let isRefreshing: Bool
+}
+
+private final class SignalConsolePanelView: NSView {
+    private let model: SignalConsoleModel
+    private weak var target: AnyObject?
+    private let runCheckAction: Selector
+    private let copyDiagnosticsAction: Selector
+    private let openCodexAction: Selector
+    private let refreshAction: Selector
+    private let preferencesAction: Selector
+    private let quitAction: Selector
+
+    override var isFlipped: Bool {
+        true
+    }
+
+    init(
+        frame frameRect: NSRect,
+        model: SignalConsoleModel,
+        target: AnyObject,
+        runCheckAction: Selector,
+        copyDiagnosticsAction: Selector,
+        openCodexAction: Selector,
+        refreshAction: Selector,
+        preferencesAction: Selector,
+        quitAction: Selector
+    ) {
+        self.model = model
+        self.target = target
+        self.runCheckAction = runCheckAction
+        self.copyDiagnosticsAction = copyDiagnosticsAction
+        self.openCodexAction = openCodexAction
+        self.refreshAction = refreshAction
+        self.preferencesAction = preferencesAction
+        self.quitAction = quitAction
+        super.init(frame: frameRect)
+        wantsLayer = true
+        layer?.backgroundColor = NSColor.clear.cgColor
+        addSignalConsoleButtons()
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        drawSignalConsolePanel()
+    }
+
+    private func addSignalConsoleButtons() {
+        addButton(title: "Run Check...", frame: NSRect(x: 518, y: 498, width: 90, height: 28), action: runCheckAction, style: .filled)
+        addButton(title: "Copy", frame: NSRect(x: 548, y: 628, width: 60, height: 30), action: copyDiagnosticsAction, style: .icon)
+        addButton(title: "Open Codex", frame: NSRect(x: 28, y: 678, width: 160, height: 30), action: openCodexAction, style: .plain)
+        addButton(title: "Refresh Now", frame: NSRect(x: 200, y: 678, width: 150, height: 30), action: refreshAction, style: .plain)
+        addButton(title: "Preferences...", frame: NSRect(x: 362, y: 678, width: 150, height: 30), action: preferencesAction, style: .plain)
+        addButton(title: "Quit Codex Gauge", frame: NSRect(x: 28, y: 716, width: 220, height: 30), action: quitAction, style: .plain)
+    }
+
+    private enum SignalButtonStyle {
+        case filled
+        case icon
+        case plain
+    }
+
+    private func addButton(title: String, frame: NSRect, action: Selector, style: SignalButtonStyle) {
+        let button = NSButton(title: title, target: target, action: action)
+        button.frame = frame
+        button.isBordered = false
+        button.wantsLayer = true
+        button.layer?.cornerRadius = style == .plain ? 7 : 8
+        button.layer?.backgroundColor = buttonBackground(style).cgColor
+        button.attributedTitle = NSAttributedString(
+            string: title,
+            attributes: textAttributes(
+                size: 13,
+                weight: style == .filled ? .medium : .regular,
+                color: style == .plain ? textPrimary : textSecondary
+            )
+        )
+        addSubview(button)
+    }
+
+    private func buttonBackground(_ style: SignalButtonStyle) -> NSColor {
+        switch style {
+        case .filled:
+            return NSColor.white.withAlphaComponent(0.10)
+        case .icon:
+            return NSColor.white.withAlphaComponent(0.12)
+        case .plain:
+            return NSColor.clear
+        }
+    }
+
+    private func drawSignalConsolePanel() {
+        drawPanelBackground()
+        drawHeader()
+        drawSignalHeroCard()
+        drawDivider(y: 144)
+        drawStatusSection()
+        drawDivider(y: 211)
+        drawQuotaSection()
+        drawDivider(y: 296)
+        drawResetSection()
+        drawDivider(y: 374)
+        drawTrendSection()
+        drawDivider(y: 482)
+        drawDoctorSection()
+        drawDivider(y: 614)
+        drawDiagnosticsSection()
+        drawDivider(y: 668)
+        drawBottomKeyHints()
+    }
+
+    private func drawPanelBackground() {
+        let rect = bounds.insetBy(dx: 1, dy: 1)
+        let background = NSBezierPath(roundedRect: rect, xRadius: 18, yRadius: 18)
+        panelBackground.setFill()
+        background.fill()
+        panelBorder.setStroke()
+        background.lineWidth = 1
+        background.stroke()
+    }
+
+    private func drawHeader() {
+        drawText("Codex Gauge  •  Signal Console", x: 28, y: 20, width: 320, height: 24, size: 14, weight: .medium, color: textSecondary)
+        drawPill(text: model.sourcePill, rect: NSRect(x: 462, y: 16, width: 132, height: 28), color: NSColor.white.withAlphaComponent(0.08))
+        drawCircle(center: NSPoint(x: 614, y: 30), radius: 10, color: NSColor.white.withAlphaComponent(0.08), stroke: panelBorder)
+        drawText("i", x: 610, y: 20, width: 10, height: 20, size: 13, weight: .medium, color: textSecondary)
+    }
+
+    private func drawSignalHeroCard() {
+        let card = NSRect(x: 28, y: 54, width: bounds.width - 56, height: 74)
+        drawRoundedRect(card, radius: 10, fill: cardBackground, stroke: panelBorder)
+        drawMiniGaugeRow(label: "5h", value: model.fiveHourLeft, resetProgress: model.fiveHourResetProgress, y: 73)
+        drawMiniGaugeRow(label: "7d", value: model.sevenDayLeft, resetProgress: model.sevenDayResetProgress, y: 101)
+
+        let stateColor = sourceColor(source: model.source, unavailable: model.isUnavailable)
+        drawText(model.stateTitle, x: 456, y: 72, width: 128, height: 22, size: 16, weight: .medium, color: stateColor)
+        drawText(model.stateDetail, x: 456, y: 98, width: 130, height: 22, size: 14, weight: .regular, color: textPrimary)
+        drawCircle(center: NSPoint(x: 602, y: 91), radius: 7, color: stateColor, stroke: nil)
+        drawRoundedRect(NSRect(x: 615, y: 70, width: 2, height: 42), radius: 1, fill: stateColor, stroke: nil)
+    }
+
+    private func drawMiniGaugeRow(label: String, value: Int?, resetProgress: Int?, y: CGFloat) {
+        drawText(label, x: 44, y: y - 11, width: 30, height: 22, size: 15, weight: .bold, color: textPrimary, mono: true)
+        drawSegmentedRail(value: value, rect: NSRect(x: 86, y: y - 2, width: 126, height: 8), fill: quotaColor(value), segments: 10)
+        drawText(percentText(value), x: 232, y: y - 11, width: 52, height: 22, size: 14, weight: .medium, color: value == nil ? textMuted : textPrimary, mono: true)
+        drawMoodLane(value: resetProgress, rect: NSRect(x: 324, y: y - 2, width: 104, height: 8))
+    }
+
+    private func drawStatusSection() {
+        drawSectionLabel("Status", y: 166)
+        let color = sourceColor(source: model.source, unavailable: model.isUnavailable)
+        drawCircle(center: NSPoint(x: 164, y: 178), radius: 5, color: color, stroke: nil)
+        drawText(model.statusTitle, x: 178, y: 164, width: 250, height: 22, size: 14, weight: .medium, color: textPrimary)
+        drawText(model.statusDetail, x: 178, y: 188, width: 380, height: 22, size: 13, weight: .regular, color: textSecondary)
+        if model.isRefreshing {
+            drawPill(text: "Refreshing", rect: NSRect(x: 512, y: 164, width: 88, height: 26), color: NSColor.white.withAlphaComponent(0.08))
+        }
+    }
+
+    private func drawQuotaSection() {
+        drawSectionLabel("Quota", y: 238)
+        drawQuotaRow(label: "5-hour", value: model.fiveHourLeft, y: 232)
+        drawQuotaRow(label: "7-day", value: model.sevenDayLeft, y: 264)
+    }
+
+    private func drawQuotaRow(label: String, value: Int?, y: CGFloat) {
+        drawText(label, x: 158, y: y - 3, width: 84, height: 22, size: 14, weight: .regular, color: textPrimary)
+        drawText(value.map { "\($0) / 100" } ?? "-- / --", x: 258, y: y - 3, width: 80, height: 22, size: 14, weight: .medium, color: value == nil ? textMuted : textPrimary, mono: true)
+        drawSegmentedRail(value: value, rect: NSRect(x: 356, y: y, width: 220, height: 18), fill: quotaColor(value), segments: 12)
+        drawText(value == nil ? "Unavailable" : "Live", x: 590, y: y - 3, width: 60, height: 22, size: 13, weight: .regular, color: value == nil ? textMuted : textSecondary)
+    }
+
+    private func drawResetSection() {
+        drawSectionLabel("Reset", y: 318)
+        drawText("5-hour resets in", x: 158, y: 314, width: 140, height: 22, size: 14, weight: .regular, color: textPrimary)
+        drawText(model.fiveHourResetText, x: 330, y: 314, width: 120, height: 22, size: 14, weight: .medium, color: resetTextColor(model.fiveHourResetText), mono: true)
+        drawText("7-day resets", x: 158, y: 344, width: 140, height: 22, size: 14, weight: .regular, color: textPrimary)
+        drawText(model.sevenDayResetText, x: 330, y: 344, width: 140, height: 22, size: 14, weight: .medium, color: resetTextColor(model.sevenDayResetText), mono: true)
+    }
+
+    private func drawTrendSection() {
+        drawSectionLabel("Trend", y: 402)
+        drawTrendRow(label: "5-hour  (last 48)", text: model.fiveHourTrendText, values: model.fiveHourHistory, y: 398)
+        drawTrendRow(label: "7-day  (last 48)", text: model.sevenDayTrendText, values: model.sevenDayHistory, y: 438)
+    }
+
+    private func drawTrendRow(label: String, text: String, values: [Int], y: CGFloat) {
+        drawText(label, x: 158, y: y - 3, width: 150, height: 22, size: 14, weight: .regular, color: textPrimary)
+        drawText(text, x: 320, y: y - 3, width: 110, height: 22, size: 13, weight: .regular, color: textSecondary)
+        drawTrendSparkline(values: values, rect: NSRect(x: 440, y: y - 6, width: 132, height: 30))
+        drawPill(text: values.isEmpty ? "--" : deltaPill(values), rect: NSRect(x: 586, y: y - 7, width: 34, height: 24), color: NSColor.white.withAlphaComponent(0.07))
+    }
+
+    private func drawDoctorSection() {
+        drawSectionLabel("Doctor", y: 510)
+        let rows = model.doctorChecks.prefix(5)
+        for (index, check) in rows.enumerated() {
+            let y = 500 + CGFloat(index) * 22
+            let color = doctorColor(check.state)
+            drawCircle(center: NSPoint(x: 164, y: y + 10), radius: 5, color: color, stroke: nil)
+            drawText(check.title, x: 178, y: y, width: 190, height: 20, size: 13, weight: .regular, color: textPrimary)
+            drawText(doctorDetailText(check.detail), x: 410, y: y, width: 100, height: 20, size: 13, weight: .regular, color: textSecondary)
+        }
+    }
+
+    private func drawDiagnosticsSection() {
+        drawSectionLabel("Diagnostics", y: 635)
+        drawText("Copy Safe Diagnostics...", x: 158, y: 628, width: 220, height: 22, size: 13, weight: .regular, color: textPrimary)
+        drawText("Includes: version, source, last error, LaunchAgent state.", x: 158, y: 650, width: 350, height: 20, size: 11, weight: .regular, color: textMuted)
+    }
+
+    private func drawBottomKeyHints() {
+        drawText("⌘O", x: 584, y: 681, width: 40, height: 22, size: 12, weight: .regular, color: textMuted)
+        drawText("⌘Q", x: 584, y: 719, width: 40, height: 22, size: 12, weight: .regular, color: textMuted)
+    }
+
+    private func drawTrendSparkline(values: [Int], rect: NSRect) {
+        let baseline = NSBezierPath()
+        baseline.move(to: NSPoint(x: rect.minX, y: rect.midY + 6))
+        baseline.line(to: NSPoint(x: rect.maxX, y: rect.midY + 6))
+        baseline.lineWidth = 1
+        baseline.setLineDash([5, 5], count: 2, phase: 0)
+        NSColor.white.withAlphaComponent(0.16).setStroke()
+        baseline.stroke()
+
+        guard !values.isEmpty else {
+            return
+        }
+        let shown = Array(values.suffix(24))
+        let gap: CGFloat = 2
+        let barWidth = max(2, (rect.width - gap * CGFloat(shown.count - 1)) / CGFloat(shown.count))
+        for (index, value) in shown.enumerated() {
+            let height = max(2, rect.height * CGFloat(max(0, min(100, value))) / 100)
+            let x = rect.minX + CGFloat(index) * (barWidth + gap)
+            let bar = NSRect(x: x, y: rect.maxY - height, width: barWidth, height: height)
+            drawRoundedRect(bar, radius: 1, fill: NSColor.white.withAlphaComponent(0.18), stroke: nil)
+        }
+    }
+
+    private func drawSectionLabel(_ text: String, y: CGFloat) {
+        drawText(text, x: 28, y: y, width: 92, height: 24, size: 15, weight: .semibold, color: textSecondary)
+    }
+
+    private func drawDivider(y: CGFloat) {
+        let path = NSBezierPath()
+        path.move(to: NSPoint(x: 28, y: y))
+        path.line(to: NSPoint(x: bounds.width - 28, y: y))
+        path.lineWidth = 1
+        panelBorder.setStroke()
+        path.stroke()
+    }
+
+    private func drawPill(text: String, rect: NSRect, color: NSColor) {
+        drawRoundedRect(rect, radius: rect.height / 2, fill: color, stroke: panelBorder.withAlphaComponent(0.42))
+        drawText(text, x: rect.minX + 10, y: rect.minY + 4, width: rect.width - 20, height: rect.height - 8, size: 12, weight: .regular, color: textSecondary)
+    }
+
+    private func drawSegmentedRail(value: Int?, rect: NSRect, fill: NSColor, segments: Int) {
+        let gap: CGFloat = 2
+        let segmentWidth = max(2, (rect.width - gap * CGFloat(segments - 1)) / CGFloat(segments))
+        let filled = Int(ceil(clamped(value) * CGFloat(segments)))
+        for index in 0..<segments {
+            let x = rect.minX + CGFloat(index) * (segmentWidth + gap)
+            let segmentRect = NSRect(x: x, y: rect.minY, width: segmentWidth, height: rect.height)
+            let color = index < filled ? fill : NSColor.white.withAlphaComponent(0.10)
+            drawRoundedRect(segmentRect, radius: min(3, rect.height / 2), fill: color, stroke: nil)
+        }
+    }
+
+    private func drawMoodLane(value: Int?, rect: NSRect) {
+        drawRoundedRect(rect, radius: rect.height / 2, fill: NSColor.white.withAlphaComponent(0.10), stroke: nil)
+        guard let value else {
+            drawCircle(center: NSPoint(x: rect.minX + 10, y: rect.midY), radius: 6, color: textMuted, stroke: nil)
+            return
+        }
+        let fraction = clamped(value)
+        let color = resetColor(value)
+        let markerX = rect.minX + (rect.width - 12) * fraction + 6
+        drawRoundedRect(NSRect(x: rect.minX, y: rect.minY, width: max(6, markerX - rect.minX), height: rect.height), radius: rect.height / 2, fill: color.withAlphaComponent(0.46), stroke: nil)
+        drawCircle(center: NSPoint(x: markerX, y: rect.midY), radius: 6, color: color, stroke: nil)
+        drawText(value < 35 ? "·" : "⌣", x: markerX - 4, y: rect.midY - 9, width: 8, height: 12, size: 10, weight: .bold, color: NSColor.black.withAlphaComponent(0.62))
+    }
+
+    private func drawRoundedRect(_ rect: NSRect, radius: CGFloat, fill: NSColor, stroke: NSColor?) {
+        let path = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
+        fill.setFill()
+        path.fill()
+        if let stroke {
+            stroke.setStroke()
+            path.lineWidth = 1
+            path.stroke()
+        }
+    }
+
+    private func drawCircle(center: NSPoint, radius: CGFloat, color: NSColor, stroke: NSColor?) {
+        let rect = NSRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
+        let path = NSBezierPath(ovalIn: rect)
+        color.setFill()
+        path.fill()
+        if let stroke {
+            stroke.setStroke()
+            path.lineWidth = 1
+            path.stroke()
+        }
+    }
+
+    private func drawText(
+        _ text: String,
+        x: CGFloat,
+        y: CGFloat,
+        width: CGFloat,
+        height: CGFloat,
+        size: CGFloat,
+        weight: NSFont.Weight,
+        color: NSColor,
+        mono: Bool = false
+    ) {
+        (text as NSString).draw(
+            in: NSRect(x: x, y: y, width: width, height: height),
+            withAttributes: textAttributes(size: size, weight: weight, color: color, mono: mono)
+        )
+    }
+
+    private func textAttributes(size: CGFloat, weight: NSFont.Weight, color: NSColor, mono: Bool = false) -> [NSAttributedString.Key: Any] {
+        [
+            .font: mono ? NSFont.monospacedDigitSystemFont(ofSize: size, weight: weight) : NSFont.systemFont(ofSize: size, weight: weight),
+            .foregroundColor: color,
+        ]
+    }
+
+    private func percentText(_ value: Int?) -> String {
+        value.map { "\($0)%" } ?? "--"
+    }
+
+    private func clamped(_ value: Int?) -> CGFloat {
+        guard let value else {
+            return 0
+        }
+        return CGFloat(max(0, min(100, value))) / 100
+    }
+
+    private func deltaPill(_ values: [Int]) -> String {
+        guard let first = values.first, let last = values.last else {
+            return "--"
+        }
+        let delta = last - first
+        if abs(delta) < 2 {
+            return "-"
+        }
+        return delta > 0 ? "+\(delta)" : "\(delta)"
+    }
+
+    private func quotaColor(_ value: Int?) -> NSColor {
+        guard let value else {
+            return textMuted
+        }
+        switch max(0, min(100, value)) {
+        case 0..<20:
+            return NSColor(calibratedRed: 0.92, green: 0.24, blue: 0.28, alpha: 0.96)
+        case 20..<45:
+            return NSColor(calibratedRed: 0.97, green: 0.49, blue: 0.25, alpha: 0.96)
+        case 45..<75:
+            return NSColor(calibratedRed: 0.91, green: 0.72, blue: 0.30, alpha: 0.96)
+        default:
+            return NSColor(calibratedRed: 0.22, green: 0.83, blue: 0.64, alpha: 0.96)
+        }
+    }
+
+    private func resetColor(_ value: Int) -> NSColor {
+        switch max(0, min(100, value)) {
+        case 0..<25:
+            return NSColor(calibratedRed: 0.85, green: 0.25, blue: 0.22, alpha: 0.95)
+        case 25..<55:
+            return NSColor(calibratedRed: 0.94, green: 0.43, blue: 0.24, alpha: 0.95)
+        case 55..<80:
+            return NSColor(calibratedRed: 0.98, green: 0.65, blue: 0.25, alpha: 0.95)
+        default:
+            return NSColor(calibratedRed: 1.00, green: 0.79, blue: 0.31, alpha: 0.95)
+        }
+    }
+
+    private func sourceColor(source: String?, unavailable: Bool) -> NSColor {
+        if unavailable {
+            return NSColor(calibratedRed: 1.00, green: 0.67, blue: 0.28, alpha: 1.0)
+        }
+        switch source {
+        case "last_live":
+            return NSColor(calibratedRed: 1.00, green: 0.67, blue: 0.28, alpha: 1.0)
+        case "local_snapshot":
+            return NSColor(calibratedRed: 0.42, green: 0.66, blue: 0.98, alpha: 1.0)
+        default:
+            return NSColor(calibratedRed: 0.28, green: 0.84, blue: 0.64, alpha: 1.0)
+        }
+    }
+
+    private func doctorColor(_ state: String) -> NSColor {
+        switch state {
+        case "green":
+            return NSColor(calibratedRed: 0.28, green: 0.76, blue: 0.46, alpha: 1.0)
+        case "amber":
+            return NSColor(calibratedRed: 1.00, green: 0.67, blue: 0.28, alpha: 1.0)
+        case "red":
+            return NSColor(calibratedRed: 0.92, green: 0.24, blue: 0.28, alpha: 1.0)
+        default:
+            return NSColor(calibratedRed: 0.47, green: 0.52, blue: 0.58, alpha: 1.0)
+        }
+    }
+
+    private func doctorDetailText(_ value: String) -> String {
+        switch value {
+        case "Installed in Applications":
+            return "Installed"
+        case "Bundled helper readable":
+            return "Bundled helper"
+        case "Live data is current":
+            return "Live data OK"
+        case "Optional, off by default":
+            return "Optional"
+        default:
+            return value
+        }
+    }
+
+    private func resetTextColor(_ value: String) -> NSColor {
+        value == "--" ? textMuted : textPrimary
+    }
+
+    private var panelBackground: NSColor {
+        NSColor(calibratedRed: 0.04, green: 0.08, blue: 0.12, alpha: 0.84)
+    }
+
+    private var cardBackground: NSColor {
+        NSColor.white.withAlphaComponent(0.055)
+    }
+
+    private var panelBorder: NSColor {
+        NSColor.white.withAlphaComponent(0.16)
+    }
+
+    private var textPrimary: NSColor {
+        NSColor(calibratedRed: 0.88, green: 0.93, blue: 1.00, alpha: 0.96)
+    }
+
+    private var textSecondary: NSColor {
+        NSColor(calibratedRed: 0.72, green: 0.78, blue: 0.88, alpha: 0.90)
+    }
+
+    private var textMuted: NSColor {
+        NSColor(calibratedRed: 0.54, green: 0.60, blue: 0.68, alpha: 0.78)
+    }
+}
+
 private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let menu = NSMenu()
+    private var signalPopover: NSPopover?
     private var timer: Timer?
     private var animationTimer: Timer?
     private var preferencesWindow: NSWindow?
+    private var setupDoctorWindow: NSWindow?
     private var refreshPopup: NSPopUpButton?
     private var notificationsCheckbox: NSButton?
     private var launchAtLoginCheckbox: NSButton?
@@ -50,16 +542,20 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var previousFiveHourLeft: Int?
     private var liveUnavailableSince: Date?
     private var didNotifyLiveUnavailable = false
+    private var resetHighlightUntil: Date?
     private let normalRefreshInterval: TimeInterval = 5 * 60
     private let watchRefreshInterval: TimeInterval = 3 * 60
     private let criticalRefreshInterval: TimeInterval = 2 * 60
     private let failureRefreshInterval: TimeInterval = 60
     private let moodAnimationFrameLimit = 8
     private let maxRuntimeLogBytes: UInt64 = 512 * 1024
+    private let maxHistorySamples = 48
     private let statusItemWidth: CGFloat = 196
     private let statusImageSize = NSSize(width: 190, height: 22)
+    private let signalPopoverSize = NSSize(width: 640, height: 750)
     private let quotaRailWidth: CGFloat = 51
     private let resetRailWidth: CGFloat = 34
+    private let signalRailSegments = 10
     private let codexCliBundlePath = "/Applications/Codex.app/Contents/Resources/codex"
     private let normalQuotaColor = NSColor(calibratedRed: 0.58, green: 1.00, blue: 0.89, alpha: 0.95)
     private let warningQuotaColor = NSColor(calibratedRed: 1.00, green: 0.74, blue: 0.34, alpha: 0.96)
@@ -72,6 +568,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let fiveHourResetMenuLabel = "5h resets"
     private let sevenDayResetMenuLabel = "7d resets"
     private let runtimeLogFileName = "CodexGauge-runtime.log"
+    private let historyFileName = "CodexGauge-history.json"
     private let launchAgentLabel = "app.codexgauge.menubar"
     private let launchAgentPlistName = "app.codexgauge.menubar.plist"
     private let refreshModeKey = "refreshMode"
@@ -88,10 +585,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private lazy var resourcesDir = Bundle.main.resourcePath ?? FileManager.default.currentDirectoryPath
     private lazy var supportDir = applicationSupportDirectory()
     private lazy var pythonPath = infoString("CodexGaugePythonPath", fallback: "/usr/bin/python3")
-    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.5.0")
+    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.6.0")
     private lazy var releaseURL = infoString("CodexGaugeReleaseURL", fallback: "https://github.com/qingzhangeddie-byte/codex-gauge/releases")
     private lazy var usagePath = resolveUsagePath()
     private lazy var logPath = "\(supportDir)/\(runtimeLogFileName)"
+    private lazy var historyPath = "\(supportDir)/\(historyFileName)"
     private lazy var launchAgentPlistPath = NSHomeDirectory() + "/Library/LaunchAgents/" + launchAgentPlistName
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -108,9 +606,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             button.imagePosition = .imageOnly
             button.imageScaling = .scaleNone
             button.toolTip = "Codex quota"
+            button.target = self
+            button.action = #selector(toggleSignalConsole(_:))
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
         setStatusImage(title: "Codex quota")
-        statusItem.menu = menu
         rebuildMenu()
         refresh()
     }
@@ -122,6 +622,153 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         allowTermination ? .terminateNow : .terminateCancel
+    }
+
+    @objc private func toggleSignalConsole(_ sender: Any?) {
+        if let signalPopover, signalPopover.isShown {
+            signalPopover.performClose(sender)
+            return
+        }
+        showSignalConsolePopover()
+    }
+
+    private func showSignalConsolePopover() {
+        guard let button = statusItem.button else {
+            return
+        }
+        let popover = signalPopover ?? NSPopover()
+        popover.behavior = .transient
+        popover.animates = true
+        popover.appearance = NSAppearance(named: .darkAqua)
+        popover.contentSize = signalPopoverSize
+        popover.contentViewController = makeSignalConsoleViewController()
+        signalPopover = popover
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func refreshSignalPopoverIfNeeded() {
+        guard let signalPopover, signalPopover.isShown else {
+            return
+        }
+        signalPopover.contentViewController = makeSignalConsoleViewController()
+    }
+
+    private func makeSignalConsoleViewController() -> NSViewController {
+        let controller = NSViewController()
+        let visual = NSVisualEffectView(frame: NSRect(origin: .zero, size: signalPopoverSize))
+        visual.material = .hudWindow
+        visual.blendingMode = .behindWindow
+        visual.state = .active
+        visual.wantsLayer = true
+        visual.layer?.cornerRadius = 18
+        visual.layer?.masksToBounds = true
+
+        let panel = SignalConsolePanelView(
+            frame: visual.bounds,
+            model: signalConsoleModel(),
+            target: self,
+            runCheckAction: #selector(openSetupDoctor),
+            copyDiagnosticsAction: #selector(copyDiagnostics),
+            openCodexAction: #selector(openCodexApp),
+            refreshAction: #selector(refreshNow),
+            preferencesAction: #selector(openPreferences),
+            quitAction: #selector(quit)
+        )
+        panel.autoresizingMask = [.width, .height]
+        visual.addSubview(panel)
+        controller.view = visual
+        controller.preferredContentSize = signalPopoverSize
+        return controller
+    }
+
+    private func signalConsoleModel() -> SignalConsoleModel {
+        let samples = readHistorySamples()
+        let fiveHourHistory = samples.compactMap(\.fiveHourLeft)
+        let sevenDayHistory = samples.compactMap(\.sevenDayLeft)
+        let doctorChecks = runSetupDoctorChecks()
+
+        if let snapshot {
+            let status = snapshot.codex
+            let unavailable = isUnavailableStatus(status)
+            let title = signalStateTitle(status)
+            return SignalConsoleModel(
+                planName: status.ok ? planTitle(status) : "Codex Gauge",
+                sourcePill: "Source: Menu Bar",
+                stateTitle: title.title,
+                stateDetail: title.detail,
+                statusTitle: sourceStatusTitle(status),
+                statusDetail: sourceStatusDetail(status),
+                fiveHourLeft: unavailable ? nil : status.fiveHourLeft,
+                sevenDayLeft: unavailable ? nil : status.sevenDayLeft,
+                fiveHourResetText: unavailable ? "--" : fiveHourResetCountdown(status.fiveHourReset),
+                sevenDayResetText: unavailable ? "--" : sevenDayResetCountdown(status.sevenDayReset),
+                fiveHourResetProgress: unavailable ? nil : resetProgressPercent(epoch: status.fiveHourReset, windowHours: 5),
+                sevenDayResetProgress: unavailable ? nil : resetProgressPercent(epoch: status.sevenDayReset, windowHours: 24 * 7),
+                fiveHourHistory: fiveHourHistory,
+                sevenDayHistory: sevenDayHistory,
+                fiveHourTrendText: trendText(values: fiveHourHistory),
+                sevenDayTrendText: trendText(values: sevenDayHistory),
+                doctorChecks: doctorChecks,
+                lastRefreshText: shortTime(status.dataTime ?? snapshot.updatedAt),
+                source: status.source,
+                isUnavailable: unavailable,
+                isRefreshing: isRefreshing
+            )
+        }
+
+        let detail = lastError == nil ? "Live data is unavailable until Codex is open." : clipped(lastError ?? "", limit: 96)
+        return SignalConsoleModel(
+            planName: "Codex Gauge",
+            sourcePill: "Source: Menu Bar",
+            stateTitle: "Codex closed",
+            stateDetail: "Open Codex",
+            statusTitle: "Open Codex to refresh live usage.",
+            statusDetail: detail,
+            fiveHourLeft: nil,
+            sevenDayLeft: nil,
+            fiveHourResetText: "--",
+            sevenDayResetText: "--",
+            fiveHourResetProgress: nil,
+            sevenDayResetProgress: nil,
+            fiveHourHistory: fiveHourHistory,
+            sevenDayHistory: sevenDayHistory,
+            fiveHourTrendText: trendText(values: fiveHourHistory),
+            sevenDayTrendText: trendText(values: sevenDayHistory),
+            doctorChecks: doctorChecks,
+            lastRefreshText: "none",
+            source: nil,
+            isUnavailable: true,
+            isRefreshing: isRefreshing
+        )
+    }
+
+    private func signalStateTitle(_ status: ServiceStatus) -> (title: String, detail: String) {
+        if isUnavailableStatus(status) {
+            return ("Codex closed", "Open Codex")
+        }
+        switch status.source {
+        case "last_live":
+            return ("Last live", "Cached")
+        case "local_snapshot":
+            return ("Snapshot", "Recent local")
+        case "live", nil:
+            return ("Live", "Current")
+        default:
+            return ("Snapshot", "Recent local")
+        }
+    }
+
+    private func trendText(values: [Int]) -> String {
+        guard values.count >= 2, let first = values.first, let last = values.last else {
+            return "No data"
+        }
+        let delta = last - first
+        if abs(delta) < 2 {
+            return "Stable"
+        }
+        let sign = delta > 0 ? "+" : ""
+        return "\(sign)\(delta)%"
     }
 
     @objc private func refreshNow() {
@@ -144,6 +791,24 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         window.center()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc private func openSetupDoctor() {
+        let window = makeSetupDoctorWindow()
+        setupDoctorWindow = window
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc private func copyDiagnostics() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(safeDiagnosticsText(), forType: .string)
+        appendLog("safe diagnostics copied")
+    }
+
+    @objc private func openCodexApp() {
+        NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications/Codex.app"))
     }
 
     @objc private func openSupportFolder() {
@@ -311,7 +976,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func makePreferencesWindow() -> NSWindow {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 380, height: 220),
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 300),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -319,20 +984,20 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         window.title = "Codex Gauge Preferences"
         window.isReleasedWhenClosed = false
 
-        let content = NSView(frame: NSRect(x: 0, y: 0, width: 380, height: 220))
+        let content = NSView(frame: NSRect(x: 0, y: 0, width: 420, height: 300))
         window.contentView = content
 
         let title = NSTextField(labelWithString: "Codex Gauge")
         title.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
-        title.frame = NSRect(x: 24, y: 174, width: 220, height: 24)
+        title.frame = NSRect(x: 24, y: 254, width: 220, height: 24)
         content.addSubview(title)
 
         let refreshLabel = NSTextField(labelWithString: "Refresh")
         refreshLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        refreshLabel.frame = NSRect(x: 24, y: 132, width: 96, height: 22)
+        refreshLabel.frame = NSRect(x: 24, y: 212, width: 96, height: 22)
         content.addSubview(refreshLabel)
 
-        let popup = NSPopUpButton(frame: NSRect(x: 132, y: 130, width: 180, height: 26), pullsDown: false)
+        let popup = NSPopUpButton(frame: NSRect(x: 132, y: 210, width: 180, height: 26), pullsDown: false)
         popup.addItems(withTitles: ["Adaptive", "5 minutes", "10 minutes"])
         popup.item(withTitle: "Adaptive")?.representedObject = adaptiveRefreshMode
         popup.item(withTitle: "5 minutes")?.representedObject = fiveMinuteRefreshMode
@@ -342,20 +1007,47 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         content.addSubview(popup)
         refreshPopup = popup
 
+        let notificationsLabel = NSTextField(labelWithString: "Notifications")
+        notificationsLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        notificationsLabel.frame = NSRect(x: 24, y: 168, width: 110, height: 22)
+        content.addSubview(notificationsLabel)
+
         let notifications = NSButton(checkboxWithTitle: "Quota notifications", target: self, action: #selector(notificationsPreferenceChanged))
-        notifications.frame = NSRect(x: 24, y: 88, width: 220, height: 24)
+        notifications.frame = NSRect(x: 132, y: 166, width: 220, height: 24)
         content.addSubview(notifications)
         notificationsCheckbox = notifications
 
+        let startupLabel = NSTextField(labelWithString: "Startup")
+        startupLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        startupLabel.frame = NSRect(x: 24, y: 128, width: 110, height: 22)
+        content.addSubview(startupLabel)
+
         let login = NSButton(checkboxWithTitle: "Launch at login", target: self, action: #selector(launchAtLoginPreferenceChanged))
-        login.frame = NSRect(x: 24, y: 58, width: 220, height: 24)
+        login.frame = NSRect(x: 132, y: 126, width: 220, height: 24)
         content.addSubview(login)
         launchAtLoginCheckbox = login
 
-        let footer = NSTextField(labelWithString: "Live, Last live, and Snapshot labels stay visible in the menu.")
+        let diagnosticsLabel = NSTextField(labelWithString: "Diagnostics")
+        diagnosticsLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        diagnosticsLabel.frame = NSRect(x: 24, y: 82, width: 110, height: 22)
+        content.addSubview(diagnosticsLabel)
+
+        let testRefresh = NSButton(title: "Test Refresh", target: self, action: #selector(refreshNow))
+        testRefresh.frame = NSRect(x: 132, y: 78, width: 92, height: 28)
+        content.addSubview(testRefresh)
+
+        let setupDoctor = NSButton(title: "Setup Doctor", target: self, action: #selector(openSetupDoctor))
+        setupDoctor.frame = NSRect(x: 230, y: 78, width: 108, height: 28)
+        content.addSubview(setupDoctor)
+
+        let diagnostics = NSButton(title: "Copy Diagnostics", target: self, action: #selector(copyDiagnostics))
+        diagnostics.frame = NSRect(x: 132, y: 46, width: 136, height: 28)
+        content.addSubview(diagnostics)
+
+        let footer = NSTextField(labelWithString: "Live, Last live, Snapshot, and unavailable labels stay visible in the menu.")
         footer.font = NSFont.systemFont(ofSize: 11)
         footer.textColor = .secondaryLabelColor
-        footer.frame = NSRect(x: 24, y: 20, width: 332, height: 18)
+        footer.frame = NSRect(x: 24, y: 18, width: 372, height: 18)
         content.addSubview(footer)
 
         return window
@@ -437,6 +1129,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 snapshot = decoded
                 lastError = nil
                 handleNotificationTransitions(decoded.codex)
+                appendHistorySample(decoded.codex)
                 setStatusImage(title: statusTooltipTitle(decoded), status: decoded.codex)
                 startMoodAnimation(for: decoded.codex)
                 appendLog("title=\(decoded.title) ok=\(decoded.codex.ok) source=\(decoded.codex.source ?? "") error=\(decoded.codex.error ?? "")")
@@ -444,7 +1137,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 snapshot = nil
                 lastError = "Could not parse status JSON: \(error.localizedDescription)"
                 stopMoodAnimation()
-                setStatusImage(title: "Codex quota unavailable")
+                setStatusImage(title: "Open Codex to refresh live usage")
                 appendLog("parse error=\(error.localizedDescription)")
             }
         } else {
@@ -452,7 +1145,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             stopMoodAnimation()
             let detail = errorOutput.isEmpty ? output : errorOutput
             lastError = detail.isEmpty ? "Status command exited with code \(status)" : clipped(detail, limit: 160)
-            setStatusImage(title: "Codex quota unavailable")
+            setStatusImage(title: "Open Codex to refresh live usage")
         }
         rebuildMenu()
         scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))
@@ -518,11 +1211,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 body: "Your 5-hour Codex quota just dropped below 10%."
             )
         } else if let previous = previousFiveHourLeft, previous < 10, current >= 90 {
+            resetHighlightUntil = Date().addingTimeInterval(180)
             postNotification(
                 identifier: fiveHourRestoredNotification,
                 title: "Codex 5-hour quota is back",
                 body: "Your 5-hour Codex quota has refreshed."
             )
+        } else if let previous = previousFiveHourLeft, current - previous >= 50 {
+            resetHighlightUntil = Date().addingTimeInterval(180)
         }
         previousFiveHourLeft = current
     }
@@ -549,6 +1245,112 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func makeSetupDoctorWindow() -> NSWindow {
+        let checks = runSetupDoctorChecks()
+        let rowHeight: CGFloat = 34
+        let height = 118 + CGFloat(checks.count) * rowHeight
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 440, height: height),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Setup Doctor"
+        window.isReleasedWhenClosed = false
+        let content = NSView(frame: NSRect(x: 0, y: 0, width: 440, height: height))
+        window.contentView = content
+
+        let title = NSTextField(labelWithString: "Setup Doctor")
+        title.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
+        title.frame = NSRect(x: 24, y: height - 42, width: 240, height: 24)
+        content.addSubview(title)
+
+        let subtitle = NSTextField(labelWithString: "Checks the local pieces Codex Gauge needs. No cookies, auth files, or logs are copied.")
+        subtitle.font = NSFont.systemFont(ofSize: 11)
+        subtitle.textColor = .secondaryLabelColor
+        subtitle.frame = NSRect(x: 24, y: height - 66, width: 392, height: 18)
+        content.addSubview(subtitle)
+
+        var y = height - 104
+        for check in checks {
+            let dot = NSView(frame: NSRect(x: 26, y: y + 9, width: 10, height: 10))
+            dot.wantsLayer = true
+            dot.layer?.backgroundColor = doctorStatusColor(check.state).cgColor
+            dot.layer?.cornerRadius = 5
+            content.addSubview(dot)
+
+            let label = NSTextField(labelWithString: check.title)
+            label.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+            label.frame = NSRect(x: 50, y: y + 12, width: 160, height: 17)
+            content.addSubview(label)
+
+            let detail = NSTextField(labelWithString: check.detail)
+            detail.font = NSFont.systemFont(ofSize: 12)
+            detail.textColor = .secondaryLabelColor
+            detail.frame = NSRect(x: 218, y: y + 11, width: 198, height: 18)
+            content.addSubview(detail)
+            y -= rowHeight
+        }
+
+        let refresh = NSButton(title: "Run Check", target: self, action: #selector(openSetupDoctor))
+        refresh.frame = NSRect(x: 24, y: 20, width: 94, height: 28)
+        content.addSubview(refresh)
+
+        let diagnostics = NSButton(title: "Copy Diagnostics", target: self, action: #selector(copyDiagnostics))
+        diagnostics.frame = NSRect(x: 124, y: 20, width: 136, height: 28)
+        content.addSubview(diagnostics)
+
+        return window
+    }
+
+    private func runSetupDoctorChecks() -> [DoctorCheck] {
+        let codexFound = FileManager.default.fileExists(atPath: "/Applications/Codex.app")
+        let helperWorks = FileManager.default.isReadableFile(atPath: usagePath)
+        let liveAvailable = snapshot?.codex.ok == true && snapshot?.codex.source == "live"
+        let launchAgentRunning = isLaunchAgentConfigured()
+        let notificationsAllowed = notificationsEnabled()
+        return [
+            DoctorCheck(
+                title: "Codex app found",
+                state: codexFound ? "green" : "amber",
+                detail: codexFound ? "Installed in Applications" : "Install or open Codex"
+            ),
+            DoctorCheck(
+                title: "Helper works",
+                state: helperWorks ? "green" : "red",
+                detail: helperWorks ? "Bundled helper readable" : "Reinstall Codex Gauge"
+            ),
+            DoctorCheck(
+                title: "Live data available",
+                state: liveAvailable ? "green" : "amber",
+                detail: liveAvailable ? "Live data is current" : "Open Codex, then Refresh Now"
+            ),
+            DoctorCheck(
+                title: "LaunchAgent running",
+                state: launchAgentRunning ? "green" : "amber",
+                detail: launchAgentRunning ? "Starts at login" : "Enable Launch at login"
+            ),
+            DoctorCheck(
+                title: "Notifications permission",
+                state: notificationsAllowed ? "green" : "grey",
+                detail: notificationsAllowed ? "Quota alerts enabled" : "Optional, off by default"
+            ),
+        ]
+    }
+
+    private func doctorStatusColor(_ state: String) -> NSColor {
+        switch state {
+        case "green":
+            return NSColor(calibratedRed: 0.18, green: 0.74, blue: 0.50, alpha: 1.0)
+        case "amber":
+            return NSColor(calibratedRed: 1.00, green: 0.62, blue: 0.22, alpha: 1.0)
+        case "red":
+            return NSColor(calibratedRed: 0.92, green: 0.24, blue: 0.28, alpha: 1.0)
+        default:
+            return NSColor(calibratedWhite: 0.56, alpha: 1.0)
+        }
+    }
+
     private func rebuildMenu() {
         menu.removeAllItems()
 
@@ -562,9 +1364,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             addErrorIfNeeded(snapshot.codex)
         } else if let lastError {
             addDisabled("Status unavailable")
+            addDisabled("Open Codex to refresh live usage")
             addDisabled(clipped(lastError, limit: 96))
         } else {
             addDisabled("Waiting for first refresh")
+            addDisabled("Open Codex to refresh live usage")
         }
 
         menu.addItem(NSMenuItem.separator())
@@ -573,10 +1377,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         addAction("Preferences...", action: #selector(openPreferences))
         menu.addItem(NSMenuItem.separator())
         addAction("Refresh Now", action: #selector(refreshNow))
+        addAction("Open Codex", action: #selector(openCodexApp))
+        addAction("Setup Doctor", action: #selector(openSetupDoctor))
+        addAction("Copy Diagnostics", action: #selector(copyDiagnostics))
         addAction("Open Codex Analytics", action: #selector(openCodexAnalytics))
         addAction("Open Support Folder", action: #selector(openSupportFolder))
         menu.addItem(NSMenuItem.separator())
         addAction("Quit", action: #selector(quit))
+        refreshSignalPopoverIfNeeded()
     }
 
     private func serviceLine(_ status: ServiceStatus) -> String {
@@ -593,19 +1401,63 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         return "\(status.service): unavailable"
     }
 
+    private func sourceStatusTitle(_ status: ServiceStatus) -> String {
+        if isUnavailableStatus(status) {
+            return "Open Codex to refresh live usage"
+        }
+        switch status.source {
+        case "last_live":
+            return "Showing last live cache"
+        case "local_snapshot":
+            return "Showing recent local snapshot"
+        case "live", nil:
+            return status.ok ? "Live data is current" : "Open Codex to refresh live usage"
+        default:
+            return "Showing recent local snapshot"
+        }
+    }
+
+    private func sourceStatusDetail(_ status: ServiceStatus) -> String {
+        if isUnavailableStatus(status) {
+            return "Codex is closed or unreachable. Open Codex, then Refresh Now."
+        }
+        switch status.source {
+        case "last_live":
+            return "Codex not reachable - showing last live"
+        case "local_snapshot":
+            return "Codex closed - showing recent local snapshot"
+        case "live", nil:
+            return "Read from local Codex app-server"
+        default:
+            return "Fallback data is labeled so it is not mistaken for live usage"
+        }
+    }
+
+    private func isUnavailableStatus(_ status: ServiceStatus) -> Bool {
+        !status.ok || (status.fiveHourLeft == nil && status.sevenDayLeft == nil)
+    }
+
     private func addCodexDetail(_ snapshot: UsageSnapshot) {
         let status = snapshot.codex
         if status.ok {
             addDisabled(planTitle(status), monospaced: false)
+            addDisabled(sourceStatusTitle(status))
+            addDisabled(sourceStatusDetail(status))
             addDisabled("\(fiveHourMenuLabel)    \(percent(status.fiveHourLeft))  \(barString(status.fiveHourLeft))", monospaced: true)
             addDisabled("\(sevenDayMenuLabel)     \(percent(status.sevenDayLeft))  \(barString(status.sevenDayLeft))", monospaced: true)
             addDisabled("\(fiveHourResetMenuLabel) \(resetCountdown(status.fiveHourReset))")
             addDisabled("\(sevenDayResetMenuLabel) \(resetCountdown(status.sevenDayReset))")
+            if let resetHighlightUntil, resetHighlightUntil > Date() {
+                addDisabled("5h refreshed")
+            }
+            addDisabled(trendSummary())
             addDisabled("\(refreshLabel(status)) \(shortTime(status.dataTime ?? snapshot.updatedAt))")
             return
         }
 
         addDisabled("Codex")
+        addDisabled(sourceStatusTitle(status))
+        addDisabled(sourceStatusDetail(status))
         addDisabled(serviceLine(status))
     }
 
@@ -624,7 +1476,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         button.title = ""
         button.imagePosition = .imageOnly
         button.imageScaling = .scaleNone
-        if let status, status.ok {
+        if let status, status.ok, !isUnavailableStatus(status) {
             button.image = makeStatusImage(
                 fiveHourLeft: status.fiveHourLeft,
                 sevenDayLeft: status.sevenDayLeft,
@@ -632,6 +1484,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 sevenDayReset: status.sevenDayReset,
                 source: status.source
             )
+        } else if let status, status.ok {
+            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: status.source)
         } else {
             button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: nil)
         }
@@ -650,15 +1504,20 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         (nonLiveMode ? palette.border.withAlphaComponent(0.34) : palette.border).setStroke()
         frame.lineWidth = 1
         frame.stroke()
+        drawSignalSourceRail(source: source, palette: palette)
         drawSourceIndicator(source: source, palette: palette)
 
-        drawPlanBGauge(
-            fiveHourLeft: fiveHourLeft,
-            sevenDayLeft: sevenDayLeft,
-            fiveHourReset: fiveHourReset,
-            sevenDayReset: sevenDayReset,
-            palette: palette
-        )
+        if isUnavailableStatus(fiveHourLeft: fiveHourLeft, sevenDayLeft: sevenDayLeft, source: source) {
+            drawUnavailableGauge(palette: palette)
+        } else {
+            drawPlanBGauge(
+                fiveHourLeft: fiveHourLeft,
+                sevenDayLeft: sevenDayLeft,
+                fiveHourReset: fiveHourReset,
+                sevenDayReset: sevenDayReset,
+                palette: palette
+            )
+        }
 
         image.unlockFocus()
         image.isTemplate = false
@@ -678,6 +1537,18 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         marker.fill()
     }
 
+    private func drawSignalSourceRail(source: String?, palette: GaugePalette) {
+        let color = sourceIndicatorColor(source) ?? NSColor(calibratedRed: 0.14, green: 0.79, blue: 0.60, alpha: 0.82)
+        let alpha: CGFloat = isNonLiveSource(source) ? 0.36 : 0.58
+        let rail = NSBezierPath(
+            roundedRect: NSRect(x: 7, y: statusImageSize.height - 2.8, width: statusImageSize.width - 14, height: 1.2),
+            xRadius: 0.6,
+            yRadius: 0.6
+        )
+        color.withAlphaComponent(alpha).setFill()
+        rail.fill()
+    }
+
     private func sourceIndicatorColor(_ source: String?) -> NSColor? {
         switch source {
         case "last_live":
@@ -687,8 +1558,41 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         case .some:
             return NSColor(calibratedRed: 0.62, green: 0.62, blue: 0.68, alpha: 0.70)
         case .none:
-            return nil
+            return unavailableSourceColor()
         }
+    }
+
+    private func unavailableSourceColor() -> NSColor {
+        NSColor(calibratedRed: 1.00, green: 0.62, blue: 0.22, alpha: 0.90)
+    }
+
+    private func isUnavailableStatus(fiveHourLeft: Int?, sevenDayLeft: Int?, source: String?) -> Bool {
+        fiveHourLeft == nil && sevenDayLeft == nil && source == nil
+    }
+
+    private func drawUnavailableGauge(palette: GaugePalette) {
+        let labelAttrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 7.4, weight: .bold),
+            .foregroundColor: palette.primaryText,
+        ]
+        ("5h" as NSString).draw(at: NSPoint(x: 6, y: 10.5), withAttributes: labelAttrs)
+        ("7d" as NSString).draw(at: NSPoint(x: 6, y: 2.0), withAttributes: labelAttrs)
+
+        drawGaugeRail(value: nil, rect: NSRect(x: 27, y: 13, width: quotaRailWidth, height: 3), palette: palette, fillColor: palette.mutedText)
+        drawGaugeRail(value: nil, rect: NSRect(x: 27, y: 4, width: quotaRailWidth, height: 3), palette: palette, fillColor: palette.mutedText)
+
+        let dashAttrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 7.4, weight: .semibold),
+            .foregroundColor: palette.mutedText,
+        ]
+        ("--" as NSString).draw(at: NSPoint(x: 83, y: 9.9), withAttributes: dashAttrs)
+        ("--" as NSString).draw(at: NSPoint(x: 83, y: 1.0), withAttributes: dashAttrs)
+
+        let actionAttrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 7.2, weight: .semibold),
+            .foregroundColor: unavailableSourceColor(),
+        ]
+        ("Open Codex" as NSString).draw(at: NSPoint(x: 122, y: 6.4), withAttributes: actionAttrs)
     }
 
     private func drawPlanBGauge(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, palette: GaugePalette) {
@@ -724,7 +1628,28 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func drawQuotaRail(value: Int?, rect: NSRect, palette: GaugePalette) {
-        drawGaugeRail(value: value, rect: rect, palette: palette, fillColor: quotaColor(value))
+        drawSegmentedQuotaRail(value: value, rect: rect, palette: palette)
+    }
+
+    private func drawSegmentedQuotaRail(value: Int?, rect: NSRect, palette: GaugePalette) {
+        drawSignalSegmentedRail(value: value, rect: rect, palette: palette, fillColor: quotaColor(value))
+    }
+
+    private func drawSignalSegmentedRail(value: Int?, rect: NSRect, palette: GaugePalette, fillColor: NSColor) {
+        let gap: CGFloat = 1
+        let segmentWidth = max(1, (rect.width - gap * CGFloat(signalRailSegments - 1)) / CGFloat(signalRailSegments))
+        let filledSegments = Int(ceil(clampedFraction(value) * CGFloat(signalRailSegments)))
+        for index in 0..<signalRailSegments {
+            let x = rect.minX + CGFloat(index) * (segmentWidth + gap)
+            let segmentRect = NSRect(x: x, y: rect.minY, width: segmentWidth, height: rect.height)
+            let segment = NSBezierPath(roundedRect: segmentRect, xRadius: 1.3, yRadius: 1.3)
+            if index < filledSegments {
+                fillColor.setFill()
+            } else {
+                palette.track.withAlphaComponent(0.72).setFill()
+            }
+            segment.fill()
+        }
     }
 
     private func drawResetMoodLane(value: Int?, rect: NSRect, palette: GaugePalette) {
@@ -994,6 +1919,68 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         RunLoop.main.add(nextTimer, forMode: .common)
     }
 
+    private func appendHistorySample(_ status: ServiceStatus) {
+        guard status.ok, status.fiveHourLeft != nil || status.sevenDayLeft != nil else {
+            return
+        }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        let sample = HistorySample(
+            time: status.dataTime ?? formatter.string(from: Date()),
+            source: status.source ?? "live",
+            fiveHourLeft: status.fiveHourLeft,
+            sevenDayLeft: status.sevenDayLeft
+        )
+        var samples = readHistorySamples()
+        samples.append(sample)
+        samples = Array(samples.suffix(maxHistorySamples))
+        do {
+            let data = try JSONEncoder().encode(samples)
+            try FileManager.default.createDirectory(
+                atPath: (historyPath as NSString).deletingLastPathComponent,
+                withIntermediateDirectories: true
+            )
+            try data.write(to: URL(fileURLWithPath: historyPath), options: .atomic)
+        } catch {
+            appendLog("history write failed=\(error.localizedDescription)")
+        }
+    }
+
+    private func readHistorySamples() -> [HistorySample] {
+        guard
+            let data = try? Data(contentsOf: URL(fileURLWithPath: historyPath)),
+            let samples = try? JSONDecoder().decode([HistorySample].self, from: data)
+        else {
+            return []
+        }
+        return Array(samples.suffix(maxHistorySamples))
+    }
+
+    private func trendSummary() -> String {
+        let samples = readHistorySamples()
+        guard samples.count >= 2 else {
+            return "Trend: collecting samples"
+        }
+        guard let first = samples.first, let latest = samples.last else {
+            return "Trend: collecting samples"
+        }
+        let five = deltaText(label: "5h", first: first.fiveHourLeft, latest: latest.fiveHourLeft)
+        let seven = deltaText(label: "7d", first: first.sevenDayLeft, latest: latest.sevenDayLeft)
+        return "Trend: \(five) - \(seven)"
+    }
+
+    private func deltaText(label: String, first: Int?, latest: Int?) -> String {
+        guard let first, let latest else {
+            return "\(label) collecting"
+        }
+        let delta = latest - first
+        if abs(delta) < 2 {
+            return "\(label) stable"
+        }
+        let sign = delta > 0 ? "+" : ""
+        return "\(label) \(sign)\(delta)%"
+    }
+
     private func appendLog(_ value: String) {
         let url = URL(fileURLWithPath: logPath)
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -1089,11 +2076,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func sourceTooltipSuffix(_ source: String?) -> String? {
         switch source {
         case "last_live":
-            return "Last live"
+            return "Codex not reachable - showing last live"
         case "live", nil:
             return nil
         default:
-            return "Snapshot"
+            return "Codex closed - showing recent local snapshot"
         }
     }
 
@@ -1177,6 +2164,28 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let url = base.appendingPathComponent("CodexGauge", isDirectory: true)
         try? manager.createDirectory(at: url, withIntermediateDirectories: true)
         return url.path
+    }
+
+    private func safeDiagnosticsText() -> String {
+        let status = snapshot?.codex
+        let source = status?.source ?? "unavailable"
+        let helperState = FileManager.default.isReadableFile(atPath: usagePath) ? "exists" : "missing"
+        let launchState = isLaunchAgentConfigured() ? "configured" : "missing"
+        let notificationState = notificationsEnabled() ? "enabled" : "disabled"
+        let lastRefresh = status?.dataTime ?? snapshot?.updatedAt ?? "none"
+        let error = clipped(status?.error ?? lastError ?? "none", limit: 180)
+        return [
+            "Codex Gauge Diagnostics",
+            "App version: \(appVersion)",
+            "Helper path: bundled codex_status.py \(helperState)",
+            "Current data source: \(source)",
+            "Last refresh time: \(lastRefresh)",
+            "Last error summary: \(error)",
+            "LaunchAgent state: \(launchState)",
+            "Notifications permission: \(notificationState)",
+            "Refresh mode: \(currentRefreshMode())",
+            "Excludes: browser cookies, ~/.codex/auth.json, Session file contents, Runtime logs, prompts, responses",
+        ].joined(separator: "\n")
     }
 
     private func openURL(_ value: String) {
