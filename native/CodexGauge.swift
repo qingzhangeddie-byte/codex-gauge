@@ -144,13 +144,13 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func addSignalConsoleButtons() {
-        addButton(title: "Generate", frame: NSRect(x: 376, y: 442, width: 82, height: 32), action: generateReportAction, style: .primary)
-        addButton(title: "Copy diagnostics", frame: NSRect(x: 468, y: 442, width: 128, height: 32), action: copyDiagnosticsAction, style: .secondary)
-        addButton(title: "Run Check", frame: NSRect(x: 504, y: 525, width: 92, height: 30), action: runCheckAction, style: .secondary)
-        addButton(title: "Open Codex", frame: NSRect(x: 28, y: 632, width: 136, height: 46), action: openCodexAction, style: .command)
-        addButton(title: "Refresh Now", frame: NSRect(x: 174, y: 632, width: 136, height: 46), action: refreshAction, style: .command)
-        addButton(title: "Preferences", frame: NSRect(x: 320, y: 632, width: 136, height: 46), action: preferencesAction, style: .command)
-        addButton(title: "Quit", frame: NSRect(x: 466, y: 632, width: 146, height: 46), action: quitAction, style: .command)
+        addButton(title: "Generate", frame: NSRect(x: 298, y: 358, width: 78, height: 30), action: generateReportAction, style: .primary)
+        addButton(title: "Copy diagnostics", frame: NSRect(x: 384, y: 358, width: 138, height: 30), action: copyDiagnosticsAction, style: .secondary)
+        addButton(title: "Run Check", frame: NSRect(x: 450, y: 440, width: 82, height: 30), action: runCheckAction, style: .secondary)
+        addButton(title: "Open Codex", frame: NSRect(x: 20, y: 496, width: 122, height: 40), action: openCodexAction, style: .command)
+        addButton(title: "Refresh Now", frame: NSRect(x: 150, y: 496, width: 122, height: 40), action: refreshAction, style: .command)
+        addButton(title: "Preferences", frame: NSRect(x: 280, y: 496, width: 122, height: 40), action: preferencesAction, style: .command)
+        addButton(title: "Quit", frame: NSRect(x: 410, y: 496, width: 130, height: 40), action: quitAction, style: .command)
     }
 
     private enum SignalButtonStyle {
@@ -200,11 +200,12 @@ private final class SignalConsolePanelView: NSView {
     private func drawSignalConsolePanel() {
         drawPanelBackground()
         drawHeader()
+        drawStatusStrip()
         drawSignalHeroCard()
         drawTrendSection()
         drawReportSection()
         drawHealthRibbon()
-        drawBottomCommands()
+        drawDivider(y: 486)
     }
 
     private func drawPanelBackground() {
@@ -220,13 +221,25 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawHeader() {
-        drawText("Codex Gauge  •  Signal Console", x: 28, y: 20, width: 320, height: 24, size: 15, weight: .semibold, color: textPrimary)
-        drawPill(text: headerSignalText(), rect: NSRect(x: 414, y: 16, width: 70, height: 28), color: headerSignalColor().withAlphaComponent(0.12), dotColor: headerSignalColor())
-        drawPill(text: model.sourcePill, rect: NSRect(x: 492, y: 16, width: 120, height: 28), color: NSColor.white.withAlphaComponent(0.07))
+        drawText("Codex Gauge  •  Signal Console", x: 20, y: 18, width: 300, height: 24, size: 15, weight: .semibold, color: textPrimary)
+        drawPill(text: headerSignalText(), rect: NSRect(x: 344, y: 16, width: 70, height: 28), color: headerSignalColor().withAlphaComponent(0.12), dotColor: headerSignalColor())
+        drawPill(text: model.sourcePill, rect: NSRect(x: 422, y: 16, width: 118, height: 28), color: NSColor.white.withAlphaComponent(0.07))
+    }
+
+    private func drawStatusStrip() {
+        let rect = NSRect(x: 20, y: 54, width: bounds.width - 40, height: 42)
+        let stateColor = sourceColor(source: model.source, unavailable: model.isUnavailable)
+        drawRoundedRect(rect, radius: 13, fill: stateColor.withAlphaComponent(0.08), stroke: panelBorder.withAlphaComponent(0.42))
+        drawCircle(center: NSPoint(x: rect.minX + 18, y: rect.midY), radius: 4, color: stateColor, stroke: nil)
+        drawText("Live signal", x: rect.minX + 30, y: rect.minY + 9, width: 86, height: 18, size: 13, weight: .bold, color: stateColor)
+        drawText(statusStripDetail(), x: rect.minX + 124, y: rect.minY + 9, width: 268, height: 18, size: 12, weight: .regular, color: textSecondary)
+        drawRoundedRect(NSRect(x: rect.maxX - 104, y: rect.minY + 7, width: 86, height: 28), radius: 9, fill: NSColor.black.withAlphaComponent(0.14), stroke: panelBorder.withAlphaComponent(0.26))
+        drawText("next", x: rect.maxX - 94, y: rect.minY + 13, width: 30, height: 14, size: 10, weight: .regular, color: textMuted)
+        drawText(model.isRefreshing ? "now" : "5 min", x: rect.maxX - 58, y: rect.minY + 13, width: 42, height: 14, size: 10, weight: .semibold, color: textPrimary, mono: true)
     }
 
     private func drawSignalHeroCard() {
-        let card = NSRect(x: 28, y: 54, width: bounds.width - 56, height: 244)
+        let card = NSRect(x: 20, y: 108, width: bounds.width - 40, height: 152)
         drawRoundedGradient(
             card,
             radius: 16,
@@ -242,7 +255,7 @@ private final class SignalConsolePanelView: NSView {
             value: model.fiveHourLeft,
             resetText: model.fiveHourResetText,
             resetProgress: model.fiveHourResetProgress,
-            rect: NSRect(x: 44, y: 72, width: 414, height: 90)
+            rect: NSRect(x: 34, y: 124, width: 492, height: 58)
         )
         drawQuotaWindowRow(
             window: "7d",
@@ -250,87 +263,67 @@ private final class SignalConsolePanelView: NSView {
             value: model.sevenDayLeft,
             resetText: model.sevenDayResetText,
             resetProgress: model.sevenDayResetProgress,
-            rect: NSRect(x: 44, y: 176, width: 414, height: 90)
+            rect: NSRect(x: 34, y: 190, width: 492, height: 58)
         )
-
-        let stateColor = sourceColor(source: model.source, unavailable: model.isUnavailable)
-        let stateRect = NSRect(x: 472, y: 72, width: 124, height: 194)
-        drawRoundedRect(stateRect, radius: 14, fill: stateColor.withAlphaComponent(0.10), stroke: panelBorder.withAlphaComponent(0.56))
-        drawText("Live signal", x: stateRect.minX + 14, y: stateRect.minY + 18, width: 96, height: 22, size: 16, weight: .bold, color: stateColor)
-        drawWrappedText(model.stateDetail, rect: NSRect(x: stateRect.minX + 14, y: stateRect.minY + 48, width: 96, height: 70), size: 12, weight: .regular, color: textSecondary)
-        let refreshRect = NSRect(x: stateRect.minX + 14, y: stateRect.maxY - 48, width: stateRect.width - 28, height: 34)
-        drawRoundedRect(refreshRect, radius: 10, fill: NSColor.black.withAlphaComponent(0.16), stroke: panelBorder.withAlphaComponent(0.34))
-        drawText("next refresh", x: refreshRect.minX + 10, y: refreshRect.minY + 10, width: 66, height: 16, size: 10, weight: .medium, color: textSecondary)
-        drawText(model.isRefreshing ? "now" : "5 min", x: refreshRect.maxX - 42, y: refreshRect.minY + 10, width: 32, height: 16, size: 11, weight: .semibold, color: textPrimary, mono: true)
     }
 
     private func drawQuotaWindowRow(window: String, label: String, value: Int?, resetText: String, resetProgress: Int?, rect: NSRect) {
         drawRoundedRect(rect, radius: 13, fill: NSColor.white.withAlphaComponent(0.045), stroke: panelBorder.withAlphaComponent(0.48))
-        drawText(window, x: rect.minX + 16, y: rect.minY + 20, width: 44, height: 24, size: 22, weight: .bold, color: textPrimary, mono: true)
-        drawText("window", x: rect.minX + 16, y: rect.minY + 50, width: 54, height: 16, size: 9, weight: .bold, color: textMuted)
-        drawText(label, x: rect.minX + 86, y: rect.minY + 24, width: 168, height: 18, size: 12, weight: .medium, color: textSecondary)
-        drawText(percentText(value), x: rect.minX + 250, y: rect.minY + 18, width: 56, height: 24, size: 19, weight: .bold, color: value == nil ? textMuted : quotaColor(value), mono: true)
-        drawQuotaRail(value: value, rect: NSRect(x: rect.minX + 86, y: rect.minY + 58, width: 214, height: 12))
-        drawText("reset", x: rect.minX + 318, y: rect.minY + 24, width: 34, height: 16, size: 11, weight: .regular, color: textSecondary)
-        drawText(resetText, x: rect.maxX - 76, y: rect.minY + 24, width: 60, height: 16, size: 11, weight: .semibold, color: resetTextColor(resetText), mono: true)
-        drawResetCountdownLane(value: resetProgress, rect: NSRect(x: rect.minX + 318, y: rect.minY + 58, width: 80, height: 10))
+        drawText(window, x: rect.minX + 14, y: rect.minY + 13, width: 38, height: 22, size: 19, weight: .bold, color: textPrimary, mono: true)
+        drawText("window", x: rect.minX + 14, y: rect.minY + 35, width: 48, height: 14, size: 8, weight: .bold, color: textMuted)
+        drawText(label, x: rect.minX + 70, y: rect.minY + 12, width: 160, height: 16, size: 11, weight: .medium, color: textSecondary)
+        drawText(percentText(value), x: rect.minX + 236, y: rect.minY + 9, width: 54, height: 22, size: 17, weight: .bold, color: value == nil ? textMuted : quotaColor(value), mono: true)
+        drawQuotaRail(value: value, rect: NSRect(x: rect.minX + 70, y: rect.minY + 36, width: 196, height: 10))
+        drawText("reset", x: rect.minX + 288, y: rect.minY + 12, width: 34, height: 16, size: 10, weight: .regular, color: textSecondary)
+        drawText(resetText, x: rect.maxX - 76, y: rect.minY + 12, width: 60, height: 16, size: 10, weight: .semibold, color: resetTextColor(resetText), mono: true)
+        drawResetCountdownLane(value: resetProgress, rect: NSRect(x: rect.minX + 288, y: rect.minY + 36, width: 146, height: 9))
     }
 
     private func drawTrendSection() {
-        let card = NSRect(x: 28, y: 312, width: 322, height: 166)
+        let card = NSRect(x: 20, y: 274, width: 248, height: 122)
         drawRoundedRect(card, radius: 15, fill: panelSoftBackground, stroke: panelBorder.withAlphaComponent(0.50))
-        drawText("Quota movement", x: card.minX + 18, y: card.minY + 17, width: 138, height: 20, size: 13, weight: .bold, color: textPrimary)
-        drawText("last 24h", x: card.maxX - 72, y: card.minY + 17, width: 54, height: 20, size: 11, weight: .regular, color: textMuted)
-        drawTrendRow(label: "5h", text: model.fiveHourTrendText, values: model.fiveHourHistory, y: 368)
-        drawTrendRow(label: "7d", text: model.sevenDayTrendText, values: model.sevenDayHistory, y: 416)
+        drawText("Quota movement", x: card.minX + 16, y: card.minY + 14, width: 126, height: 18, size: 12, weight: .bold, color: textPrimary)
+        drawText("last 24h", x: card.maxX - 62, y: card.minY + 14, width: 46, height: 18, size: 10, weight: .regular, color: textMuted)
+        drawTrendRow(label: "5h", text: model.fiveHourTrendText, values: model.fiveHourHistory, y: 324)
+        drawTrendRow(label: "7d", text: model.sevenDayTrendText, values: model.sevenDayHistory, y: 358)
         drawTrendContext()
     }
 
     private func drawTrendContext() {
-        drawText(model.trendContextText, x: 46, y: 454, width: 286, height: 16, size: 10, weight: .regular, color: textMuted)
+        drawText(model.trendContextText, x: 36, y: 378, width: 212, height: 14, size: 9, weight: .regular, color: textMuted)
     }
 
     private func drawTrendRow(label: String, text: String, values: [Int], y: CGFloat) {
-        drawText(label, x: 46, y: y - 3, width: 34, height: 22, size: 14, weight: .bold, color: textPrimary, mono: true)
-        drawText(shortTrendText(text), x: 96, y: y - 3, width: 82, height: 22, size: 12, weight: .regular, color: textSecondary)
-        drawTrendSparkline(values: values, rect: NSRect(x: 170, y: y - 8, width: 124, height: 32))
-        drawPill(text: values.isEmpty ? "--" : deltaPill(values), rect: NSRect(x: 306, y: y - 4, width: 30, height: 24), color: NSColor.white.withAlphaComponent(0.07))
+        drawText(label, x: 36, y: y - 3, width: 30, height: 20, size: 13, weight: .bold, color: textPrimary, mono: true)
+        drawText(shortTrendText(text), x: 76, y: y - 2, width: 62, height: 18, size: 10, weight: .regular, color: textSecondary)
+        drawTrendSparkline(values: values, rect: NSRect(x: 136, y: y - 8, width: 84, height: 28))
+        drawPill(text: values.isEmpty ? "--" : deltaPill(values), rect: NSRect(x: 226, y: y - 3, width: 26, height: 22), color: NSColor.white.withAlphaComponent(0.07))
     }
 
     private func drawReportSection() {
-        let card = NSRect(x: 364, y: 312, width: 248, height: 166)
+        let card = NSRect(x: 280, y: 274, width: 260, height: 122)
         drawRoundedRect(card, radius: 15, fill: panelSoftBackground, stroke: panelBorder.withAlphaComponent(0.50))
-        drawText("Usage Report", x: card.minX + 18, y: card.minY + 17, width: 112, height: 20, size: 13, weight: .bold, color: textPrimary)
-        drawText("local only", x: card.maxX - 72, y: card.minY + 17, width: 54, height: 20, size: 11, weight: .regular, color: textMuted)
-        drawWrappedText("24h quota summary from local snapshots. No prompts, cookies, auth files, or billing data.", rect: NSRect(x: card.minX + 18, y: card.minY + 54, width: 190, height: 66), size: 12, weight: .regular, color: textSecondary)
+        drawText("Usage Report", x: card.minX + 16, y: card.minY + 14, width: 108, height: 18, size: 12, weight: .bold, color: textPrimary)
+        drawText("local only", x: card.maxX - 62, y: card.minY + 14, width: 46, height: 18, size: 10, weight: .regular, color: textMuted)
+        drawWrappedText("24h quota summary from local snapshots. No prompts, cookies, auth files, or billing data.", rect: NSRect(x: card.minX + 16, y: card.minY + 42, width: 212, height: 44), size: 11, weight: .regular, color: textSecondary)
     }
 
     private func drawHealthRibbon() {
-        let rect = NSRect(x: 28, y: 492, width: 584, height: 84)
+        let rect = NSRect(x: 20, y: 410, width: 520, height: 66)
         drawRoundedRect(rect, radius: 15, fill: panelSoftBackground, stroke: panelBorder.withAlphaComponent(0.50))
-        drawText("Health", x: rect.minX + 18, y: rect.minY + 22, width: 72, height: 20, size: 13, weight: .bold, color: textPrimary)
-        drawText(model.healthSummaryText, x: rect.minX + 18, y: rect.minY + 43, width: 110, height: 18, size: 11, weight: .regular, color: textMuted)
+        drawText("Health", x: rect.minX + 16, y: rect.minY + 17, width: 66, height: 18, size: 12, weight: .bold, color: textPrimary)
+        drawText(model.healthSummaryText, x: rect.minX + 16, y: rect.minY + 36, width: 94, height: 16, size: 10, weight: .regular, color: textMuted)
+        drawHealthStatusGrid(in: NSRect(x: rect.minX + 118, y: rect.minY + 14, width: 300, height: 30))
+    }
+
+    private func drawHealthStatusGrid(in rect: NSRect) {
         let checks = Array(model.doctorChecks.prefix(5))
         for (index, check) in checks.enumerated() {
-            let itemRect = NSRect(x: 158 + CGFloat(index) * 86, y: rect.minY + 20, width: 76, height: 44)
-            drawRoundedRect(itemRect, radius: 11, fill: NSColor.white.withAlphaComponent(0.045), stroke: panelBorder.withAlphaComponent(0.24))
-            drawCircle(center: NSPoint(x: itemRect.minX + 18, y: itemRect.midY), radius: 4, color: doctorColor(check.state), stroke: nil)
-            drawText(healthShortLabel(check.title), x: itemRect.minX + 30, y: itemRect.minY + 14, width: 42, height: 16, size: 10, weight: .regular, color: textSecondary)
+            let itemRect = NSRect(x: rect.minX + CGFloat(index) * 60, y: rect.minY, width: 54, height: rect.height)
+            drawRoundedRect(itemRect, radius: 9, fill: NSColor.white.withAlphaComponent(0.040), stroke: panelBorder.withAlphaComponent(0.20))
+            drawCircle(center: NSPoint(x: itemRect.minX + 12, y: itemRect.midY), radius: 3.4, color: doctorColor(check.state), stroke: nil)
+            drawText(healthShortLabel(check.title), x: itemRect.minX + 21, y: itemRect.minY + 8, width: 30, height: 14, size: 8.5, weight: .regular, color: textSecondary)
         }
-    }
-
-    private func drawBottomCommands() {
-        drawDivider(y: 604)
-        drawCommandButton(label: "Open Codex", shortcut: "⌘O", rect: NSRect(x: 28, y: 632, width: 136, height: 46))
-        drawCommandButton(label: "Refresh Now", shortcut: "5 min", rect: NSRect(x: 174, y: 632, width: 136, height: 46))
-        drawCommandButton(label: "Preferences", shortcut: "⌘,", rect: NSRect(x: 320, y: 632, width: 136, height: 46))
-        drawCommandButton(label: "Quit", shortcut: "⌘Q", rect: NSRect(x: 466, y: 632, width: 146, height: 46))
-    }
-
-    private func drawCommandButton(label: String, shortcut: String, rect: NSRect) {
-        drawRoundedRect(rect, radius: 12, fill: NSColor.white.withAlphaComponent(0.045), stroke: panelBorder.withAlphaComponent(0.26))
-        drawText(label, x: rect.minX + 12, y: rect.minY + 14, width: rect.width - 54, height: 18, size: 12, weight: .medium, color: textPrimary)
-        drawText(shortcut, x: rect.maxX - 44, y: rect.minY + 14, width: 32, height: 18, size: 10, weight: .regular, color: textMuted, mono: true)
     }
 
     private func drawTrendSparkline(values: [Int], rect: NSRect) {
@@ -473,6 +466,16 @@ private final class SignalConsolePanelView: NSView {
 
     private func headerSignalColor() -> NSColor {
         sourceColor(source: model.source, unavailable: model.isUnavailable)
+    }
+
+    private func statusStripDetail() -> String {
+        if model.isUnavailable {
+            return "Open Codex to refresh live usage."
+        }
+        if model.isRefreshing {
+            return "Refreshing quota now."
+        }
+        return "Codex is open. Hands-free refresh every 5 minutes."
     }
 
     private func shortTrendText(_ text: String) -> String {
@@ -771,7 +774,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let historyRetentionWindow: TimeInterval = 48 * 60 * 60
     private let statusItemWidth: CGFloat = 196
     private let statusImageSize = NSSize(width: 190, height: 22)
-    private let signalPopoverSize = NSSize(width: 640, height: 750)
+    private let signalPopoverSize = NSSize(width: 560, height: 560)
     private let quotaRailWidth: CGFloat = 51
     private let resetRailWidth: CGFloat = 34
     private let signalRailSegments = 10

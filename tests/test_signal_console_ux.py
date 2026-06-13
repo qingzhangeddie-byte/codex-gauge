@@ -102,7 +102,7 @@ class SignalConsoleUXTests(unittest.TestCase):
 
         for label in [
             "Live signal",
-            "next refresh",
+            "next",
             "5-hour quota left",
             "7-day quota left",
             "window",
@@ -117,8 +117,9 @@ class SignalConsoleUXTests(unittest.TestCase):
             self.assertIn(f'"{label}"', source)
         self.assertIn("drawQuotaWindowRow", source)
         self.assertIn("drawResetCountdownLane", source)
-        self.assertIn("drawCommandButton", source)
+        self.assertIn("drawStatusStrip", source)
         self.assertIn("drawHealthRibbon", source)
+        self.assertNotIn("drawCommandButton", source)
         self.assertNotIn('drawSectionLabel("Status"', source)
         self.assertNotIn('drawSectionLabel("Reset"', source)
         self.assertNotIn('drawDivider(y: 144)', source)
@@ -141,6 +142,18 @@ class SignalConsoleUXTests(unittest.TestCase):
             self.assertIn(token, source)
         self.assertIn("NSGradient(colors: [mintAccent, NSColor(calibratedRed: 0.72", source)
         self.assertIn("NSGradient(colors: [coralAccent, NSColor(calibratedRed: 1.00", source)
+
+    def test_signal_console_is_compact_and_avoids_control_overlap(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("signalPopoverSize = NSSize(width: 560, height: 560)", source)
+        self.assertIn("drawStatusStrip", source)
+        self.assertIn("drawHealthStatusGrid", source)
+        self.assertIn('addButton(title: "Run Check", frame: NSRect(x: 450, y: 440, width: 82, height: 30)', source)
+        self.assertIn('drawHealthStatusGrid(in: NSRect(x: rect.minX + 118, y: rect.minY + 14, width: 300, height: 30)', source)
+        self.assertNotIn("drawCommandButton", source)
+        self.assertNotIn("drawBottomCommands", source)
+        self.assertNotIn("signalPopoverSize = NSSize(width: 640, height: 750)", source)
 
     def test_usage_report_is_safe_and_honest(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
