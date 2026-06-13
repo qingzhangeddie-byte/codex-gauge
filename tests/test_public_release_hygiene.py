@@ -99,6 +99,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertNotIn("grep -R -I -n -E", script)
         self.assertIn("pixelWidth: 1280", script)
         self.assertIn("swift script/generate_theme_state_previews.swift", script)
+        self.assertIn("swift script/generate_public_assets.swift", script)
         self.assertIn("script/render_signal_console_fixtures.sh", script)
         self.assertIn("Codex Gauge release check passed.", script)
 
@@ -228,6 +229,18 @@ class PublicReleaseHygieneTests(unittest.TestCase):
             )
             self.assertIn("pixelWidth: 1120", result.stdout)
             self.assertIn("pixelHeight: 1120", result.stdout)
+
+    def test_public_visual_assets_are_generated_from_real_app_render(self):
+        script = pathlib.Path("script/generate_public_assets.swift")
+
+        self.assertTrue(script.exists())
+        script_text = script.read_text()
+        self.assertIn("docs/design/app-rendered-signal-console/paper-console-live.png", script_text)
+        self.assertIn("docs/design/app-rendered-signal-console/signal-dark-live.png", script_text)
+        self.assertIn("docs/assets/codex-gauge-signal-console.png", script_text)
+        self.assertIn("docs/assets/codex-gauge-social-preview.png", script_text)
+        self.assertIn("actual app-rendered Signal Console", script_text)
+        self.assertIn("sample quota values", script_text)
 
     def test_build_script_installs_public_app_name_and_removes_legacy_app(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()

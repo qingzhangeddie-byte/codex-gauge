@@ -32,7 +32,7 @@ Codex Gauge 是一个**简单、安全的 Codex 菜单栏额度仪表**，用于
 
 ![Codex Gauge Signal Console](docs/assets/codex-gauge-signal-console.png)
 
-上面的 Signal Console 截图使用示例数值展示界面效果；安装后的 App 会显示你本机的实时额度。
+上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 示例额度数值；安装后的 App 会显示你本机的实时额度。
 
 ## 四条菜单栏信号
 

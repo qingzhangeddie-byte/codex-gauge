@@ -60,9 +60,9 @@ Search phrases this project is designed to answer naturally: **check Codex usage
 
 ![Codex Gauge Signal Console](docs/assets/codex-gauge-signal-console.png)
 
-The Signal Console screenshot uses sample values for the README; the installed app shows your local live quota values.
+This is an actual app-rendered Signal Console screenshot generated from the native macOS view. It uses sample quota values for the README; the installed app shows your local live quota values.
 
-上面的 Signal Console 截图使用示例数值展示界面效果；安装后的 App 会显示你本机的实时额度。
+上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 示例额度数值；安装后的 App 会显示你本机的实时额度。
 
 ## Four-signal menu bar
 

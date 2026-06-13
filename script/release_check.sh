@@ -5,12 +5,13 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 swift script/generate_theme_state_previews.swift >/dev/null
-python3 -m unittest discover -s tests -v
 bash -n script/package_release.sh
 bash -n script/soak_check.sh
 bash -n script/render_signal_console_fixtures.sh
 ./script/build_and_run.sh --build-only
 script/render_signal_console_fixtures.sh
+swift script/generate_public_assets.swift >/dev/null
+python3 -m unittest discover -s tests -v
 
 TMP_PARENT="$(mktemp -d "${TMPDIR:-/tmp}/codex-gauge-release-check.XXXXXX")"
 trap 'rm -rf "$TMP_PARENT"' EXIT
