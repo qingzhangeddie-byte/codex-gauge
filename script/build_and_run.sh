@@ -6,7 +6,7 @@ APP_NAME="CodexGauge"
 LEGACY_APP_NAME="AiLimitStatus"
 BUNDLE_ID="app.codexgauge.menubar"
 MIN_SYSTEM_VERSION="13.0"
-APP_VERSION="0.4.0"
+APP_VERSION="0.4.1"
 APP_BUILD="1"
 RELEASE_URL="https://github.com/qingzhangeddie-byte/codex-gauge/releases"
 

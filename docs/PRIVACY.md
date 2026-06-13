@@ -17,6 +17,6 @@ The native menu bar app:
 
 The Codex app-server path can start or refresh the 5-hour Codex window because it talks to the same local Codex service that the Codex desktop app uses.
 
-The local snapshot fallback is read-only and bounded: it recursively checks recent Codex session `.jsonl` files, considers at most 80 recent files, reads at most the final 2 MB of each file, and extracts only `rate_limits` metadata. It keeps only windows with future reset times; for example, an expired 5-hour snapshot can be hidden while a still-valid 7-day snapshot remains visible as Snapshot.
+Each successful live reading is cached locally for short outages and can be reused for up to 30 minutes as **Last live**. The local snapshot fallback is read-only and bounded: it recursively checks recent Codex session `.jsonl` files, considers at most 80 recent files, reads at most the final 2 MB of each file, and extracts only `rate_limits` metadata. It only accepts snapshots captured within the last 15 minutes and keeps only windows with future reset times; for example, an expired 5-hour snapshot can be hidden while a still-valid 7-day snapshot remains visible as Snapshot.
 
 Codex Gauge does not ship a public broad usage CLI. The supported public artifact is the native menu bar app.

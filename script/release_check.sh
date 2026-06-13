@@ -14,7 +14,7 @@ ditto --norsrc --noextattr native/dist/CodexGauge.app "$TMP_PARENT/CodexGauge.ap
 codesign --verify --deep --strict "$TMP_PARENT/CodexGauge.app"
 
 INFO_PLIST="$TMP_PARENT/CodexGauge.app/Contents/Info.plist"
-[[ "$(plutil -extract CFBundleShortVersionString raw -o - "$INFO_PLIST")" == "0.4.0" ]]
+[[ "$(plutil -extract CFBundleShortVersionString raw -o - "$INFO_PLIST")" == "0.4.1" ]]
 [[ "$(plutil -extract CFBundleVersion raw -o - "$INFO_PLIST")" == "1" ]]
 [[ "$(plutil -extract CodexGaugeUsagePath raw -o - "$INFO_PLIST")" == "codex_status.py" ]]
 [[ "$(plutil -extract CodexGaugeReleaseURL raw -o - "$INFO_PLIST")" == "https://github.com/qingzhangeddie-byte/codex-gauge/releases" ]]
@@ -24,7 +24,7 @@ if git ls-files | grep -E '(^usage\.py$|^requirements\.txt$|^menubar/|^native/(b
   exit 1
 fi
 
-if grep -R -I -n -E 'bustawind|/Users/|<your-fork-url>|support the author|Other projects by the author|browser-cookie3|--allow-browser-cookies|--allow-codex-auth|\.claude' \
+if git grep -n -I -E 'bustawind|/Users/|<your-fork-url>|support the author|Other projects by the author|browser-cookie3|--allow-browser-cookies|--allow-codex-auth|\.claude' -- \
   README.md README.zh-CN.md CHANGELOG.md SECURITY.md docs install.sh native .github >/dev/null; then
   printf "Public package contains blocked private or legacy text.\n" >&2
   exit 1

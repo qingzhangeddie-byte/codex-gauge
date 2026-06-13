@@ -10,6 +10,7 @@ __pycache__/
 native/build/
 native/dist/
 docs/superpowers/
+docs/marketing/
 
 # Local/private agent notes
 CLAUDE.md

@@ -14,6 +14,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
             ".env",
             "native/build/",
             "native/dist/",
+            "docs/marketing/",
         ]:
             self.assertIn(pattern, gitignore)
         self.assertNotIn("menubar/", gitignore)
@@ -66,6 +67,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         security = pathlib.Path("SECURITY.md").read_text(encoding="utf-8")
         notice = pathlib.Path("NOTICE").read_text(encoding="utf-8")
 
+        self.assertIn("v0.4.1", changelog)
         self.assertIn("v0.4.0", changelog)
         self.assertIn("Codex Gauge", changelog)
         self.assertIn("Security Policy", security)
@@ -87,6 +89,8 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("CFBundleShortVersionString", script)
         self.assertIn("CodexGaugeReleaseURL", script)
         self.assertIn("git ls-files", script)
+        self.assertIn("git grep -n -I -E", script)
+        self.assertNotIn("grep -R -I -n -E", script)
         self.assertIn("pixelWidth: 1280", script)
         self.assertIn("Codex Gauge release check passed.", script)
 

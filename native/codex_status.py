@@ -21,7 +21,11 @@ REMOTE_TIMEOUT_SEC = 5
 LOCAL_SNAPSHOT_MAX_FILES = 80
 LOCAL_SNAPSHOT_MAX_BYTES = 2 * 1024 * 1024
 LOCAL_SNAPSHOT_MAX_AGE_SEC = 14 * 24 * 60 * 60
+LOCAL_SNAPSHOT_MAX_STALENESS_SEC = 15 * 60
+LAST_LIVE_CACHE_MAX_AGE_SEC = 30 * 60
 ENV_CODEX_CLI_PATH = "CODEX_GAUGE_CODEX_CLI_PATH"
+ENV_SUPPORT_DIR = "CODEX_GAUGE_SUPPORT_DIR"
+LAST_LIVE_CACHE_FILE = "last-live-status.json"
 CODEX_GAUGE_CLIENT = {"name": "codex-gauge", "title": "Codex Gauge", "version": "0"}
 
 
@@ -314,14 +318,15 @@ def latest_local_codex_rate_limits_snapshot(now: float | None = None) -> dict | 
         candidates.append((stat.st_mtime, path))
 
     for _, path in sorted(candidates, reverse=True)[:LOCAL_SNAPSHOT_MAX_FILES]:
-        snapshot = _scan_codex_session_tail(path)
+        snapshot = _scan_codex_session_tail(path, now=now)
         if snapshot:
             snapshot["_source"] = "local_snapshot"
             return snapshot
     return None
 
 
-def _scan_codex_session_tail(path: pathlib.Path) -> dict | None:
+def _scan_codex_session_tail(path: pathlib.Path, now: float | None = None) -> dict | None:
+    now = time.time() if now is None else now
     try:
         size = path.stat().st_size
         with path.open("rb") as handle:
@@ -347,9 +352,9 @@ def _scan_codex_session_tail(path: pathlib.Path) -> dict | None:
         snapshot = _local_snapshot_with_fresh_windows(normalized)
         if snapshot:
             captured_at = _event_timestamp(event)
-            if captured_at:
+            if captured_at and _event_timestamp_is_recent(captured_at, now):
                 snapshot["_captured_at"] = captured_at
-            return snapshot
+                return snapshot
     return None
 
 
@@ -388,6 +393,83 @@ def _event_timestamp(event: dict) -> str | None:
     if not isinstance(timestamp, str) or not timestamp.strip():
         return None
     return timestamp
+
+
+def _event_timestamp_is_recent(timestamp: str, now: float) -> bool:
+    parsed = _parse_event_timestamp(timestamp)
+    if parsed is None:
+        return False
+    if parsed > now + 60:
+        return False
+    return now - parsed <= LOCAL_SNAPSHOT_MAX_STALENESS_SEC
+
+
+def _parse_event_timestamp(timestamp: str) -> float | None:
+    normalized = timestamp.strip()
+    if normalized.endswith("Z"):
+        normalized = normalized[:-1] + "+00:00"
+    try:
+        parsed = datetime.datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=datetime.timezone.utc)
+    return parsed.timestamp()
+
+
+def _last_live_cache_path() -> pathlib.Path:
+    configured = os.environ.get(ENV_SUPPORT_DIR, "").strip()
+    if configured:
+        return pathlib.Path(configured).expanduser() / LAST_LIVE_CACHE_FILE
+    return pathlib.Path.home() / "Library" / "Application Support" / "CodexGauge" / LAST_LIVE_CACHE_FILE
+
+
+def _write_last_live_rate_limits_cache(rate_limits: dict, captured_at: str) -> None:
+    if not rate_limits:
+        return
+    cache_path = _last_live_cache_path()
+    payload = {
+        "captured_at": captured_at,
+        "rate_limits": rate_limits,
+    }
+    try:
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    except OSError:
+        return
+
+
+def latest_last_live_rate_limits_cache(now: float | None = None) -> dict | None:
+    now = time.time() if now is None else now
+    try:
+        payload = json.loads(_last_live_cache_path().read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+
+    captured_at = payload.get("captured_at")
+    if not isinstance(captured_at, str) or not _last_live_timestamp_is_usable(captured_at, now):
+        return None
+
+    rate_limits = payload.get("rate_limits")
+    if not isinstance(rate_limits, dict):
+        return None
+    fresh = _local_snapshot_with_fresh_windows(rate_limits)
+    if not fresh:
+        return None
+    fresh["_source"] = "last_live"
+    fresh["_captured_at"] = captured_at
+    return fresh
+
+
+def _last_live_timestamp_is_usable(timestamp: str, now: float) -> bool:
+    parsed = _parse_event_timestamp(timestamp)
+    if parsed is None:
+        return False
+    if parsed > now + 60:
+        return False
+    return now - parsed <= LAST_LIVE_CACHE_MAX_AGE_SEC
 
 
 def _is_codex_rate_limit_snapshot(rate_limits) -> bool:
@@ -516,10 +598,14 @@ def _codex_status() -> dict:
     timestamp = datetime.datetime.now(datetime.timezone.utc)
     source = "live"
     data_time = timestamp.isoformat()
+    live_error = None
     try:
         rate_limits = live_codex_rate_limits()
     except Exception as exc:
-        rate_limits = latest_local_codex_rate_limits_snapshot()
+        live_error = exc
+        rate_limits = latest_last_live_rate_limits_cache()
+        if not rate_limits:
+            rate_limits = latest_local_codex_rate_limits_snapshot()
         if not rate_limits:
             return {
                 "ok": False,
@@ -535,9 +621,12 @@ def _codex_status() -> dict:
             }
         source = rate_limits.pop("_source", "local_snapshot")
         data_time = rate_limits.pop("_captured_at", data_time)
+    else:
+        if rate_limits:
+            _write_last_live_rate_limits_cache(rate_limits, data_time)
 
     if not rate_limits:
-        rate_limits = latest_local_codex_rate_limits_snapshot()
+        rate_limits = latest_last_live_rate_limits_cache() or latest_local_codex_rate_limits_snapshot()
         if not rate_limits:
             return {
                 "ok": False,
@@ -582,7 +671,7 @@ def _codex_status() -> dict:
         "plan": rate_limits.get("plan_type") or rate_limits.get("plan") or "?",
         "source": source,
         "data_time": data_time,
-        "error": None,
+        "error": f"Codex live usage unavailable; showing last live value: {live_error}" if source == "last_live" and live_error else None,
     }
 
 

@@ -60,6 +60,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let sevenDayMenuLabel = "7-day left"
     private let liveRefreshMenuLabel = "Live · refreshed"
     private let snapshotRefreshMenuLabel = "Snapshot · refreshed"
+    private let lastLiveRefreshMenuLabel = "Last live ·"
     private let fiveHourResetMenuLabel = "5h resets"
     private let sevenDayResetMenuLabel = "7d resets"
     private let runtimeLogFileName = "CodexGauge-runtime.log"
@@ -68,7 +69,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private lazy var resourcesDir = Bundle.main.resourcePath ?? FileManager.default.currentDirectoryPath
     private lazy var supportDir = applicationSupportDirectory()
     private lazy var pythonPath = infoString("CodexGaugePythonPath", fallback: "/usr/bin/python3")
-    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.4.0")
+    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.4.1")
     private lazy var releaseURL = infoString("CodexGaugeReleaseURL", fallback: "https://github.com/qingzhangeddie-byte/codex-gauge/releases")
     private lazy var usagePath = resolveUsagePath()
     private lazy var logPath = "\(supportDir)/\(runtimeLogFileName)"
@@ -240,6 +241,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             "USER": userName,
             "CODEX_GAUGE_PYTHON_PATH": pythonPath,
             "CODEX_GAUGE_STATUS_HELPER": usagePath,
+            "CODEX_GAUGE_SUPPORT_DIR": supportDir,
         ]
         if FileManager.default.isExecutableFile(atPath: codexCliBundlePath) {
             helperEnv["CODEX_GAUGE_CODEX_CLI_PATH"] = codexCliBundlePath
@@ -372,13 +374,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         image.lockFocus()
 
         let palette = gaugePalette()
-        let snapshotMode = isSnapshotSource(source)
+        let nonLiveMode = isNonLiveSource(source)
         palette.background.setFill()
         let frame = NSBezierPath(roundedRect: NSRect(origin: .zero, size: statusImageSize), xRadius: 4, yRadius: 4)
         frame.fill()
-        (snapshotMode ? palette.border.withAlphaComponent(0.30) : palette.border).setStroke()
+        (nonLiveMode ? palette.border.withAlphaComponent(0.34) : palette.border).setStroke()
         frame.lineWidth = 1
         frame.stroke()
+        drawSourceIndicator(source: source, palette: palette)
 
         drawPlanBGauge(
             fiveHourLeft: fiveHourLeft,
@@ -391,6 +394,32 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         image.unlockFocus()
         image.isTemplate = false
         return image
+    }
+
+    private func drawSourceIndicator(source: String?, palette: GaugePalette) {
+        guard let color = sourceIndicatorColor(source) else {
+            return
+        }
+        let marker = NSBezierPath(
+            roundedRect: NSRect(x: 2, y: 4, width: 2.5, height: statusImageSize.height - 8),
+            xRadius: 1.25,
+            yRadius: 1.25
+        )
+        color.setFill()
+        marker.fill()
+    }
+
+    private func sourceIndicatorColor(_ source: String?) -> NSColor? {
+        switch source {
+        case "last_live":
+            return NSColor(calibratedRed: 1.00, green: 0.67, blue: 0.22, alpha: 0.95)
+        case "local_snapshot":
+            return NSColor(calibratedRed: 0.38, green: 0.64, blue: 0.92, alpha: 0.72)
+        case .some:
+            return NSColor(calibratedRed: 0.62, green: 0.62, blue: 0.68, alpha: 0.70)
+        case .none:
+            return nil
+        }
     }
 
     private func drawPlanBGauge(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, palette: GaugePalette) {
@@ -768,14 +797,42 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func refreshLabel(_ status: ServiceStatus) -> String {
-        isSnapshotSource(status.source) ? snapshotRefreshMenuLabel : liveRefreshMenuLabel
+        switch status.source {
+        case "last_live":
+            return lastLiveRefreshMenuLabel
+        case "live", nil:
+            return liveRefreshMenuLabel
+        default:
+            return snapshotRefreshMenuLabel
+        }
     }
 
     private func statusTooltipTitle(_ snapshot: UsageSnapshot) -> String {
-        isSnapshotSource(snapshot.codex.source) ? "\(snapshot.title) · Snapshot" : snapshot.title
+        guard let suffix = sourceTooltipSuffix(snapshot.codex.source) else {
+            return snapshot.title
+        }
+        return "\(snapshot.title) · \(suffix)"
+    }
+
+    private func sourceTooltipSuffix(_ source: String?) -> String? {
+        switch source {
+        case "last_live":
+            return "Last live"
+        case "live", nil:
+            return nil
+        default:
+            return "Snapshot"
+        }
     }
 
     private func isSnapshotSource(_ source: String?) -> Bool {
+        guard let source else {
+            return false
+        }
+        return source != "live" && source != "last_live"
+    }
+
+    private func isNonLiveSource(_ source: String?) -> Bool {
         guard let source else {
             return false
         }

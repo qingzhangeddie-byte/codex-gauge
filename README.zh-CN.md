@@ -15,7 +15,7 @@ Codex Gauge 是一个**简单、安全的 Codex 菜单栏额度仪表**，用于
 - 自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
 - 原生 App 自带 helper，安装后不依赖源码目录
 - 使用用户级 LaunchAgent 保持菜单栏进程常驻，不读取浏览器 Cookie
-- 提供有边界的本地快照 fallback；无法取得实时数据时会明确标记为 **Snapshot**
+- 提供有边界的 fallback：短时 **Last live** 缓存、15 分钟 **Snapshot** 新鲜度保护，并在菜单栏显示来源标记
 - 原生菜单栏 App 不读取浏览器 Cookie
 - 原生菜单栏 App 不读取 `~/.codex/auth.json`
 - 日志写入 `~/Library/Application Support/CodexGauge`，并在本地自动轮转
@@ -73,7 +73,7 @@ bash install.sh
 CodexGauge.app/Contents/Resources/codex_status.py
 ```
 
-它优先通过本地 Codex app-server 读取实时额度。如果这个路径在 LaunchAgent 场景不可用，helper 会使用有边界的本地快照 fallback：递归查找最近的 Codex session 文件，最多读取 80 个文件，每个文件只读取末尾 2 MB，并且只提取 `rate_limits` 元数据。快照数据会在下拉菜单中明确标记为 **Snapshot**，不会伪装成实时数据。
+它优先通过本地 Codex app-server 读取实时额度。每次成功读取实时数据后，helper 会在本地短时缓存；如果临时读不到实时数据，会标记为 **Last live**，表示这是最近一次实时读数。如果实时数据和 Last live 都不可用，helper 才会使用有边界的本地快照 fallback：递归查找最近的 Codex session 文件，最多读取 80 个文件，每个文件只读取末尾 2 MB，并且只提取 `rate_limits` 元数据。快照必须是 15 分钟内捕获的数据；下拉菜单会明确标记为 **Snapshot**，不会把过期数据伪装成实时数据。
 
 它不读取浏览器 Cookie，不读取 `~/.codex/auth.json`，也不扫描无关的项目目录、浏览器 profile 或 Keychain。
 

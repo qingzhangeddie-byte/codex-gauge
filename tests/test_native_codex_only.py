@@ -134,6 +134,15 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("refreshLabel", source)
         self.assertIn("statusTooltipTitle", source)
 
+    def test_native_app_marks_non_live_data_sources_in_menu_bar(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn('"Last live ·"', source)
+        self.assertIn('case "last_live"', source)
+        self.assertIn("drawSourceIndicator(source: source", source)
+        self.assertIn("sourceIndicatorColor", source)
+        self.assertIn("Last live", source)
+
     def test_native_app_surfaces_version_and_release_link(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 

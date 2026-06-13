@@ -33,8 +33,8 @@ Search phrases this project is designed to answer naturally: **check Codex usage
   自包含 App bundle，helper 打包在 `Contents/Resources` 内
 - User LaunchAgent keeps the installed menu bar app resident without browser-cookie access  
   用户级 LaunchAgent 保持菜单栏 App 常驻，不读取浏览器 Cookie
-- Bounded local snapshot fallback with an explicit **Snapshot** label when live data is unavailable  
-  实时数据不可用时使用有边界的本地快照 fallback，并明确标记为 **Snapshot**
+- Bounded fallback: short **Last live** cache, 15-minute **Snapshot** guard, and visible menu bar source marker  
+  有边界的 fallback：短时 **Last live** 缓存、15 分钟 **Snapshot** 新鲜度保护，并在菜单栏显示来源标记
 - Runtime logs in `~/Library/Application Support/CodexGauge`, rotated locally  
   运行日志写入 `~/Library/Application Support/CodexGauge`，并在本地轮转
 
@@ -121,7 +121,7 @@ The native menu bar app uses a bundled helper:
 CodexGauge.app/Contents/Resources/codex_status.py
 ```
 
-For live Codex quota, it first talks to the local Codex app-server. If that path is unavailable from a LaunchAgent context, it falls back to a bounded local snapshot: the helper reads at most 80 recent Codex session files, only the last 2 MB of each file, and extracts only `rate_limits` metadata. Snapshot data is labeled as **Snapshot** in the dropdown so stale fallback data is not presented as live.
+For live Codex quota, it first talks to the local Codex app-server. Each successful live reading is cached locally for short outages and is labeled **Last live** if reused. If live and last-live data are unavailable, it can fall back to a bounded local snapshot: the helper reads at most 80 recent Codex session files, only the last 2 MB of each file, and extracts only `rate_limits` metadata. Snapshot data must be captured within the last 15 minutes and is labeled as **Snapshot** in the dropdown so stale fallback data is not presented as live.
 
 It does **not** read browser cookies, does **not** read `~/.codex/auth.json`, and does **not** scan unrelated project folders, browser profiles, or Keychain.
 
