@@ -78,6 +78,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("Apache License, Version 2.0", notice)
         self.assertIn("v0.5.0", changelog)
         self.assertIn("v0.6.0", changelog)
+        self.assertIn("v0.7.0", changelog)
 
     def test_release_check_script_covers_public_release_gates(self):
         script_path = pathlib.Path("script/release_check.sh")
@@ -132,11 +133,14 @@ class PublicReleaseHygieneTests(unittest.TestCase):
 
     def test_public_visual_assets_exist_and_are_bounded(self):
         live = pathlib.Path("docs/assets/codex-gauge-menubar-live.png")
+        console = pathlib.Path("docs/assets/codex-gauge-signal-console.png")
         social = pathlib.Path("docs/assets/codex-gauge-social-preview.png")
 
         self.assertTrue(live.exists())
+        self.assertTrue(console.exists())
         self.assertTrue(social.exists())
         self.assertLess(live.stat().st_size, 2_000_000)
+        self.assertLess(console.stat().st_size, 2_000_000)
         self.assertLess(social.stat().st_size, 3_000_000)
 
         result = subprocess.run(
@@ -147,6 +151,15 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         )
         self.assertIn("pixelWidth: 1280", result.stdout)
         self.assertIn("pixelHeight: 640", result.stdout)
+
+        console_result = subprocess.run(
+            ["sips", "-g", "pixelWidth", "-g", "pixelHeight", str(console)],
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+        )
+        self.assertIn("pixelWidth: 1280", console_result.stdout)
+        self.assertIn("pixelHeight: 640", console_result.stdout)
 
     def test_build_script_installs_public_app_name_and_removes_legacy_app(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()
@@ -168,7 +181,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         for phrase in [
             "git@github.com:qingzhangeddie-byte/codex-gauge.git",
             "git push -u origin main --tags",
-            "v0.6.0",
+            "v0.7.0",
             "repository social preview",
             "docs/assets/codex-gauge-social-preview.png",
             "private vulnerability reporting",

@@ -155,6 +155,38 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertNotIn("drawBottomCommands", source)
         self.assertNotIn("signalPopoverSize = NSSize(width: 640, height: 750)", source)
 
+    def test_signal_console_shows_real_next_refresh_countdown(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("let nextRefreshText: String", source)
+        self.assertIn("private var nextRefreshAt: Date?", source)
+        self.assertIn("private var popoverCountdownTimer: Timer?", source)
+        self.assertIn("nextRefreshCountdownText(now: now)", source)
+        self.assertIn("nextRefreshAt = Date().addingTimeInterval(interval)", source)
+        self.assertIn("startPopoverCountdownTimer()", source)
+        self.assertIn("stopPopoverCountdownTimer()", source)
+        self.assertIn('drawText(model.nextRefreshText, x: rect.maxX - 58', source)
+        self.assertNotIn('model.isRefreshing ? "now" : "5 min"', source)
+
+    def test_quota_movement_labels_include_signed_window_deltas(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("private func trendSignalText(values: [Int], fallback: String)", source)
+        self.assertIn('let signalText = "\\(label) \\(trendSignalText(values: values, fallback: text))"', source)
+        self.assertIn('drawText(signalText, x: 36', source)
+        self.assertIn('return delta > 0 ? "+\\(delta)%" : "\\(delta)%"', source)
+        self.assertIn('return "steady"', source)
+        self.assertIn('return "collecting"', source)
+
+    def test_signal_console_has_clear_codex_closed_empty_state(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("drawClosedSignalState", source)
+        self.assertIn('"Codex closed"', source)
+        self.assertIn('"Open Codex to refresh live usage"', source)
+        self.assertIn('"No live quota yet"', source)
+        self.assertIn("if model.isUnavailable {", source)
+
     def test_quota_movement_uses_semantic_colors(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 

@@ -13,12 +13,13 @@ Codex Gauge 是一个**简单、安全的 Codex 菜单栏额度仪表**，用于
 - 菜单栏同时显示 5 小时和 7 天额度
 - 分段信号条让菜单栏里的额度健康状态更直观，同时不增加占用宽度
 - 自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口
-- 趋势按真实时间窗口显示：当前 5 小时窗口变化，以及过去 24 小时内的 7 天额度变化
+- Signal Console 显示真实的下次刷新倒计时，不再只是静态刷新标签
+- 趋势按真实时间窗口显示：当前 5 小时窗口变化，以及过去 24 小时内的 7 天额度变化，并直接标出正负百分比
 - Signal Console 可生成本地 24 小时额度变化报告，并用紧凑 Health 状态条显示本地组件状态
 - 自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
 - 偏好设置支持自适应、5 分钟、10 分钟刷新，也可以控制是否登录时启动
 - 可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
-- Signal Console 会在弹出面板解释 Live、Last live、Snapshot 和不可用状态
+- Signal Console 会在弹出面板解释 Live、Last live、Snapshot、Codex closed 和不可用状态
 - Setup Doctor 和 Copy Diagnostics 可帮助排查本地设置，但不会复制 prompts、Cookie、auth 文件或日志
 - 原生 App 自带 helper，安装后不依赖源码目录
 - 使用用户级 LaunchAgent 保持菜单栏进程常驻，不读取浏览器 Cookie
@@ -27,7 +28,9 @@ Codex Gauge 是一个**简单、安全的 Codex 菜单栏额度仪表**，用于
 - 原生菜单栏 App 不读取 `~/.codex/auth.json`
 - 日志写入 `~/Library/Application Support/CodexGauge`，并在本地自动轮转
 
-![Codex Gauge menu](docs/assets/codex-gauge-menu.svg)
+![Codex Gauge Signal Console](docs/assets/codex-gauge-signal-console.png)
+
+上面的 Signal Console 截图使用示例数值展示界面效果；安装后的 App 会显示你本机的实时额度。
 
 ## 四条菜单栏信号
 

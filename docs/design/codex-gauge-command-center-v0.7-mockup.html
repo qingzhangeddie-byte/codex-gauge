@@ -3,13 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Codex Gauge Command Center v0.7 Mockup</title>
+  <title>Codex Gauge Signal Console v0.7</title>
   <style>
     :root {
-      --bg-a: #06111a;
-      --bg-b: #0f1f2b;
-      --panel: rgba(12, 22, 31, 0.82);
-      --panel-strong: rgba(19, 34, 46, 0.88);
+      --wall-a: #071322;
+      --wall-b: #102531;
+      --wall-c: #163a3f;
+      --panel: rgba(8, 18, 27, 0.90);
+      --panel-strong: rgba(18, 34, 46, 0.88);
       --panel-soft: rgba(255, 255, 255, 0.055);
       --line: rgba(173, 207, 235, 0.18);
       --line-soft: rgba(173, 207, 235, 0.10);
@@ -29,38 +30,37 @@
     * { box-sizing: border-box; }
 
     body {
-      width: 1600px;
-      height: 1080px;
+      width: 1280px;
+      height: 640px;
       margin: 0;
       overflow: hidden;
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
       background:
-        radial-gradient(circle at 19% 72%, rgba(70, 210, 176, 0.34) 0 10%, transparent 36%),
-        radial-gradient(circle at 81% 18%, rgba(88, 143, 255, 0.24) 0 12%, transparent 34%),
-        linear-gradient(138deg, #071326 0%, #06111a 44%, #112633 100%);
+        linear-gradient(122deg, transparent 0 18%, rgba(72, 199, 167, 0.32) 18% 29%, transparent 29% 100%),
+        linear-gradient(150deg, var(--wall-a) 0%, #09192b 44%, var(--wall-b) 70%, var(--wall-c) 100%);
     }
 
     .menubar {
       position: absolute;
       inset: 0 0 auto 0;
-      height: 64px;
-      background: rgba(7, 15, 28, 0.42);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      height: 56px;
       display: flex;
       justify-content: flex-end;
       align-items: center;
-      gap: 26px;
-      padding: 0 88px;
+      gap: 22px;
+      padding: 0 58px;
       color: rgba(255, 255, 255, 0.86);
-      font-size: 21px;
-      letter-spacing: 0;
+      font-size: 17px;
+      background: rgba(7, 15, 28, 0.48);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(22px);
     }
 
     .appicon {
-      width: 34px;
-      height: 34px;
-      border-radius: 9px;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
       display: grid;
       place-items: center;
       color: #68ffe1;
@@ -71,50 +71,57 @@
     }
 
     .bar-widget {
-      width: 184px;
-      height: 38px;
+      width: 190px;
+      height: 34px;
       border-radius: 9px;
-      background: rgba(237, 247, 255, 0.10);
-      border: 1px solid rgba(237, 247, 255, 0.12);
       display: grid;
       align-content: center;
       gap: 4px;
-      padding: 6px 10px;
+      padding: 5px 9px;
+      background: rgba(237, 247, 255, 0.10);
+      border: 1px solid rgba(237, 247, 255, 0.13);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
     }
 
     .minirow {
       display: grid;
-      grid-template-columns: 24px 76px 38px 1fr;
+      grid-template-columns: 24px 68px 34px 12px 40px;
       align-items: center;
-      gap: 8px;
+      gap: 7px;
+      color: rgba(237, 247, 255, 0.90);
       font-size: 11px;
       line-height: 1;
-      color: rgba(237, 247, 255, 0.88);
       font-variant-numeric: tabular-nums;
     }
 
     .minirail {
       height: 4px;
       border-radius: 999px;
-      background: rgba(237, 247, 255, 0.18);
       overflow: hidden;
+      background: rgba(237, 247, 255, 0.18);
     }
 
     .minirail i {
       display: block;
       height: 100%;
       border-radius: inherit;
-      background: var(--mint);
+      background: linear-gradient(90deg, var(--mint), #b7f082);
+    }
+
+    .minirow.low .minirail i {
+      background: linear-gradient(90deg, var(--coral), #ff9562);
     }
 
     .mini-face {
       width: 12px;
       height: 12px;
       border-radius: 50%;
+      position: relative;
       border: 1px solid rgba(10, 12, 14, 0.28);
       background: var(--amber);
-      position: relative;
     }
+
+    .minirow.low .mini-face { background: #ff7568; }
 
     .mini-face::before,
     .mini-face::after {
@@ -132,34 +139,33 @@
 
     .popover-wrap {
       position: absolute;
-      top: 67px;
+      top: 66px;
       left: 50%;
+      width: 560px;
+      height: 560px;
       transform: translateX(-50%);
-      width: 898px;
-      height: 754px;
     }
 
     .notch {
       position: absolute;
       left: 50%;
-      top: -13px;
-      width: 28px;
-      height: 28px;
+      top: -10px;
+      width: 22px;
+      height: 22px;
       transform: translateX(-50%) rotate(45deg);
-      background: rgba(12, 22, 31, 0.86);
       border-left: 1px solid var(--line);
       border-top: 1px solid var(--line);
       border-radius: 4px;
+      background: rgba(8, 18, 27, 0.94);
     }
 
     .panel {
       position: absolute;
       inset: 0;
-      border-radius: 19px;
-      padding: 22px 26px;
+      border-radius: 18px;
       background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
-        linear-gradient(135deg, rgba(8, 18, 27, 0.95), rgba(8, 19, 28, 0.78));
+        linear-gradient(135deg, rgba(8, 18, 27, 0.96), rgba(8, 19, 28, 0.82));
       border: 1px solid var(--line);
       box-shadow:
         0 34px 100px rgba(0, 0, 0, 0.46),
@@ -167,27 +173,26 @@
       backdrop-filter: blur(34px);
     }
 
-    .header {
-      height: 34px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 14px;
-    }
-
-    .brand {
-      display: flex;
-      align-items: baseline;
-      gap: 10px;
+    .label {
       color: var(--text);
-      font-size: 17px;
-      font-weight: 650;
+      font-weight: 680;
       letter-spacing: 0;
     }
 
-    .brand span {
-      color: var(--sub);
-      font-weight: 450;
+    .muted { color: var(--muted); }
+    .sub { color: var(--sub); }
+    .mono { font-variant-numeric: tabular-nums; }
+
+    .header {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      top: 16px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 15px;
     }
 
     .header-tools {
@@ -197,17 +202,16 @@
     }
 
     .pill {
-      height: 29px;
+      height: 28px;
       border-radius: 999px;
       display: inline-flex;
       align-items: center;
       gap: 7px;
-      padding: 0 11px;
+      padding: 0 10px;
       color: var(--sub);
-      background: rgba(255, 255, 255, 0.06);
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.065);
       border: 1px solid rgba(255, 255, 255, 0.09);
-      font-size: 13px;
-      font-weight: 500;
     }
 
     .dot {
@@ -215,225 +219,220 @@
       height: 7px;
       border-radius: 50%;
       background: var(--mint);
-      box-shadow: 0 0 16px var(--mint);
+      box-shadow: 0 0 14px var(--mint);
+    }
+
+    .status {
+      position: absolute;
+      left: 20px;
+      top: 54px;
+      width: 520px;
+      height: 42px;
+      border-radius: 13px;
+      display: grid;
+      grid-template-columns: 104px 1fr 86px;
+      align-items: center;
+      padding: 0 18px;
+      gap: 10px;
+      background: rgba(79, 240, 173, 0.08);
+      border: 1px solid rgba(173, 207, 235, 0.18);
+    }
+
+    .status .signal {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--mint);
+      font-size: 13px;
+      font-weight: 760;
+    }
+
+    .status-detail {
+      color: var(--sub);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .next {
+      height: 28px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      background: rgba(0, 0, 0, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      color: var(--text);
+      font-size: 10px;
     }
 
     .hero {
-      height: 245px;
+      position: absolute;
+      left: 20px;
+      top: 108px;
+      width: 520px;
+      height: 152px;
       border-radius: 16px;
-      padding: 18px;
+      border: 1px solid rgba(173, 207, 235, 0.18);
       background:
-        radial-gradient(circle at 0% 0%, rgba(79, 240, 173, 0.13), transparent 32%),
-        radial-gradient(circle at 100% 0%, rgba(255, 200, 90, 0.12), transparent 34%),
+        linear-gradient(90deg, rgba(79, 240, 173, 0.08), transparent 45%),
         var(--panel-strong);
-      border: 1px solid rgba(173, 207, 235, 0.20);
-      display: grid;
-      grid-template-columns: 1fr 188px;
-      gap: 16px;
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
     }
 
-    .quota-stack {
+    .quota-row {
+      position: absolute;
+      left: 14px;
+      width: 492px;
+      height: 58px;
+      border-radius: 13px;
       display: grid;
-      gap: 12px;
+      grid-template-columns: 42px 206px 1fr;
+      align-items: center;
+      gap: 14px;
+      padding: 0 14px;
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid var(--line-soft);
     }
 
-    .quota-row {
-      min-height: 96px;
-      display: grid;
-      grid-template-columns: 54px 1fr 154px;
-      align-items: center;
-      gap: 15px;
-      padding: 14px 16px;
-      border-radius: 13px;
-      border: 1px solid var(--line-soft);
-      background: rgba(255, 255, 255, 0.045);
-    }
+    .quota-row.first { top: 16px; }
+    .quota-row.second { top: 82px; }
 
     .window {
-      font-size: 22px;
-      font-weight: 800;
-      line-height: 1;
       color: var(--text);
-      font-variant-numeric: tabular-nums;
+      font-size: 19px;
+      line-height: 1;
+      font-weight: 800;
     }
 
     .window small {
       display: block;
       margin-top: 7px;
-      font-size: 11px;
-      font-weight: 650;
       color: var(--muted);
+      font-size: 8px;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
     }
 
     .quota-main {
       display: grid;
-      gap: 10px;
+      gap: 7px;
     }
 
     .quota-title {
       display: flex;
-      justify-content: space-between;
       align-items: baseline;
+      justify-content: space-between;
       color: var(--sub);
-      font-size: 13px;
+      font-size: 11px;
     }
 
     .percent {
+      font-size: 17px;
       color: var(--text);
-      font-size: 20px;
-      font-weight: 780;
+      font-weight: 800;
       font-variant-numeric: tabular-nums;
     }
 
+    .percent.low { color: var(--coral); }
+
     .rail {
-      height: 13px;
+      height: 10px;
       border-radius: 999px;
-      padding: 2px;
-      background: rgba(255, 255, 255, 0.11);
       overflow: hidden;
+      background: rgba(255, 255, 255, 0.12);
     }
 
     .fill {
       height: 100%;
       border-radius: inherit;
-      background: linear-gradient(90deg, #45e4ad, #b7f082);
-      box-shadow: 0 0 18px rgba(79, 240, 173, 0.18);
+      background: linear-gradient(90deg, var(--mint), #b7f082);
     }
 
-    .fill.low {
-      background: linear-gradient(90deg, #ff5f66, #ff9562);
-      box-shadow: 0 0 18px rgba(255, 95, 102, 0.18);
-    }
+    .fill.low { background: linear-gradient(90deg, var(--coral), #ff9562); }
 
     .reset-card {
       display: grid;
-      gap: 9px;
-      justify-items: stretch;
-      align-items: center;
+      gap: 7px;
       color: var(--sub);
-      font-size: 12px;
+      font-size: 10px;
     }
 
     .reset-caption {
       display: flex;
       justify-content: space-between;
-      font-variant-numeric: tabular-nums;
+    }
+
+    .reset-caption b {
+      color: var(--text);
+      font-weight: 760;
     }
 
     .reset-lane {
-      height: 10px;
+      height: 9px;
       border-radius: 999px;
-      background: linear-gradient(90deg, var(--coral) 0%, #ff9365 52%, var(--amber) 100%);
       position: relative;
-      opacity: 0.95;
+      background: linear-gradient(90deg, var(--coral), #ff9365 50%, var(--amber));
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
     }
 
     .face {
       position: absolute;
       top: 50%;
-      transform: translate(-50%, -50%);
-      width: 24px;
-      height: 24px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
+      transform: translate(-50%, -50%);
       background: var(--amber);
-      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.32);
       border: 1px solid rgba(0, 0, 0, 0.20);
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.30);
     }
+
+    .face.tense { background: #ff7568; }
 
     .face::before,
     .face::after {
       content: "";
       position: absolute;
-      top: 8px;
+      top: 7px;
       width: 3px;
       height: 3px;
       border-radius: 50%;
       background: rgba(0, 0, 0, 0.62);
     }
 
-    .face::before { left: 7px; }
-    .face::after { right: 7px; }
+    .face::before { left: 6px; }
+    .face::after { right: 6px; }
 
     .face i {
       position: absolute;
       left: 7px;
       right: 7px;
-      bottom: 6px;
+      bottom: 5px;
       height: 4px;
       border-bottom: 2px solid rgba(0, 0, 0, 0.58);
       border-radius: 0 0 999px 999px;
     }
 
-    .face.tense {
-      background: #ff7568;
-    }
-
     .face.tense i {
-      bottom: 5px;
+      bottom: 4px;
       border-bottom: 0;
       border-top: 2px solid rgba(0, 0, 0, 0.58);
       border-radius: 999px 999px 0 0;
     }
 
-    .state-card {
-      border-radius: 14px;
-      padding: 16px 15px;
-      border: 1px solid var(--line-soft);
-      background:
-        linear-gradient(180deg, rgba(79, 240, 173, 0.10), rgba(255, 255, 255, 0.035));
-      display: grid;
-      align-content: space-between;
-    }
-
-    .state-top {
-      display: grid;
-      gap: 7px;
-    }
-
-    .state-title {
-      color: var(--mint);
-      font-size: 18px;
-      font-weight: 750;
-    }
-
-    .state-detail {
-      color: var(--sub);
-      font-size: 13px;
-      line-height: 1.35;
-    }
-
-    .refresh-chip {
-      height: 34px;
-      border-radius: 10px;
-      padding: 0 11px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      color: var(--text);
-      background: rgba(0, 0, 0, 0.18);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      font-size: 13px;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .grid {
-      margin-top: 14px;
-      display: grid;
-      grid-template-columns: 1.16fr 0.84fr;
-      gap: 14px;
-    }
-
     .card {
-      min-height: 166px;
+      position: absolute;
+      top: 274px;
+      height: 122px;
       border-radius: 15px;
-      padding: 16px 18px;
+      padding: 14px 16px;
       background: var(--panel-soft);
       border: 1px solid var(--line-soft);
     }
+
+    .trend { left: 20px; width: 248px; }
+    .report { left: 280px; width: 260px; }
 
     .card-head {
       display: flex;
@@ -443,150 +442,163 @@
     }
 
     .card-title {
-      font-size: 14px;
-      font-weight: 720;
+      font-size: 12px;
+      font-weight: 780;
       color: var(--text);
     }
 
     .card-kicker {
-      font-size: 12px;
       color: var(--muted);
-      font-variant-numeric: tabular-nums;
+      font-size: 10px;
     }
 
     .trend-row {
       display: grid;
-      grid-template-columns: 56px 68px 1fr 34px;
+      grid-template-columns: 92px 84px 28px;
       align-items: center;
-      gap: 13px;
-      height: 48px;
+      gap: 6px;
+      height: 34px;
       color: var(--sub);
-      font-size: 13px;
+      font-size: 11px;
       font-variant-numeric: tabular-nums;
     }
 
-    .trend-row strong {
-      color: var(--text);
-      font-size: 14px;
+    .trend-label {
+      font-weight: 780;
+      color: var(--coral);
     }
 
+    .trend-row.ok .trend-label { color: var(--mint); }
+
     .spark {
-      height: 30px;
+      height: 28px;
       display: flex;
       align-items: flex-end;
-      gap: 4px;
+      gap: 2px;
       border-bottom: 1px dashed rgba(255, 255, 255, 0.13);
     }
 
     .spark i {
-      display: block;
-      width: 7px;
-      min-height: 4px;
+      width: 5px;
+      min-height: 3px;
       border-radius: 2px 2px 0 0;
-      background: rgba(168, 186, 203, 0.25);
+      background: rgba(168, 186, 203, 0.22);
     }
 
-    .spark i:nth-last-child(-n+4) {
-      background: rgba(79, 240, 173, 0.38);
-    }
+    .spark i:nth-last-child(-n+4) { background: rgba(255, 95, 102, 0.40); }
+    .trend-row.ok .spark i:nth-last-child(-n+4) { background: rgba(79, 240, 173, 0.40); }
 
     .delta {
-      height: 24px;
-      border-radius: 8px;
+      height: 22px;
+      border-radius: 999px;
       display: grid;
       place-items: center;
-      background: rgba(255, 255, 255, 0.075);
-      color: var(--sub);
-      font-size: 12px;
+      color: var(--coral);
+      background: var(--coral-soft);
+      font-size: 11px;
+      font-weight: 760;
     }
 
-    .report {
-      display: grid;
-      align-content: space-between;
-      gap: 12px;
+    .trend-row.ok .delta {
+      color: var(--mint);
+      background: var(--mint-soft);
     }
 
-    .report-text {
+    .trend-context {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 9px;
+      white-space: nowrap;
+    }
+
+    .report-copy {
       color: var(--sub);
-      font-size: 13px;
-      line-height: 1.45;
-      max-width: 26ch;
+      font-size: 10.5px;
+      line-height: 1.32;
+      max-width: 24ch;
+      max-height: 46px;
+      overflow: hidden;
     }
 
     .report-actions {
+      position: absolute;
+      left: 16px;
+      bottom: 16px;
       display: flex;
-      gap: 10px;
-      align-items: center;
+      gap: 8px;
     }
 
     .button {
-      height: 34px;
+      height: 30px;
       border-radius: 10px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 0 14px;
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      background: rgba(255, 255, 255, 0.075);
+      padding: 0 12px;
       color: var(--text);
-      font-size: 13px;
-      font-weight: 620;
+      font-size: 12px;
+      font-weight: 650;
+      white-space: nowrap;
+      background: rgba(255, 255, 255, 0.075);
+      border: 1px solid rgba(255, 255, 255, 0.10);
     }
 
     .button.primary {
       color: #071119;
       background: linear-gradient(180deg, #91ffd3, var(--mint));
-      border-color: rgba(255, 255, 255, 0.25);
-      box-shadow: 0 10px 26px rgba(79, 240, 173, 0.18);
+      border-color: rgba(255, 255, 255, 0.24);
     }
 
     .health {
-      height: 84px;
-      margin-top: 14px;
+      position: absolute;
+      left: 20px;
+      top: 410px;
+      width: 520px;
+      height: 66px;
       border-radius: 15px;
-      background: rgba(255, 255, 255, 0.045);
-      border: 1px solid var(--line-soft);
       display: grid;
-      grid-template-columns: 120px 1fr 124px;
+      grid-template-columns: 86px 1fr 82px;
       align-items: center;
-      gap: 18px;
-      padding: 0 18px;
+      gap: 12px;
+      padding: 0 16px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line-soft);
     }
 
     .health-title {
       color: var(--text);
-      font-size: 14px;
-      font-weight: 720;
+      font-size: 12px;
+      font-weight: 780;
     }
 
     .health-sub {
       margin-top: 4px;
       color: var(--muted);
-      font-size: 12px;
+      font-size: 10px;
     }
 
-    .health-dots {
+    .health-grid {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 10px;
+      grid-template-columns: repeat(5, 54px);
+      gap: 6px;
     }
 
     .health-item {
-      height: 44px;
-      border-radius: 11px;
+      height: 30px;
+      border-radius: 9px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 5px;
       color: var(--sub);
-      font-size: 12px;
-      background: rgba(255, 255, 255, 0.045);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 8.5px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     .health-item .dot {
-      width: 8px;
-      height: 8px;
+      width: 7px;
+      height: 7px;
       box-shadow: none;
     }
 
@@ -594,32 +606,34 @@
     .health-item.blue .dot { background: var(--blue); }
 
     .bottom {
-      margin-top: 14px;
-      height: 84px;
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      top: 486px;
+      height: 54px;
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr 1fr;
-      gap: 10px;
-      align-items: center;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding-top: 10px;
       border-top: 1px solid var(--line-soft);
-      padding-top: 14px;
     }
 
     .command {
-      height: 46px;
+      height: 40px;
       border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 13px;
-      background: rgba(255, 255, 255, 0.045);
+      padding: 0 12px;
       color: var(--text);
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.045);
       border: 1px solid rgba(255, 255, 255, 0.06);
-      font-size: 13px;
     }
 
     .command span {
       color: var(--muted);
-      font-size: 12px;
+      font-size: 10px;
       font-variant-numeric: tabular-nums;
     }
   </style>
@@ -627,91 +641,83 @@
 <body>
   <div class="menubar">
     <div class="appicon">B</div>
-    <div class="bar-widget">
-      <div class="minirow"><b>5h</b><div class="minirail"><i style="width:65%"></i></div><b>65%</b><span>4h</span></div>
-      <div class="minirow"><b>7d</b><div class="minirail"><i style="width:15%;background:#ff6b68"></i></div><b>15%</b><span>5d22h</span></div>
+    <div class="bar-widget" aria-label="Codex Gauge menu bar widget">
+      <div class="minirow"><b>5h</b><div class="minirail"><i style="width:43%"></i></div><b>43%</b><span class="mini-face"></span><span>2h41m</span></div>
+      <div class="minirow low"><b>7d</b><div class="minirail"><i style="width:12%"></i></div><b>12%</b><span class="mini-face"></span><span>4d18h</span></div>
     </div>
-    <span>▭</span><span>◴</span><span>⌁</span><span>⌕</span><span>Tue May 20&nbsp;&nbsp;9:41 AM</span>
+    <span>▭</span><span>◴</span><span>⌁</span><span>⌕</span><span>Sat Jun 13&nbsp;&nbsp;20:19</span>
   </div>
 
   <div class="popover-wrap">
     <div class="notch"></div>
     <main class="panel">
       <section class="header">
-        <div class="brand">Codex Gauge <span>Signal Console</span></div>
+        <div class="label">Codex Gauge <span class="sub"> • Signal Console</span></div>
         <div class="header-tools">
-          <div class="pill"><i class="dot"></i> Live</div>
+          <div class="pill"><i class="dot"></i>Live</div>
           <div class="pill">Source: Menu Bar</div>
-          <div class="pill">13:25</div>
         </div>
+      </section>
+
+      <section class="status">
+        <div class="signal"><i class="dot"></i>Live signal</div>
+        <div class="status-detail">Codex is open. Hands-free refresh every 5 minutes.</div>
+        <div class="next"><span class="muted">next</span><b class="mono">4:32</b></div>
       </section>
 
       <section class="hero">
-        <div class="quota-stack">
-          <div class="quota-row">
-            <div class="window">5h<small>window</small></div>
-            <div class="quota-main">
-              <div class="quota-title"><span>5-hour quota left</span><span class="percent">65%</span></div>
-              <div class="rail"><div class="fill" style="width:65%"></div></div>
-            </div>
-            <div class="reset-card">
-              <div class="reset-caption"><span>reset</span><b>4h 15m</b></div>
-              <div class="reset-lane"><span class="face" style="left:72%"><i></i></span></div>
-            </div>
+        <div class="quota-row first">
+          <div class="window mono">5h<small>window</small></div>
+          <div class="quota-main">
+            <div class="quota-title"><span>5-hour quota left</span><span class="percent mono">43%</span></div>
+            <div class="rail"><div class="fill" style="width:43%"></div></div>
           </div>
-
-          <div class="quota-row">
-            <div class="window">7d<small>window</small></div>
-            <div class="quota-main">
-              <div class="quota-title"><span>7-day quota left</span><span class="percent" style="color:var(--coral)">15%</span></div>
-              <div class="rail"><div class="fill low" style="width:15%"></div></div>
-            </div>
-            <div class="reset-card">
-              <div class="reset-caption"><span>reset</span><b>5d 22h</b></div>
-              <div class="reset-lane"><span class="face tense" style="left:15%"><i></i></span></div>
-            </div>
+          <div class="reset-card">
+            <div class="reset-caption"><span>reset</span><b class="mono">2h 41m</b></div>
+            <div class="reset-lane"><span class="face" style="left:47%"><i></i></span></div>
           </div>
         </div>
 
-        <aside class="state-card">
-          <div class="state-top">
-            <div class="state-title">Live signal</div>
-            <div class="state-detail">Codex is open. Quota refreshes hands-free every 5 minutes.</div>
+        <div class="quota-row second">
+          <div class="window mono">7d<small>window</small></div>
+          <div class="quota-main">
+            <div class="quota-title"><span>7-day quota left</span><span class="percent low mono">12%</span></div>
+            <div class="rail"><div class="fill low" style="width:12%"></div></div>
           </div>
-          <div class="refresh-chip"><span>next refresh</span><b>4:58</b></div>
-        </aside>
+          <div class="reset-card">
+            <div class="reset-caption"><span>reset</span><b class="mono">4d 18h</b></div>
+            <div class="reset-lane"><span class="face tense" style="left:30%"><i></i></span></div>
+          </div>
+        </div>
       </section>
 
-      <section class="grid">
-        <div class="card">
-          <div class="card-head">
-            <div class="card-title">Quota movement</div>
-            <div class="card-kicker">last 24h</div>
-          </div>
-          <div class="trend-row">
-            <strong>5h</strong><span>steady</span>
-            <div class="spark"><i style="height:8px"></i><i style="height:9px"></i><i style="height:8px"></i><i style="height:14px"></i><i style="height:13px"></i><i style="height:15px"></i><i style="height:18px"></i><i style="height:14px"></i><i style="height:16px"></i><i style="height:20px"></i><i style="height:24px"></i><i style="height:21px"></i></div>
-            <div class="delta">-3</div>
-          </div>
-          <div class="trend-row">
-            <strong>7d</strong><span>heavy</span>
-            <div class="spark"><i style="height:22px"></i><i style="height:20px"></i><i style="height:19px"></i><i style="height:18px"></i><i style="height:16px"></i><i style="height:14px"></i><i style="height:13px"></i><i style="height:11px"></i><i style="height:10px"></i><i style="height:8px"></i><i style="height:7px"></i><i style="height:6px"></i></div>
-            <div class="delta" style="color:var(--coral)">-18</div>
-          </div>
+      <section class="card trend">
+        <div class="card-head">
+          <div class="card-title">Quota movement</div>
+          <div class="card-kicker">last 24h</div>
         </div>
+        <div class="trend-row">
+          <div class="trend-label mono">5h -7%</div>
+          <div class="spark"><i style="height:22px"></i><i style="height:21px"></i><i style="height:19px"></i><i style="height:17px"></i><i style="height:15px"></i><i style="height:13px"></i><i style="height:12px"></i><i style="height:10px"></i><i style="height:9px"></i><i style="height:8px"></i></div>
+          <div class="delta">-7</div>
+        </div>
+        <div class="trend-row ok">
+          <div class="trend-label mono">7d steady</div>
+          <div class="spark"><i style="height:8px"></i><i style="height:8px"></i><i style="height:9px"></i><i style="height:8px"></i><i style="height:9px"></i><i style="height:9px"></i><i style="height:8px"></i><i style="height:9px"></i><i style="height:8px"></i><i style="height:8px"></i></div>
+          <div class="delta">-</div>
+        </div>
+        <div class="trend-context">Based on 18 live samples from 09:12 to 20:19</div>
+      </section>
 
-        <div class="card report">
-          <div>
-            <div class="card-head">
-              <div class="card-title">Usage report</div>
-              <div class="card-kicker">local only</div>
-            </div>
-            <div class="report-text">Generates a quota movement summary from local snapshots. No prompts, cookies, auth files, or billing data.</div>
-          </div>
-          <div class="report-actions">
-            <div class="button primary">Generate</div>
-            <div class="button">Copy diagnostics</div>
-          </div>
+      <section class="card report">
+        <div class="card-head">
+          <div class="card-title">Usage Report</div>
+          <div class="card-kicker">local only</div>
+        </div>
+        <div class="report-copy">24h local quota summary. Safe diagnostics only.</div>
+        <div class="report-actions">
+          <div class="button primary">Generate</div>
+          <div class="button">Copy diagnostics</div>
         </div>
       </section>
 
@@ -720,7 +726,7 @@
           <div class="health-title">Health</div>
           <div class="health-sub">4 OK · 1 optional</div>
         </div>
-        <div class="health-dots">
+        <div class="health-grid">
           <div class="health-item"><i class="dot"></i>Codex</div>
           <div class="health-item"><i class="dot"></i>Helper</div>
           <div class="health-item blue"><i class="dot"></i>Live</div>
@@ -732,7 +738,7 @@
 
       <section class="bottom">
         <div class="command">Open Codex <span>⌘O</span></div>
-        <div class="command">Refresh Now <span>5 min</span></div>
+        <div class="command">Refresh Now <span>4:32</span></div>
         <div class="command">Preferences <span>⌘,</span></div>
         <div class="command">Quit <span>⌘Q</span></div>
       </section>

@@ -87,6 +87,7 @@ private struct SignalConsoleModel {
     let healthSummaryText: String
     let doctorChecks: [DoctorCheck]
     let lastRefreshText: String
+    let nextRefreshText: String
     let source: String?
     let isUnavailable: Bool
     let isRefreshing: Bool
@@ -232,10 +233,19 @@ private final class SignalConsolePanelView: NSView {
         drawRoundedRect(rect, radius: 13, fill: stateColor.withAlphaComponent(0.08), stroke: panelBorder.withAlphaComponent(0.42))
         drawCircle(center: NSPoint(x: rect.minX + 18, y: rect.midY), radius: 4, color: stateColor, stroke: nil)
         drawText("Live signal", x: rect.minX + 30, y: rect.minY + 9, width: 86, height: 18, size: 13, weight: .bold, color: stateColor)
-        drawText(statusStripDetail(), x: rect.minX + 124, y: rect.minY + 9, width: 268, height: 18, size: 12, weight: .regular, color: textSecondary)
+        drawText(statusStripDetail(), x: rect.minX + 124, y: rect.minY + 9, width: model.isUnavailable ? 204 : 268, height: 18, size: 12, weight: .regular, color: textSecondary)
+        if model.isUnavailable {
+            drawClosedSignalState(in: NSRect(x: rect.maxX - 210, y: rect.minY + 7, width: 96, height: 28))
+        }
         drawRoundedRect(NSRect(x: rect.maxX - 104, y: rect.minY + 7, width: 86, height: 28), radius: 9, fill: NSColor.black.withAlphaComponent(0.14), stroke: panelBorder.withAlphaComponent(0.26))
         drawText("next", x: rect.maxX - 94, y: rect.minY + 13, width: 30, height: 14, size: 10, weight: .regular, color: textMuted)
-        drawText(model.isRefreshing ? "now" : "5 min", x: rect.maxX - 58, y: rect.minY + 13, width: 42, height: 14, size: 10, weight: .semibold, color: textPrimary, mono: true)
+        drawText(model.nextRefreshText, x: rect.maxX - 58, y: rect.minY + 13, width: 42, height: 14, size: 10, weight: .semibold, color: textPrimary, mono: true)
+    }
+
+    private func drawClosedSignalState(in rect: NSRect) {
+        drawRoundedRect(rect, radius: rect.height / 2, fill: amberSoft, stroke: panelBorder.withAlphaComponent(0.26))
+        drawCircle(center: NSPoint(x: rect.minX + 14, y: rect.midY), radius: 3.5, color: amberAccent, stroke: nil)
+        drawText("No live quota yet", x: rect.minX + 24, y: rect.minY + 7, width: rect.width - 32, height: 14, size: 9, weight: .medium, color: textPrimary)
     }
 
     private func drawSignalHeroCard() {
@@ -294,8 +304,8 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawTrendRow(label: String, text: String, values: [Int], y: CGFloat) {
-        drawText(label, x: 36, y: y - 3, width: 30, height: 20, size: 13, weight: .bold, color: textPrimary, mono: true)
-        drawText(shortTrendText(text), x: 76, y: y - 2, width: 62, height: 18, size: 10, weight: .regular, color: textSecondary)
+        let signalText = "\(label) \(trendSignalText(values: values, fallback: text))"
+        drawText(signalText, x: 36, y: y - 2, width: 96, height: 18, size: 11, weight: .bold, color: trendSignalColor(values: values), mono: true)
         drawTrendSparkline(values: values, rect: NSRect(x: 136, y: y - 8, width: 84, height: 28))
         drawPill(text: values.isEmpty ? "--" : deltaPill(values), rect: NSRect(x: 226, y: y - 3, width: 26, height: 22), color: trendDeltaPillColor(values: values))
     }
@@ -509,6 +519,35 @@ private final class SignalConsolePanelView: NSView {
             .replacingOccurrences(of: "this window", with: "")
             .replacingOccurrences(of: "in 24h", with: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func trendSignalText(values: [Int], fallback: String) -> String {
+        guard values.count >= 2, let first = values.first, let last = values.last else {
+            let fallbackText = shortTrendText(fallback)
+            if fallbackText.localizedCaseInsensitiveContains("no data") || fallbackText.isEmpty {
+                return "collecting"
+            }
+            return fallbackText
+        }
+        let delta = last - first
+        if abs(delta) < 2 {
+            return "steady"
+        }
+        return delta > 0 ? "+\(delta)%" : "\(delta)%"
+    }
+
+    private func trendSignalColor(values: [Int]) -> NSColor {
+        guard values.count >= 2, let first = values.first, let last = values.last else {
+            return textSecondary
+        }
+        let delta = last - first
+        if delta <= -2 {
+            return coralAccent
+        }
+        if delta >= 2 {
+            return mintAccent
+        }
+        return textSecondary
     }
 
     private func drawSegmentedRail(value: Int?, rect: NSRect, fill: NSColor, segments: Int) {
@@ -769,6 +808,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var signalPopover: NSPopover?
     private var timer: Timer?
     private var animationTimer: Timer?
+    private var popoverCountdownTimer: Timer?
     private var preferencesWindow: NSWindow?
     private var setupDoctorWindow: NSWindow?
     private var refreshPopup: NSPopUpButton?
@@ -781,6 +821,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var activity: NSObjectProtocol?
     private var moodPulseStep = 0
     private var previousFiveHourLeft: Int?
+    private var nextRefreshAt: Date?
     private var liveUnavailableSince: Date?
     private var didNotifyLiveUnavailable = false
     private var resetHighlightUntil: Date?
@@ -827,7 +868,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private lazy var resourcesDir = Bundle.main.resourcePath ?? FileManager.default.currentDirectoryPath
     private lazy var supportDir = applicationSupportDirectory()
     private lazy var pythonPath = infoString("CodexGaugePythonPath", fallback: "/usr/bin/python3")
-    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.6.0")
+    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.7.0")
     private lazy var releaseURL = infoString("CodexGaugeReleaseURL", fallback: "https://github.com/qingzhangeddie-byte/codex-gauge/releases")
     private lazy var usagePath = resolveUsagePath()
     private lazy var logPath = "\(supportDir)/\(runtimeLogFileName)"
@@ -860,6 +901,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         timer?.invalidate()
         animationTimer?.invalidate()
+        popoverCountdownTimer?.invalidate()
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -869,6 +911,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     @objc private func toggleSignalConsole(_ sender: Any?) {
         if let signalPopover, signalPopover.isShown {
             signalPopover.performClose(sender)
+            stopPopoverCountdownTimer()
             return
         }
         showSignalConsolePopover()
@@ -886,6 +929,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         popover.contentViewController = makeSignalConsoleViewController()
         signalPopover = popover
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        startPopoverCountdownTimer()
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -894,6 +938,29 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return
         }
         signalPopover.contentViewController = makeSignalConsoleViewController()
+    }
+
+    private func startPopoverCountdownTimer() {
+        stopPopoverCountdownTimer()
+        let nextTimer = Timer(timeInterval: 1.0, repeats: true) { [weak self] timer in
+            guard let self else {
+                timer.invalidate()
+                return
+            }
+            guard let signalPopover = self.signalPopover, signalPopover.isShown else {
+                timer.invalidate()
+                self.popoverCountdownTimer = nil
+                return
+            }
+            self.refreshSignalPopoverIfNeeded()
+        }
+        popoverCountdownTimer = nextTimer
+        RunLoop.main.add(nextTimer, forMode: .common)
+    }
+
+    private func stopPopoverCountdownTimer() {
+        popoverCountdownTimer?.invalidate()
+        popoverCountdownTimer = nil
     }
 
     private func makeSignalConsoleViewController() -> NSViewController {
@@ -960,6 +1027,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 healthSummaryText: healthSummaryText(doctorChecks),
                 doctorChecks: doctorChecks,
                 lastRefreshText: shortTime(status.dataTime ?? snapshot.updatedAt),
+                nextRefreshText: nextRefreshCountdownText(now: now),
                 source: status.source,
                 isUnavailable: unavailable,
                 isRefreshing: isRefreshing
@@ -992,6 +1060,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             healthSummaryText: healthSummaryText(doctorChecks),
             doctorChecks: doctorChecks,
             lastRefreshText: "none",
+            nextRefreshText: nextRefreshCountdownText(now: now),
             source: nil,
             isUnavailable: true,
             isRefreshing: isRefreshing
@@ -1057,6 +1126,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     @objc private func refreshNow() {
         timer?.invalidate()
+        nextRefreshAt = nil
         refresh()
     }
 
@@ -1147,6 +1217,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         UserDefaults.standard.set(mode, forKey: refreshModeKey)
         if !isRefreshing {
             scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))
+            rebuildMenu()
         }
     }
 
@@ -1184,6 +1255,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return
         }
         isRefreshing = true
+        nextRefreshAt = nil
         if snapshot == nil {
             setStatusImage(title: "Refreshing Codex quota")
         }
@@ -1463,8 +1535,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             lastError = detail.isEmpty ? "Status command exited with code \(status)" : clipped(detail, limit: 160)
             setStatusImage(title: "Open Codex to refresh live usage")
         }
-        rebuildMenu()
         scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))
+        rebuildMenu()
     }
 
     private func notificationsEnabled() -> Bool {
@@ -2226,8 +2298,31 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         return normalRefreshInterval
     }
 
+    private func nextRefreshCountdownText(now: Date) -> String {
+        if isRefreshing {
+            return "now"
+        }
+        guard let nextRefreshAt else {
+            return "--"
+        }
+        let remaining = max(0, Int(ceil(nextRefreshAt.timeIntervalSince(now))))
+        if remaining <= 0 {
+            return "now"
+        }
+        if remaining < 60 {
+            return String(format: "0:%02d", remaining)
+        }
+        let minutes = remaining / 60
+        let seconds = remaining % 60
+        if minutes < 100 {
+            return String(format: "%d:%02d", minutes, seconds)
+        }
+        return "\(Int(ceil(Double(remaining) / 60.0)))m"
+    }
+
     private func scheduleNextRefresh(after interval: TimeInterval) {
         timer?.invalidate()
+        nextRefreshAt = Date().addingTimeInterval(interval)
         let nextTimer = Timer(timeInterval: interval, repeats: false) { [weak self] _ in
             self?.refresh()
         }

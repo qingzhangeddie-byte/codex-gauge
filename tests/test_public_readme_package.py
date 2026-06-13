@@ -12,7 +12,8 @@ class PublicReadmePackageTests(unittest.TestCase):
         self.assertIn("docs/assets/codex-gauge-menubar-live.png", readme)
         self.assertIn("A simple, safe macOS menu bar app to check Codex usage", readme)
         self.assertIn("Unofficial", readme)
-        self.assertIn("docs/assets/codex-gauge-menu.svg", readme)
+        self.assertIn("docs/assets/codex-gauge-signal-console.png", readme)
+        self.assertIn("sample values for the README", readme)
         self.assertLess(
             readme.index("docs/assets/codex-gauge-menubar-live.png"),
             readme.index("A simple, safe macOS menu bar app"),
@@ -65,6 +66,8 @@ class PublicReadmePackageTests(unittest.TestCase):
             "No `~/.codex/auth.json` reads in the menu bar app",
             "Self-contained app bundle",
             "Adaptive refresh",
+            "actual next-refresh countdown",
+            "Codex closed",
             "Reset timing",
             "About a minute",
             "LaunchAgent",

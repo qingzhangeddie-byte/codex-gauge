@@ -29,8 +29,10 @@ Search phrases this project is designed to answer naturally: **check Codex usage
   分段信号条让菜单栏里的额度健康状态更直观，同时不增加占用宽度
 - Custom Signal Console popover with status, quota, reset timing, trend, doctor checks, diagnostics, and actions
   自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口；下拉菜单显示额度重置时间和上次刷新时间
-- Time-based trends show 5-hour movement in the current reset window and 7-day movement over the last 24 hours
-  趋势不再按模糊样本数展示，而是显示当前 5 小时窗口变化，以及过去 24 小时内的 7 天额度变化
+- Signal Console shows the actual next-refresh countdown, not a static refresh label
+  Signal Console 显示真实的下次刷新倒计时，不再只是静态刷新标签
+- Time-based trends show signed 5-hour movement in the current reset window and 7-day movement over the last 24 hours
+  趋势不再按模糊样本数展示，而是显示当前 5 小时窗口变化，以及过去 24 小时内的 7 天额度变化，并直接标出正负百分比
 - Signal Console can generate a local 24-hour quota movement report and shows a compact Health strip
   Signal Console 可生成本地 24 小时额度变化报告，并用紧凑 Health 状态条显示本地组件状态
 - Adaptive refresh: 5 minutes normally, 3 minutes when low, 2 minutes when critical, 1 minute after transient errors  
@@ -39,8 +41,8 @@ Search phrases this project is designed to answer naturally: **check Codex usage
   偏好设置支持自适应、5 分钟、10 分钟刷新，也可以控制是否登录时启动
 - Opt-in notifications for low 5-hour quota, restored quota, and prolonged non-live data
   可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
-- Signal Console states explain Live, Last live, Snapshot, and unavailable data directly in the popover
-  Signal Console 会在弹出面板解释 Live、Last live、Snapshot 和不可用状态
+- Signal Console states explain Live, Last live, Snapshot, Codex closed, and unavailable data directly in the popover
+  Signal Console 会在弹出面板解释 Live、Last live、Snapshot、Codex closed 和不可用状态
 - Setup Doctor and Copy Diagnostics help debug local setup without copying prompts, cookies, auth files, or logs
   Setup Doctor 和 Copy Diagnostics 可帮助排查本地设置，但不会复制 prompts、Cookie、auth 文件或日志
 - Self-contained app bundle with its helper inside `Contents/Resources`  
@@ -52,7 +54,11 @@ Search phrases this project is designed to answer naturally: **check Codex usage
 - Runtime logs in `~/Library/Application Support/CodexGauge`, rotated locally  
   运行日志写入 `~/Library/Application Support/CodexGauge`，并在本地轮转
 
-![Codex Gauge menu](docs/assets/codex-gauge-menu.svg)
+![Codex Gauge Signal Console](docs/assets/codex-gauge-signal-console.png)
+
+The Signal Console screenshot uses sample values for the README; the installed app shows your local live quota values.
+
+上面的 Signal Console 截图使用示例数值展示界面效果；安装后的 App 会显示你本机的实时额度。
 
 ## Four-signal menu bar
 

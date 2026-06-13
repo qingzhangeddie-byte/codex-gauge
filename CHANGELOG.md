@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.7.0 - 2026-06-13
+
+- Added a real next-refresh countdown in the Signal Console that follows the actual scheduled refresh timer.
+- Made quota movement labels sharper with signed 5-hour and 7-day percentage deltas.
+- Clarified the Codex-closed state with an explicit no-live-quota marker in the popover.
+- Refreshed public release metadata for the next GitHub package.
+
 ## v0.6.0 - 2026-06-13
 
 - Implemented the Signal Console UX direction for clearer Live, Last live, Snapshot, and unavailable states.
