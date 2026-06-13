@@ -21,6 +21,13 @@ def load_helper():
 
 
 class NativeCodexStatusHelperTests(unittest.TestCase):
+    def setUp(self):
+        self.support_tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.support_tmp.cleanup)
+        self.support_env = mock.patch.dict(os.environ, {"CODEX_GAUGE_SUPPORT_DIR": self.support_tmp.name})
+        self.support_env.start()
+        self.addCleanup(self.support_env.stop)
+
     def test_helper_avoids_browser_cookies_auth_files_and_claude(self):
         source = HELPER_PATH.read_text()
 
@@ -46,23 +53,41 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
 
     def test_builds_codex_json_snapshot_from_live_rate_limits(self):
         helper = load_helper()
+        now = datetime.datetime.fromisoformat("2026-06-12T17:40:00+00:00").timestamp()
 
         with mock.patch.object(helper, "live_codex_rate_limits", return_value={
             "plan": "pro",
-            "resets_at": 1_800_000_000,
-            "primary": {"percent_used": 27, "resets_at": 1_800_000_100},
-            "secondary": {"percent_used": 11, "resets_at": 1_800_000_200},
-        }):
+            "resets_at": now + 3600,
+            "primary": {"percent_used": 27, "resets_at": now + 3600},
+            "secondary": {"percent_used": 11, "resets_at": now + 24 * 3600},
+        }), mock.patch.object(helper.time, "time", return_value=now):
             snapshot = helper.build_status_snapshot()
 
         self.assertEqual(snapshot["codex"]["service"], "Codex")
         self.assertTrue(snapshot["codex"]["ok"])
         self.assertEqual(snapshot["codex"]["five_hour_left"], 73)
         self.assertEqual(snapshot["codex"]["seven_day_left"], 89)
-        self.assertEqual(snapshot["codex"]["five_hour_reset"], 1_800_000_100)
-        self.assertEqual(snapshot["codex"]["seven_day_reset"], 1_800_000_200)
+        self.assertEqual(snapshot["codex"]["five_hour_reset"], now + 3600)
+        self.assertEqual(snapshot["codex"]["seven_day_reset"], now + 24 * 3600)
         self.assertEqual(snapshot["codex"]["plan"], "pro")
         self.assertEqual(snapshot["codex"]["source"], "live")
+
+    def test_live_reset_windows_are_clamped_to_known_window_lengths(self):
+        helper = load_helper()
+        now = datetime.datetime.fromisoformat("2026-06-12T17:40:00+00:00").timestamp()
+
+        with mock.patch.object(helper, "live_codex_rate_limits", return_value={
+            "plan": "pro",
+            "primary": {"percent_used": 27, "resets_at": now + 216 * 24 * 3600},
+            "secondary": {"percent_used": 11, "resets_at": now + 216 * 24 * 3600},
+        }), mock.patch.object(helper.time, "time", return_value=now):
+            snapshot = helper.build_status_snapshot()
+
+        self.assertTrue(snapshot["codex"]["ok"])
+        self.assertEqual(snapshot["codex"]["five_hour_left"], 73)
+        self.assertEqual(snapshot["codex"]["seven_day_left"], 89)
+        self.assertIsNone(snapshot["codex"]["five_hour_reset"])
+        self.assertIsNone(snapshot["codex"]["seven_day_reset"])
 
     def test_live_rate_limits_are_cached_for_short_outages(self):
         helper = load_helper()
@@ -110,6 +135,35 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
         self.assertEqual(snapshot["codex"]["data_time"], "2026-06-12T17:35:00.000Z")
         self.assertIn("showing last live", snapshot["codex"]["error"])
 
+    def test_rejects_last_live_cache_with_implausible_reset_windows(self):
+        helper = load_helper()
+        now = datetime.datetime.fromisoformat("2026-06-12T17:40:00+00:00").timestamp()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            support_dir = pathlib.Path(tmp)
+            (support_dir / "last-live-status.json").write_text(
+                json.dumps({
+                    "captured_at": "2026-06-12T17:35:00.000Z",
+                    "rate_limits": {
+                        "limit_id": "codex",
+                        "primary": {"used_percent": 36, "resets_at": now + 216 * 24 * 3600},
+                        "secondary": {"used_percent": 60, "resets_at": now + 216 * 24 * 3600},
+                        "plan_type": "pro",
+                    },
+                }),
+                encoding="utf-8",
+            )
+
+            with mock.patch.object(helper, "live_codex_rate_limits", side_effect=helper.CodexRemoteError("boom")), \
+                 mock.patch.object(helper, "latest_local_codex_rate_limits_snapshot", return_value=None), \
+                 mock.patch.dict(helper.os.environ, {"CODEX_GAUGE_SUPPORT_DIR": str(support_dir)}), \
+                 mock.patch.object(helper.time, "time", return_value=now):
+                snapshot = helper.build_status_snapshot()
+
+        self.assertFalse(snapshot["codex"]["ok"])
+        self.assertIsNone(snapshot["codex"]["five_hour_left"])
+        self.assertIsNone(snapshot["codex"]["seven_day_left"])
+
     def test_rejects_old_last_live_cache(self):
         helper = load_helper()
         now = datetime.datetime.fromisoformat("2026-06-12T18:30:00+00:00").timestamp()
@@ -155,6 +209,8 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
     def test_falls_back_to_recent_codex_session_rate_limit_snapshot(self):
         helper = load_helper()
         now = datetime.datetime.fromisoformat("2026-06-11T20:19:00+00:00").timestamp()
+        five_hour_reset = now + 3600
+        seven_day_reset = now + 24 * 3600
 
         with tempfile.TemporaryDirectory() as tmp:
             home = pathlib.Path(tmp)
@@ -172,12 +228,12 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
                             "primary": {
                                 "used_percent": 14,
                                 "window_minutes": 300,
-                                "resets_at": 1_800_000_100,
+                                "resets_at": five_hour_reset,
                             },
                             "secondary": {
                                 "used_percent": 21,
                                 "window_minutes": 10080,
-                                "resets_at": 1_800_000_200,
+                                "resets_at": seven_day_reset,
                             },
                             "plan_type": "pro",
                         },
@@ -195,8 +251,8 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
         self.assertTrue(snapshot["codex"]["ok"])
         self.assertEqual(snapshot["codex"]["five_hour_left"], 86)
         self.assertEqual(snapshot["codex"]["seven_day_left"], 79)
-        self.assertEqual(snapshot["codex"]["five_hour_reset"], 1_800_000_100)
-        self.assertEqual(snapshot["codex"]["seven_day_reset"], 1_800_000_200)
+        self.assertEqual(snapshot["codex"]["five_hour_reset"], five_hour_reset)
+        self.assertEqual(snapshot["codex"]["seven_day_reset"], seven_day_reset)
         self.assertEqual(snapshot["codex"]["plan"], "pro")
         self.assertEqual(snapshot["codex"]["source"], "local_snapshot")
         self.assertEqual(snapshot["codex"]["data_time"], "2026-06-11T20:18:00.000Z")
@@ -245,6 +301,7 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
     def test_local_snapshot_accepts_valid_seven_day_when_five_hour_is_stale(self):
         helper = load_helper()
         now = datetime.datetime.fromisoformat("2026-06-12T08:01:00+00:00").timestamp()
+        seven_day_reset = now + 6 * 24 * 60 * 60
 
         with tempfile.TemporaryDirectory() as tmp:
             home = pathlib.Path(tmp)
@@ -264,7 +321,7 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
                         "secondary": {
                             "used_percent": 21,
                             "window_minutes": 10080,
-                            "resets_at": 1_800_000_200,
+                            "resets_at": seven_day_reset,
                         },
                         "plan_type": "pro",
                     },
@@ -282,7 +339,7 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
         self.assertIsNone(snapshot["codex"]["five_hour_left"])
         self.assertEqual(snapshot["codex"]["seven_day_left"], 79)
         self.assertIsNone(snapshot["codex"]["five_hour_reset"])
-        self.assertEqual(snapshot["codex"]["seven_day_reset"], 1_800_000_200)
+        self.assertEqual(snapshot["codex"]["seven_day_reset"], seven_day_reset)
         self.assertEqual(snapshot["codex"]["source"], "local_snapshot")
         self.assertEqual(snapshot["title"], "5h --  7d 79%")
 

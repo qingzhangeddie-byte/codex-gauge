@@ -174,8 +174,8 @@ private func paperConsoleTheme() -> SignalConsoleTheme {
         panelSoftBackground: NSColor(calibratedRed: 0.15, green: 0.20, blue: 0.18, alpha: 0.055),
         panelBorder: NSColor(calibratedRed: 0.10, green: 0.16, blue: 0.14, alpha: 0.18),
         textPrimary: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.96),
-        textSecondary: NSColor(calibratedRed: 0.34, green: 0.40, blue: 0.37, alpha: 0.90),
-        textMuted: NSColor(calibratedRed: 0.56, green: 0.60, blue: 0.57, alpha: 0.84),
+        textSecondary: NSColor(calibratedRed: 0.22, green: 0.27, blue: 0.25, alpha: 0.96),
+        textMuted: NSColor(calibratedRed: 0.40, green: 0.45, blue: 0.42, alpha: 0.92),
         buttonPrimaryText: NSColor(calibratedRed: 0.03, green: 0.08, blue: 0.06, alpha: 1.0),
         secondaryButtonBackground: NSColor(calibratedRed: 0.11, green: 0.16, blue: 0.14, alpha: 0.07),
         commandButtonBackground: NSColor(calibratedRed: 0.11, green: 0.16, blue: 0.14, alpha: 0.055),
@@ -486,11 +486,11 @@ private final class SignalConsolePanelView: NSView {
     private func drawQuotaWindowRow(window: String, label: String, value: Int?, resetText: String, resetProgress: Int?, rect: NSRect) {
         drawRoundedRect(rect, radius: 13, fill: theme.commandButtonBackground, stroke: panelBorder.withAlphaComponent(0.48))
         drawText(window, x: rect.minX + 14, y: rect.minY + 13, width: 38, height: 22, size: 19, weight: .bold, color: textPrimary, mono: true)
-        drawText("window", x: rect.minX + 14, y: rect.minY + 35, width: 48, height: 14, size: 8, weight: .bold, color: textMuted)
+        drawText("window", x: rect.minX + 14, y: rect.minY + 35, width: 48, height: 14, size: 8, weight: .bold, color: textSecondary)
         drawText(label, x: rect.minX + 70, y: rect.minY + 12, width: 160, height: 16, size: 11, weight: .medium, color: textSecondary)
         drawText(percentText(value), x: rect.minX + 236, y: rect.minY + 9, width: 54, height: 22, size: 17, weight: .bold, color: value == nil ? textMuted : quotaColor(value), mono: true)
         drawQuotaRail(value: value, rect: NSRect(x: rect.minX + 70, y: rect.minY + 36, width: 196, height: 10))
-        drawText("reset", x: rect.minX + 288, y: rect.minY + 12, width: 34, height: 16, size: 10, weight: .regular, color: textSecondary)
+        drawText("reset", x: rect.minX + 288, y: rect.minY + 12, width: 34, height: 16, size: 10, weight: .medium, color: textSecondary)
         drawText(resetText, x: rect.maxX - 76, y: rect.minY + 12, width: 60, height: 16, size: 10, weight: .semibold, color: resetTextColor(resetText), mono: true)
         drawResetCountdownLane(value: resetProgress, rect: NSRect(x: rect.minX + 288, y: rect.minY + 36, width: 146, height: 9))
     }

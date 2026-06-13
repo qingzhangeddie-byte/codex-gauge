@@ -23,6 +23,9 @@ LOCAL_SNAPSHOT_MAX_BYTES = 2 * 1024 * 1024
 LOCAL_SNAPSHOT_MAX_AGE_SEC = 14 * 24 * 60 * 60
 LOCAL_SNAPSHOT_MAX_STALENESS_SEC = 15 * 60
 LAST_LIVE_CACHE_MAX_AGE_SEC = 30 * 60
+PRIMARY_RESET_MAX_FUTURE_SEC = 6 * 60 * 60
+SECONDARY_RESET_MAX_FUTURE_SEC = 8 * 24 * 60 * 60
+RESET_FUTURE_GRACE_SEC = 60
 ENV_CODEX_CLI_PATH = "CODEX_GAUGE_CODEX_CLI_PATH"
 ENV_SUPPORT_DIR = "CODEX_GAUGE_SUPPORT_DIR"
 LAST_LIVE_CACHE_FILE = "last-live-status.json"
@@ -359,12 +362,12 @@ def _scan_codex_session_tail(path: pathlib.Path, now: float | None = None) -> di
 
 
 def _local_snapshot_with_fresh_windows(rate_limits: dict) -> dict | None:
-    fresh = dict(rate_limits)
+    fresh = _rate_limits_with_plausible_resets(rate_limits)
     fresh_window_count = 0
     now = time.time()
     for key in ("primary", "secondary"):
         window = rate_limits.get(key)
-        if _window_has_future_reset(window, now):
+        if _window_has_future_reset(window, now, key):
             fresh_window_count += 1
         else:
             fresh[key] = None
@@ -375,17 +378,53 @@ def _local_snapshot_with_fresh_windows(rate_limits: dict) -> dict | None:
 
 def _has_future_reset_window(rate_limits: dict) -> bool:
     now = time.time()
-    return any(_window_has_future_reset(rate_limits.get(key), now) for key in ("primary", "secondary"))
+    return any(_window_has_future_reset(rate_limits.get(key), now, key) for key in ("primary", "secondary"))
 
 
-def _window_has_future_reset(window, now: float) -> bool:
+def _window_has_future_reset(window, now: float, window_key: str | None = None) -> bool:
+    return _plausible_reset_epoch(window, now, window_key) is not None
+
+
+def _rate_limits_with_plausible_resets(rate_limits: dict, now: float | None = None) -> dict:
+    now = time.time() if now is None else now
+    sanitized = dict(rate_limits)
+    for key in ("primary", "secondary"):
+        window = rate_limits.get(key)
+        if not isinstance(window, dict):
+            continue
+        sanitized_window = dict(window)
+        if sanitized_window.get("resets_at") is not None and _plausible_reset_epoch(sanitized_window, now, key) is None:
+            sanitized_window["resets_at"] = None
+        sanitized[key] = sanitized_window
+    return sanitized
+
+
+def _plausible_reset_epoch(window, now: float, window_key: str | None = None) -> float | None:
     if not isinstance(window, dict):
-        return False
+        return None
     resets_at = window.get("resets_at")
     try:
-        return bool(resets_at) and float(resets_at) > now
+        reset_epoch = float(resets_at)
     except (TypeError, ValueError):
-        return False
+        return None
+    if not reset_epoch or reset_epoch <= now:
+        return None
+    if reset_epoch - now > _reset_max_future_seconds(window, window_key):
+        return None
+    return reset_epoch
+
+
+def _reset_max_future_seconds(window: dict, window_key: str | None) -> float:
+    window_minutes = window.get("window_minutes")
+    try:
+        minutes = float(window_minutes)
+    except (TypeError, ValueError):
+        minutes = 0
+    if minutes > 0:
+        return minutes * 60 + RESET_FUTURE_GRACE_SEC
+    if window_key == "primary":
+        return PRIMARY_RESET_MAX_FUTURE_SEC
+    return SECONDARY_RESET_MAX_FUTURE_SEC
 
 
 def _event_timestamp(event: dict) -> str | None:
@@ -623,6 +662,7 @@ def _codex_status() -> dict:
         data_time = rate_limits.pop("_captured_at", data_time)
     else:
         if rate_limits:
+            rate_limits = _rate_limits_with_plausible_resets(rate_limits)
             _write_last_live_rate_limits_cache(rate_limits, data_time)
 
     if not rate_limits:

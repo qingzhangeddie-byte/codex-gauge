@@ -173,6 +173,15 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("monoAccent(0.48", source)
         self.assertIn("monoAccent(0.34", source)
 
+    def test_paper_theme_keeps_reset_labels_readable(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("private func paperConsoleTheme() -> SignalConsoleTheme", source)
+        self.assertIn("textSecondary: NSColor(calibratedRed: 0.22, green: 0.27, blue: 0.25, alpha: 0.96)", source)
+        self.assertIn("textMuted: NSColor(calibratedRed: 0.40, green: 0.45, blue: 0.42, alpha: 0.92)", source)
+        self.assertIn('drawText("window", x: rect.minX + 14, y: rect.minY + 35, width: 48, height: 14, size: 8, weight: .bold, color: textSecondary)', source)
+        self.assertIn('drawText("reset", x: rect.minX + 288, y: rect.minY + 12, width: 34, height: 16, size: 10, weight: .medium, color: textSecondary)', source)
+
     def test_signal_console_is_compact_and_avoids_control_overlap(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
