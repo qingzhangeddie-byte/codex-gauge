@@ -1,8 +1,14 @@
 import pathlib
+import re
 import unittest
 
 
 class SignalConsoleUXTests(unittest.TestCase):
+    def _first_float(self, pattern, source):
+        match = re.search(pattern, source)
+        self.assertIsNotNone(match, pattern)
+        return float(match.group(1))
+
     def test_native_app_has_signal_console_source_state_copy(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
@@ -284,6 +290,19 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("NSPasteboard.general.setString(report, forType: .string)", source)
         self.assertNotIn("CodexGauge-usage-report.md", source)
         self.assertNotIn("report.write(to:", source)
+
+    def test_usage_report_actions_do_not_overlap_source_text(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        card_y = self._first_float(r"let card = NSRect\(x: 280, y: ([0-9.]+), width: 260, height: 122\)", source)
+        source_offset = self._first_float(r"drawText\(model\.reportSourceMix, x: card\.minX \+ 16, y: card\.minY \+ ([0-9.]+),", source)
+        source_height = self._first_float(r"drawText\(model\.reportSourceMix,.*?height: ([0-9.]+),", source)
+        copy_y = self._first_float(r'addButton\(title: "Copy report", frame: NSRect\(x: 298, y: ([0-9.]+), width: 96, height: 30\)', source)
+        clear_y = self._first_float(r'addButton\(title: "Clear data", frame: NSRect\(x: 402, y: ([0-9.]+), width: 120, height: 30\)', source)
+
+        source_bottom = card_y + source_offset + source_height
+        button_top = min(copy_y, clear_y)
+        self.assertLessEqual(source_bottom + 6, button_top)
 
     def test_native_app_can_clear_local_data_without_touching_auth(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()

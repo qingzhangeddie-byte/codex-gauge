@@ -351,8 +351,8 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func addSignalConsoleButtons() {
-        addButton(title: "Copy report", frame: NSRect(x: 298, y: 358, width: 96, height: 30), action: generateReportAction, style: .primary)
-        addButton(title: "Clear data", frame: NSRect(x: 402, y: 358, width: 120, height: 30), action: clearDataAction, style: .secondary)
+        addButton(title: "Copy report", frame: NSRect(x: 298, y: 364, width: 96, height: 30), action: generateReportAction, style: .primary)
+        addButton(title: "Clear data", frame: NSRect(x: 402, y: 364, width: 120, height: 30), action: clearDataAction, style: .secondary)
         addButton(title: "Run Check", frame: NSRect(x: 450, y: 440, width: 82, height: 30), action: runCheckAction, style: .secondary)
         addButton(title: "Open Codex", frame: NSRect(x: 20, y: 496, width: 122, height: 40), action: openCodexAction, style: .command)
         addButton(title: "Refresh Now", frame: NSRect(x: 150, y: 496, width: 122, height: 40), action: refreshAction, style: .command)
@@ -521,9 +521,9 @@ private final class SignalConsolePanelView: NSView {
         drawRoundedRect(card, radius: 15, fill: panelSoftBackground, stroke: panelBorder.withAlphaComponent(0.50))
         drawText("Usage Report", x: card.minX + 16, y: card.minY + 14, width: 108, height: 18, size: 12, weight: .bold, color: textPrimary)
         drawText("local only", x: card.maxX - 62, y: card.minY + 14, width: 46, height: 18, size: 10, weight: .regular, color: textMuted)
-        drawReportMetric(label: "5h move", value: model.reportFiveHourMovement, rect: NSRect(x: card.minX + 16, y: card.minY + 42, width: 106, height: 34))
-        drawReportMetric(label: "7d move", value: model.reportSevenDayMovement, rect: NSRect(x: card.minX + 132, y: card.minY + 42, width: 106, height: 34))
-        drawText(model.reportSourceMix, x: card.minX + 16, y: card.minY + 82, width: 212, height: 16, size: 9.5, weight: .regular, color: textMuted)
+        drawText(model.reportSourceMix, x: card.minX + 16, y: card.minY + 34, width: 212, height: 12, size: 8.8, weight: .regular, color: textMuted)
+        drawReportMetric(label: "5h move", value: model.reportFiveHourMovement, rect: NSRect(x: card.minX + 16, y: card.minY + 52, width: 106, height: 32))
+        drawReportMetric(label: "7d move", value: model.reportSevenDayMovement, rect: NSRect(x: card.minX + 132, y: card.minY + 52, width: 106, height: 32))
     }
 
     private func drawReportMetric(label: String, value: String, rect: NSRect) {
