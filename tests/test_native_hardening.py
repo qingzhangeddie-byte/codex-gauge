@@ -31,12 +31,13 @@ class NativeHardeningTests(unittest.TestCase):
     def test_build_script_stamps_public_version_metadata(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()
 
-        self.assertIn('APP_VERSION="0.4.1"', script)
+        self.assertIn('APP_VERSION="0.5.0"', script)
         self.assertIn('APP_BUILD="1"', script)
         self.assertIn('CFBundleShortVersionString</key>', script)
         self.assertIn('CFBundleVersion</key>', script)
         self.assertIn('CodexGaugeReleaseURL</key>', script)
         self.assertIn("https://github.com/qingzhangeddie-byte/codex-gauge/releases", script)
+        self.assertIn("-framework UserNotifications", script)
 
     def test_native_app_resolves_helper_from_bundle_resources(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()

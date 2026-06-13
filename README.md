@@ -29,6 +29,10 @@ Search phrases this project is designed to answer naturally: **check Codex usage
   下拉菜单显示额度重置时间和上次刷新时间
 - Adaptive refresh: 5 minutes normally, 3 minutes when low, 2 minutes when critical, 1 minute after transient errors  
   自适应刷新：正常 5 分钟，额度偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
+- Preferences for Adaptive, 5-minute, or 10-minute refresh plus launch-at-login control
+  偏好设置支持自适应、5 分钟、10 分钟刷新，也可以控制是否登录时启动
+- Opt-in notifications for low 5-hour quota, restored quota, and prolonged non-live data
+  可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
 - Self-contained app bundle with its helper inside `Contents/Resources`  
   自包含 App bundle，helper 打包在 `Contents/Resources` 内
 - User LaunchAgent keeps the installed menu bar app resident without browser-cookie access  
@@ -86,6 +90,17 @@ About a minute later, Codex Gauge should appear in your menu bar with live Codex
 
 The installer also writes `~/Library/LaunchAgents/app.codexgauge.menubar.plist` so macOS keeps the menu bar process running. Choosing **Quit** from the menu unloads that LaunchAgent for the current user.
 
+From a downloaded release package, open `Install Codex Gauge.command`.
+
+For maintainers creating that package:
+
+```bash
+./script/package_release.sh
+open native/dist/release
+```
+
+The generated zip includes `CodexGauge.app`, `Install Codex Gauge.command`, and a SHA-256 checksum. Public 1.0 builds should still be Developer ID signed and notarized.
+
 ## Why Codex Gauge is different
 
 | Area | Codex Gauge |
@@ -96,6 +111,8 @@ The installer also writes `~/Library/LaunchAgents/app.codexgauge.menubar.plist` 
 | Menu bar persistence | User LaunchAgent with explicit Quit cleanup |
 | Signal quality | Shows both 5-hour and 7-day quota instead of one vague number |
 | Refresh behavior | Adaptive refresh instead of constant polling: 5 minutes normally, 3 minutes when low, 2 minutes when critical, with quick retry after transient errors |
+| Preferences | Built-in refresh cadence, notifications, and launch-at-login controls |
+| Notifications | Opt-in alerts for the moments users actually care about |
 | Reset timing | Reset timing is visible in the dropdown |
 | Setup | Local clone, one install command, no network-piped shell script |
 
@@ -206,11 +223,12 @@ The live Codex app-server path can start or refresh the Codex 5-hour window beca
 python3 -m unittest discover -s tests -v
 ./script/build_and_run.sh --build-only
 ./script/release_check.sh
+./script/soak_check.sh --iterations 3 --interval 0
 ```
 
 ## Public Release Notes
 
-Read [Publishing](docs/PUBLISHING.md) before making a public release. Public builds should be signed and notarized with your own Apple Developer credentials. Do not publish generated logs, local app bundles, `.venv`, `.env`, screenshots with account details, or files from `~/Library/Application Support/CodexGauge`.
+Read [Publishing](docs/PUBLISHING.md) before making a public release. `./script/package_release.sh` creates a zip and checksum for review. Public builds should be signed and notarized with your own Apple Developer credentials. Do not publish generated logs, local app bundles, `.venv`, `.env`, screenshots with account details, or files from `~/Library/Application Support/CodexGauge`.
 
 ## License
 

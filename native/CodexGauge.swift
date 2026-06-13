@@ -1,6 +1,7 @@
 import Cocoa
 import Darwin
 import Foundation
+import UserNotifications
 
 private struct UsageSnapshot: Decodable {
     let title: String
@@ -36,12 +37,19 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let menu = NSMenu()
     private var timer: Timer?
     private var animationTimer: Timer?
+    private var preferencesWindow: NSWindow?
+    private var refreshPopup: NSPopUpButton?
+    private var notificationsCheckbox: NSButton?
+    private var launchAtLoginCheckbox: NSButton?
     private var snapshot: UsageSnapshot?
     private var lastError: String?
     private var isRefreshing = false
     private var allowTermination = false
     private var activity: NSObjectProtocol?
     private var moodPulseStep = 0
+    private var previousFiveHourLeft: Int?
+    private var liveUnavailableSince: Date?
+    private var didNotifyLiveUnavailable = false
     private let normalRefreshInterval: TimeInterval = 5 * 60
     private let watchRefreshInterval: TimeInterval = 3 * 60
     private let criticalRefreshInterval: TimeInterval = 2 * 60
@@ -65,17 +73,30 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let sevenDayResetMenuLabel = "7d resets"
     private let runtimeLogFileName = "CodexGauge-runtime.log"
     private let launchAgentLabel = "app.codexgauge.menubar"
+    private let launchAgentPlistName = "app.codexgauge.menubar.plist"
+    private let refreshModeKey = "refreshMode"
+    private let notificationsEnabledKey = "notificationsEnabled"
+    private let launchAtLoginKey = "launchAtLogin"
+    private let adaptiveRefreshMode = "adaptive"
+    private let fiveMinuteRefreshMode = "5m"
+    private let tenMinuteRefreshMode = "10m"
+    private let fiveHourLowNotification = "fiveHourLowNotification"
+    private let fiveHourRestoredNotification = "fiveHourRestoredNotification"
+    private let liveUnavailableNotification = "liveUnavailableNotification"
+    private let liveUnavailableNotificationDelay: TimeInterval = 900
 
     private lazy var resourcesDir = Bundle.main.resourcePath ?? FileManager.default.currentDirectoryPath
     private lazy var supportDir = applicationSupportDirectory()
     private lazy var pythonPath = infoString("CodexGaugePythonPath", fallback: "/usr/bin/python3")
-    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.4.1")
+    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.5.0")
     private lazy var releaseURL = infoString("CodexGaugeReleaseURL", fallback: "https://github.com/qingzhangeddie-byte/codex-gauge/releases")
     private lazy var usagePath = resolveUsagePath()
     private lazy var logPath = "\(supportDir)/\(runtimeLogFileName)"
+    private lazy var launchAgentPlistPath = NSHomeDirectory() + "/Library/LaunchAgents/" + launchAgentPlistName
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        registerDefaultPreferences()
         ProcessInfo.processInfo.disableAutomaticTermination("Codex Gauge menu bar status item")
         ProcessInfo.processInfo.disableSuddenTermination()
         activity = ProcessInfo.processInfo.beginActivity(
@@ -116,6 +137,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         openURL(releaseURL)
     }
 
+    @objc private func openPreferences() {
+        let window = preferencesWindow ?? makePreferencesWindow()
+        preferencesWindow = window
+        syncPreferencesControls()
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     @objc private func openSupportFolder() {
         NSWorkspace.shared.open(URL(fileURLWithPath: supportDir, isDirectory: true))
     }
@@ -124,6 +154,48 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         allowTermination = true
         unloadLaunchAgent()
         NSApp.terminate(nil)
+    }
+
+    @objc private func refreshPreferenceChanged(_ sender: Any?) {
+        guard
+            let popup = sender as? NSPopUpButton,
+            let mode = popup.selectedItem?.representedObject as? String
+        else {
+            return
+        }
+        UserDefaults.standard.set(mode, forKey: refreshModeKey)
+        if !isRefreshing {
+            scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))
+        }
+    }
+
+    @objc private func notificationsPreferenceChanged(_ sender: Any?) {
+        guard let checkbox = sender as? NSButton else {
+            return
+        }
+        let enabled = checkbox.state == .on
+        UserDefaults.standard.set(enabled, forKey: notificationsEnabledKey)
+        if enabled {
+            requestNotificationAuthorization()
+        }
+    }
+
+    @objc private func launchAtLoginPreferenceChanged(_ sender: Any?) {
+        guard let checkbox = sender as? NSButton else {
+            return
+        }
+        if checkbox.state == .on {
+            if installLaunchAgentForCurrentApp() {
+                UserDefaults.standard.set(true, forKey: launchAtLoginKey)
+            } else {
+                checkbox.state = .off
+                UserDefaults.standard.set(false, forKey: launchAtLoginKey)
+            }
+            return
+        }
+        removeLaunchAgentPlist()
+        unloadLaunchAgent()
+        UserDefaults.standard.set(false, forKey: launchAtLoginKey)
     }
 
     private func refresh() {
@@ -226,6 +298,110 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         moodPulseStep = 0
     }
 
+    private func registerDefaultPreferences() {
+        let defaults = UserDefaults.standard
+        if defaults.object(forKey: refreshModeKey) == nil {
+            defaults.set(adaptiveRefreshMode, forKey: refreshModeKey)
+        }
+        if defaults.object(forKey: notificationsEnabledKey) == nil {
+            defaults.set(false, forKey: notificationsEnabledKey)
+        }
+        defaults.set(isLaunchAgentConfigured(), forKey: launchAtLoginKey)
+    }
+
+    private func makePreferencesWindow() -> NSWindow {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 220),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Codex Gauge Preferences"
+        window.isReleasedWhenClosed = false
+
+        let content = NSView(frame: NSRect(x: 0, y: 0, width: 380, height: 220))
+        window.contentView = content
+
+        let title = NSTextField(labelWithString: "Codex Gauge")
+        title.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
+        title.frame = NSRect(x: 24, y: 174, width: 220, height: 24)
+        content.addSubview(title)
+
+        let refreshLabel = NSTextField(labelWithString: "Refresh")
+        refreshLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        refreshLabel.frame = NSRect(x: 24, y: 132, width: 96, height: 22)
+        content.addSubview(refreshLabel)
+
+        let popup = NSPopUpButton(frame: NSRect(x: 132, y: 130, width: 180, height: 26), pullsDown: false)
+        popup.addItems(withTitles: ["Adaptive", "5 minutes", "10 minutes"])
+        popup.item(withTitle: "Adaptive")?.representedObject = adaptiveRefreshMode
+        popup.item(withTitle: "5 minutes")?.representedObject = fiveMinuteRefreshMode
+        popup.item(withTitle: "10 minutes")?.representedObject = tenMinuteRefreshMode
+        popup.target = self
+        popup.action = #selector(refreshPreferenceChanged)
+        content.addSubview(popup)
+        refreshPopup = popup
+
+        let notifications = NSButton(checkboxWithTitle: "Quota notifications", target: self, action: #selector(notificationsPreferenceChanged))
+        notifications.frame = NSRect(x: 24, y: 88, width: 220, height: 24)
+        content.addSubview(notifications)
+        notificationsCheckbox = notifications
+
+        let login = NSButton(checkboxWithTitle: "Launch at login", target: self, action: #selector(launchAtLoginPreferenceChanged))
+        login.frame = NSRect(x: 24, y: 58, width: 220, height: 24)
+        content.addSubview(login)
+        launchAtLoginCheckbox = login
+
+        let footer = NSTextField(labelWithString: "Live, Last live, and Snapshot labels stay visible in the menu.")
+        footer.font = NSFont.systemFont(ofSize: 11)
+        footer.textColor = .secondaryLabelColor
+        footer.frame = NSRect(x: 24, y: 20, width: 332, height: 18)
+        content.addSubview(footer)
+
+        return window
+    }
+
+    private func syncPreferencesControls() {
+        let mode = currentRefreshMode()
+        refreshPopup?.selectItem(withTitle: refreshTitle(for: mode))
+        notificationsCheckbox?.state = notificationsEnabled() ? .on : .off
+        let launchEnabled = isLaunchAgentConfigured()
+        UserDefaults.standard.set(launchEnabled, forKey: launchAtLoginKey)
+        launchAtLoginCheckbox?.state = launchEnabled ? .on : .off
+    }
+
+    private func refreshTitle(for mode: String) -> String {
+        switch mode {
+        case fiveMinuteRefreshMode:
+            return "5 minutes"
+        case tenMinuteRefreshMode:
+            return "10 minutes"
+        default:
+            return "Adaptive"
+        }
+    }
+
+    private func currentRefreshMode() -> String {
+        let mode = UserDefaults.standard.string(forKey: refreshModeKey) ?? adaptiveRefreshMode
+        switch mode {
+        case fiveMinuteRefreshMode, tenMinuteRefreshMode:
+            return mode
+        default:
+            return adaptiveRefreshMode
+        }
+    }
+
+    private func fixedRefreshInterval() -> TimeInterval? {
+        switch currentRefreshMode() {
+        case fiveMinuteRefreshMode:
+            return normalRefreshInterval
+        case tenMinuteRefreshMode:
+            return 10 * 60
+        default:
+            return nil
+        }
+    }
+
     private func helperEnvironment() -> [String: String] {
         let userName = NSUserName()
         var helperEnv: [String: String] = [
@@ -260,6 +436,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 let decoded = try decoder.decode(UsageSnapshot.self, from: data)
                 snapshot = decoded
                 lastError = nil
+                handleNotificationTransitions(decoded.codex)
                 setStatusImage(title: statusTooltipTitle(decoded), status: decoded.codex)
                 startMoodAnimation(for: decoded.codex)
                 appendLog("title=\(decoded.title) ok=\(decoded.codex.ok) source=\(decoded.codex.source ?? "") error=\(decoded.codex.error ?? "")")
@@ -279,6 +456,97 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
         rebuildMenu()
         scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))
+    }
+
+    private func notificationsEnabled() -> Bool {
+        UserDefaults.standard.bool(forKey: notificationsEnabledKey)
+    }
+
+    private func requestNotificationAuthorization() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { [weak self] granted, error in
+            DispatchQueue.main.async {
+                if let error {
+                    self?.appendLog("notification authorization failed=\(error.localizedDescription)")
+                }
+                if !granted {
+                    UserDefaults.standard.set(false, forKey: self?.notificationsEnabledKey ?? "notificationsEnabled")
+                    self?.notificationsCheckbox?.state = .off
+                }
+            }
+        }
+    }
+
+    private func handleNotificationTransitions(_ status: ServiceStatus) {
+        let isLive = status.ok && !isNonLiveSource(status.source)
+        if isLive {
+            liveUnavailableSince = nil
+            didNotifyLiveUnavailable = false
+        } else {
+            let started = liveUnavailableSince ?? Date()
+            liveUnavailableSince = started
+            if notificationsEnabled(),
+               !didNotifyLiveUnavailable,
+               Date().timeIntervalSince(started) >= liveUnavailableNotificationDelay {
+                postNotification(
+                    identifier: liveUnavailableNotification,
+                    title: "Codex live usage is unavailable",
+                    body: "Codex Gauge is showing cached or snapshot data until live usage returns."
+                )
+                didNotifyLiveUnavailable = true
+            }
+        }
+
+        guard notificationsEnabled() else {
+            previousFiveHourLeft = status.fiveHourLeft
+            return
+        }
+
+        guard let current = status.fiveHourLeft else {
+            return
+        }
+
+        if previousFiveHourLeft == nil, current < 10 {
+            postNotification(
+                identifier: fiveHourLowNotification,
+                title: "Codex 5-hour quota is low",
+                body: "Your 5-hour Codex quota is below 10%."
+            )
+        } else if let previous = previousFiveHourLeft, previous >= 10, current < 10 {
+            postNotification(
+                identifier: fiveHourLowNotification,
+                title: "Codex 5-hour quota is low",
+                body: "Your 5-hour Codex quota just dropped below 10%."
+            )
+        } else if let previous = previousFiveHourLeft, previous < 10, current >= 90 {
+            postNotification(
+                identifier: fiveHourRestoredNotification,
+                title: "Codex 5-hour quota is back",
+                body: "Your 5-hour Codex quota has refreshed."
+            )
+        }
+        previousFiveHourLeft = current
+    }
+
+    private func postNotification(identifier: String, title: String, body: String) {
+        guard notificationsEnabled() else {
+            return
+        }
+        let center = UNUserNotificationCenter.current()
+        center.getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
+                return
+            }
+            let content = UNMutableNotificationContent()
+            content.title = title
+            content.body = body
+            content.sound = .default
+            let request = UNNotificationRequest(
+                identifier: "\(identifier)-\(Int(Date().timeIntervalSince1970))",
+                content: content,
+                trigger: nil
+            )
+            center.add(request)
+        }
     }
 
     private func rebuildMenu() {
@@ -302,6 +570,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem.separator())
         addDisabled("Codex Gauge v" + appVersion)
         addAction("Check for Updates...", action: #selector(openReleases))
+        addAction("Preferences...", action: #selector(openPreferences))
         menu.addItem(NSMenuItem.separator())
         addAction("Refresh Now", action: #selector(refreshNow))
         addAction("Open Codex Analytics", action: #selector(openCodexAnalytics))
@@ -701,6 +970,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         guard let status, status.ok else {
             return failureRefreshInterval
         }
+        if let interval = fixedRefreshInterval() {
+            return interval
+        }
         guard let lowest = minQuota(status.fiveHourLeft, status.sevenDayLeft) else {
             return failureRefreshInterval
         }
@@ -914,18 +1186,108 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.open(url)
     }
 
-    private func unloadLaunchAgent() {
+    private func installLaunchAgentForCurrentApp() -> Bool {
+        let binaryPath = currentAppBinaryPath()
+        guard FileManager.default.isExecutableFile(atPath: binaryPath) else {
+            appendLog("launch agent install failed=missing executable \(binaryPath)")
+            return false
+        }
+
+        let plist = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>Label</key>
+          <string>\(xmlEscaped(launchAgentLabel))</string>
+          <key>ProgramArguments</key>
+          <array>
+            <string>\(xmlEscaped(binaryPath))</string>
+          </array>
+          <key>RunAtLoad</key>
+          <true/>
+          <key>KeepAlive</key>
+          <true/>
+          <key>LimitLoadToSessionType</key>
+          <string>Aqua</string>
+          <key>ProcessType</key>
+          <string>Interactive</string>
+          <key>StandardOutPath</key>
+          <string>\(xmlEscaped(supportDir + "/launchd.out.log"))</string>
+          <key>StandardErrorPath</key>
+          <string>\(xmlEscaped(supportDir + "/launchd.err.log"))</string>
+        </dict>
+        </plist>
+        """
+
+        do {
+            try FileManager.default.createDirectory(
+                atPath: (launchAgentPlistPath as NSString).deletingLastPathComponent,
+                withIntermediateDirectories: true
+            )
+            try FileManager.default.createDirectory(atPath: supportDir, withIntermediateDirectories: true)
+            try plist.write(toFile: launchAgentPlistPath, atomically: true, encoding: .utf8)
+            unloadLaunchAgent()
+            _ = runLaunchctl(arguments: ["bootstrap", launchctlDomain(), launchAgentPlistPath])
+            _ = runLaunchctl(arguments: ["kickstart", "-k", "\(launchctlDomain())/\(launchAgentLabel)"])
+            appendLog("launch agent installed path=\(launchAgentPlistPath)")
+            return true
+        } catch {
+            appendLog("launch agent install failed=\(error.localizedDescription)")
+            return false
+        }
+    }
+
+    private func removeLaunchAgentPlist() {
+        try? FileManager.default.removeItem(atPath: launchAgentPlistPath)
+        appendLog("launch agent plist removed path=\(launchAgentPlistPath)")
+    }
+
+    private func isLaunchAgentConfigured() -> Bool {
+        FileManager.default.fileExists(atPath: launchAgentPlistPath)
+    }
+
+    private func currentAppBinaryPath() -> String {
+        let bundlePath = Bundle.main.bundlePath
+        if bundlePath.hasSuffix(".app") {
+            return URL(fileURLWithPath: bundlePath)
+                .appendingPathComponent("Contents/MacOS/CodexGauge-bin")
+                .path
+        }
+        return CommandLine.arguments.first ?? bundlePath
+    }
+
+    private func launchctlDomain() -> String {
+        "gui/\(getuid())"
+    }
+
+    private func runLaunchctl(arguments: [String]) -> Bool {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
-        process.arguments = ["bootout", "gui/\(getuid())/\(launchAgentLabel)"]
+        process.arguments = arguments
         process.standardOutput = Pipe()
         process.standardError = Pipe()
         do {
             try process.run()
             process.waitUntilExit()
+            return process.terminationStatus == 0
         } catch {
-            appendLog("launch agent unload failed=\(error.localizedDescription)")
+            appendLog("launchctl failed args=\(arguments.joined(separator: " ")) error=\(error.localizedDescription)")
+            return false
         }
+    }
+
+    private func xmlEscaped(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
+            .replacingOccurrences(of: "'", with: "&apos;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+    }
+
+    private func unloadLaunchAgent() {
+        _ = runLaunchctl(arguments: ["bootout", "\(launchctlDomain())/\(launchAgentLabel)"])
     }
 
 }

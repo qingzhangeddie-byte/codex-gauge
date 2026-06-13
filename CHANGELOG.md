@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.5.0 - 2026-06-13
+
+- Added a native Preferences window for refresh cadence, opt-in quota notifications, and LaunchAgent login control.
+- Added opt-in user notifications for low 5-hour quota, refreshed 5-hour quota, and prolonged non-live data.
+- Added `script/package_release.sh` to build a public zip with checksum, install command, and no runtime logs or local support data.
+- Added `script/soak_check.sh` for long-running JSONL reliability sampling across Live, Last live, Snapshot, and unavailable states.
+- Linked the native app with `UserNotifications` and kept fallback/source labels visible.
+
 ## v0.4.1 - 2026-06-13
 
 - Prevented stale fallback quota from being shown as current usage.

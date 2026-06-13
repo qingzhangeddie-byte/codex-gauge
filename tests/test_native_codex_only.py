@@ -152,6 +152,43 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("https://github.com/qingzhangeddie-byte/codex-gauge/releases", source)
         self.assertIn('"Check for Updates..."', source)
 
+    def test_native_app_has_preferences_for_refresh_notifications_and_login(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn('"Preferences..."', source)
+        self.assertIn("openPreferences", source)
+        self.assertIn("NSWindow", source)
+        self.assertIn("NSPopUpButton", source)
+        self.assertIn("refreshModeKey", source)
+        self.assertIn("notificationsEnabledKey", source)
+        self.assertIn("launchAtLoginKey", source)
+        self.assertIn('"Adaptive"', source)
+        self.assertIn('"5 minutes"', source)
+        self.assertIn('"10 minutes"', source)
+        self.assertIn('"Launch at login"', source)
+        self.assertIn('"Quota notifications"', source)
+        self.assertIn("refreshPreferenceChanged", source)
+        self.assertIn("notificationsPreferenceChanged", source)
+        self.assertIn("launchAtLoginPreferenceChanged", source)
+        self.assertIn("installLaunchAgentForCurrentApp", source)
+        self.assertIn("removeLaunchAgentPlist", source)
+
+    def test_native_app_sends_opt_in_quota_notifications(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("import UserNotifications", source)
+        self.assertIn("UNUserNotificationCenter.current()", source)
+        self.assertIn("requestAuthorization", source)
+        self.assertIn("postNotification", source)
+        self.assertIn("handleNotificationTransitions", source)
+        self.assertIn("fiveHourLowNotification", source)
+        self.assertIn("fiveHourRestoredNotification", source)
+        self.assertIn("liveUnavailableNotification", source)
+        self.assertIn("previousFiveHourLeft", source)
+        self.assertIn("liveUnavailableSince", source)
+        self.assertIn("notificationsEnabled()", source)
+        self.assertIn("decoded.codex", source)
+
     def test_native_app_does_not_expose_claude_menu_items(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 

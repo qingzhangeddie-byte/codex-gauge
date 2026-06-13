@@ -76,6 +76,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("Codex Gauge contributors", notice)
         self.assertIn("original upstream work", notice)
         self.assertIn("Apache License, Version 2.0", notice)
+        self.assertIn("v0.5.0", changelog)
 
     def test_release_check_script_covers_public_release_gates(self):
         script_path = pathlib.Path("script/release_check.sh")
@@ -83,6 +84,8 @@ class PublicReleaseHygieneTests(unittest.TestCase):
 
         self.assertTrue(script_path.exists())
         self.assertIn("python3 -m unittest discover -s tests -v", script)
+        self.assertIn("bash -n script/package_release.sh", script)
+        self.assertIn("bash -n script/soak_check.sh", script)
         self.assertIn("./script/build_and_run.sh --build-only", script)
         self.assertIn("ditto --norsrc --noextattr", script)
         self.assertIn("codesign --verify --deep --strict", script)
@@ -93,6 +96,38 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertNotIn("grep -R -I -n -E", script)
         self.assertIn("pixelWidth: 1280", script)
         self.assertIn("Codex Gauge release check passed.", script)
+
+    def test_package_release_script_builds_zip_checksum_and_installer(self):
+        script_path = pathlib.Path("script/package_release.sh")
+        self.assertTrue(script_path.exists())
+        script = script_path.read_text()
+
+        self.assertIn("CodexGauge-$APP_VERSION.zip", script)
+        self.assertIn("shasum -a 256", script)
+        self.assertIn("Install Codex Gauge.command", script)
+        self.assertIn("README-INSTALL.txt", script)
+        self.assertIn("./script/build_and_run.sh --build-only", script)
+        self.assertIn("AiLimitStatus.app", script)
+        self.assertIn("app.codexgauge.menubar.plist", script)
+        self.assertIn("launchctl bootstrap", script)
+        self.assertIn("not notarized", script)
+        self.assertNotIn("docs/marketing", script)
+        self.assertNotIn("CodexGauge-runtime.log", script)
+
+    def test_soak_check_script_samples_status_over_time(self):
+        script_path = pathlib.Path("script/soak_check.sh")
+        self.assertTrue(script_path.exists())
+        script = script_path.read_text()
+
+        self.assertIn("--iterations", script)
+        self.assertIn("--interval", script)
+        self.assertIn("CodexGauge-soak", script)
+        self.assertIn("jsonl", script)
+        self.assertIn("source_counts", script)
+        self.assertIn("unavailable_count", script)
+        self.assertIn("--status-json", script)
+        self.assertIn("native/codex_status.py", script)
+        self.assertNotIn("browser-cookie", script)
 
     def test_public_visual_assets_exist_and_are_bounded(self):
         live = pathlib.Path("docs/assets/codex-gauge-menubar-live.png")
@@ -132,7 +167,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         for phrase in [
             "git@github.com:qingzhangeddie-byte/codex-gauge.git",
             "git push -u origin main --tags",
-            "v0.4.0",
+            "v0.5.0",
             "repository social preview",
             "docs/assets/codex-gauge-social-preview.png",
             "private vulnerability reporting",

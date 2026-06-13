@@ -5,6 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 python3 -m unittest discover -s tests -v
+bash -n script/package_release.sh
+bash -n script/soak_check.sh
 ./script/build_and_run.sh --build-only
 
 TMP_PARENT="$(mktemp -d "${TMPDIR:-/tmp}/codex-gauge-release-check.XXXXXX")"
@@ -14,7 +16,7 @@ ditto --norsrc --noextattr native/dist/CodexGauge.app "$TMP_PARENT/CodexGauge.ap
 codesign --verify --deep --strict "$TMP_PARENT/CodexGauge.app"
 
 INFO_PLIST="$TMP_PARENT/CodexGauge.app/Contents/Info.plist"
-[[ "$(plutil -extract CFBundleShortVersionString raw -o - "$INFO_PLIST")" == "0.4.1" ]]
+[[ "$(plutil -extract CFBundleShortVersionString raw -o - "$INFO_PLIST")" == "0.5.0" ]]
 [[ "$(plutil -extract CFBundleVersion raw -o - "$INFO_PLIST")" == "1" ]]
 [[ "$(plutil -extract CodexGaugeUsagePath raw -o - "$INFO_PLIST")" == "codex_status.py" ]]
 [[ "$(plutil -extract CodexGaugeReleaseURL raw -o - "$INFO_PLIST")" == "https://github.com/qingzhangeddie-byte/codex-gauge/releases" ]]

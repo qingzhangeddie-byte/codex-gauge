@@ -13,6 +13,8 @@ Codex Gauge 是一个**简单、安全的 Codex 菜单栏额度仪表**，用于
 - 菜单栏同时显示 5 小时和 7 天额度
 - 下拉菜单显示重置时间和刷新时间
 - 自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
+- 偏好设置支持自适应、5 分钟、10 分钟刷新，也可以控制是否登录时启动
+- 可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
 - 原生 App 自带 helper，安装后不依赖源码目录
 - 使用用户级 LaunchAgent 保持菜单栏进程常驻，不读取浏览器 Cookie
 - 提供有边界的 fallback：短时 **Last live** 缓存、15 分钟 **Snapshot** 新鲜度保护，并在菜单栏显示来源标记
@@ -52,6 +54,17 @@ bash install.sh
 
 安装脚本也会写入 `~/Library/LaunchAgents/app.codexgauge.menubar.plist`，让 macOS 保持菜单栏进程运行。从菜单里选择 **Quit** 会卸载当前用户的这个 LaunchAgent。
 
+从下载好的 release package 安装时，打开 `Install Codex Gauge.command`。
+
+维护者生成 package 时使用：
+
+```bash
+./script/package_release.sh
+open native/dist/release
+```
+
+生成的 zip 包含 `CodexGauge.app`、`Install Codex Gauge.command` 和 SHA-256 checksum。正式 1.0 公共版本仍建议使用 Developer ID 签名和 notarization。
+
 ## 和其他工具的不同
 
 | 方向 | Codex Gauge |
@@ -62,6 +75,8 @@ bash install.sh
 | 菜单栏常驻 | 使用用户级 LaunchAgent，并在 Quit 时明确清理 |
 | 信息密度 | 同时展示 5 小时和 7 天额度 |
 | 刷新策略 | 根据额度余量自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后快速重试 |
+| 偏好设置 | 内置刷新频率、通知、登录时启动控制 |
+| 通知 | 只在用户主动开启后提醒关键额度状态 |
 | 重置时间 | 下拉菜单直接显示重置时间 |
 | 安装方式 | 本地 clone 后一条命令安装，不建议网络管道执行 shell |
 
@@ -149,6 +164,7 @@ plist 应该只引用 `codex_status.py`，不应该包含你的源码目录路�
 python3 -m unittest discover -s tests -v
 ./script/build_and_run.sh --build-only
 ./script/release_check.sh
+./script/soak_check.sh --iterations 3 --interval 0
 ```
 
 ## License

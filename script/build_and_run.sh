@@ -6,7 +6,7 @@ APP_NAME="CodexGauge"
 LEGACY_APP_NAME="AiLimitStatus"
 BUNDLE_ID="app.codexgauge.menubar"
 MIN_SYSTEM_VERSION="13.0"
-APP_VERSION="0.4.1"
+APP_VERSION="0.5.0"
 APP_BUILD="1"
 RELEASE_URL="https://github.com/qingzhangeddie-byte/codex-gauge/releases"
 
@@ -106,7 +106,7 @@ build_bundle() {
 
   SWIFT_MODULE_CACHE_PATH="$SWIFT_MODULE_CACHE" \
   CLANG_MODULE_CACHE_PATH="$CLANG_MODULE_CACHE" \
-    swiftc "$SOURCE_FILE" -o "$stage_binary" -framework Cocoa
+    swiftc "$SOURCE_FILE" -o "$stage_binary" -framework Cocoa -framework UserNotifications
   cat >"$stage_launcher" <<LAUNCHER
 #!/bin/zsh
 set -euo pipefail
