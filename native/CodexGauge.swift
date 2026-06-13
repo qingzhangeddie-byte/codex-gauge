@@ -109,7 +109,7 @@ private struct SignalConsoleLayout {
 
     func statusStripDetailRect(unavailable: Bool) -> NSRect {
         let rect = statusStripRect
-        return NSRect(x: rect.minX + 124, y: rect.minY + 9, width: unavailable ? 204 : 268, height: 18)
+        return NSRect(x: rect.minX + 124, y: rect.minY + 9, width: unavailable ? 176 : 268, height: 18)
     }
 
     var closedSignalStateRect: NSRect {
@@ -877,12 +877,12 @@ private final class SignalConsolePanelView: NSView {
 
     private func statusStripDetail() -> String {
         if model.isUnavailable {
-            return "Open Codex to refresh live usage."
+            return "Open Codex for live quota"
         }
         if model.isRefreshing {
             return "Refreshing quota now."
         }
-        return "Codex is open. Hands-free refresh every 5 minutes."
+        return "Codex open · refreshes every 5 min"
     }
 
     private func shortTrendText(_ text: String) -> String {
@@ -1101,6 +1101,8 @@ private final class SignalConsolePanelView: NSView {
             return "Helper"
         case "Live data available":
             return "Live"
+        case "LaunchAgent":
+            return "Login"
         case "LaunchAgent running":
             return "Login"
         case "Notifications permission":
@@ -1181,6 +1183,207 @@ private final class SignalConsolePanelView: NSView {
     private var blueSoft: NSColor {
         theme.blueSoft
     }
+}
+
+private let renderedSignalConsoleFixtureDirectory = "docs/design/app-rendered-signal-console"
+
+private final class SignalConsolePreviewTarget: NSObject {
+    @objc func noop(_ sender: Any?) {}
+}
+
+private struct SignalConsolePreviewCase {
+    let filename: String
+    let theme: SignalConsoleTheme
+    let model: SignalConsoleModel
+}
+
+private func renderSignalConsoleFixtures(outputDirectory: String? = nil) throws {
+    _ = NSApplication.shared
+    let outputURL = URL(fileURLWithPath: outputDirectory ?? renderedSignalConsoleFixtureDirectory, isDirectory: true)
+    try FileManager.default.createDirectory(at: outputURL, withIntermediateDirectories: true)
+    for item in try FileManager.default.contentsOfDirectory(at: outputURL, includingPropertiesForKeys: nil) where item.pathExtension == "png" {
+        try FileManager.default.removeItem(at: item)
+    }
+
+    for previewCase in signalConsolePreviewCases() {
+        let image = try renderSignalConsolePanel(model: previewCase.model, theme: previewCase.theme)
+        guard let data = image.tiffRepresentation,
+              let representation = NSBitmapImageRep(data: data),
+              let png = representation.representation(using: .png, properties: [:]) else {
+            throw NSError(domain: "CodexGaugePreview", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not encode \(previewCase.filename)"])
+        }
+        try png.write(to: outputURL.appendingPathComponent(previewCase.filename))
+    }
+}
+
+private func renderSignalConsolePanel(model: SignalConsoleModel, theme: SignalConsoleTheme) throws -> NSImage {
+    let target = SignalConsolePreviewTarget()
+    let panel = SignalConsolePanelView(
+        frame: NSRect(origin: .zero, size: NSSize(width: 560, height: 560)),
+        model: model,
+        theme: theme,
+        target: target,
+        runCheckAction: #selector(SignalConsolePreviewTarget.noop(_:)),
+        generateReportAction: #selector(SignalConsolePreviewTarget.noop(_:)),
+        copyDiagnosticsAction: #selector(SignalConsolePreviewTarget.noop(_:)),
+        clearDataAction: #selector(SignalConsolePreviewTarget.noop(_:)),
+        openCodexAction: #selector(SignalConsolePreviewTarget.noop(_:)),
+        refreshAction: #selector(SignalConsolePreviewTarget.noop(_:)),
+        preferencesAction: #selector(SignalConsolePreviewTarget.noop(_:)),
+        quitAction: #selector(SignalConsolePreviewTarget.noop(_:))
+    )
+    panel.layoutSubtreeIfNeeded()
+    panel.displayIfNeeded()
+    guard let bitmap = panel.bitmapImageRepForCachingDisplay(in: panel.bounds) else {
+        throw NSError(domain: "CodexGaugePreview", code: 2, userInfo: [NSLocalizedDescriptionKey: "Could not allocate preview bitmap"])
+    }
+    panel.cacheDisplay(in: panel.bounds, to: bitmap)
+    let image = NSImage(size: panel.bounds.size)
+    image.addRepresentation(bitmap)
+    return image
+}
+
+private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
+    let themes: [(slug: String, theme: SignalConsoleTheme)] = [
+        ("paper-console", paperConsoleTheme()),
+        ("signal-dark", signalDarkTheme()),
+        ("mono-graphite", monoGraphiteTheme()),
+    ]
+    let states: [(slug: String, model: SignalConsoleModel)] = [
+        ("live", signalConsolePreviewModel(
+            title: "Live",
+            detail: "Current",
+            statusTitle: "Live data is current",
+            statusDetail: "Read from local Codex app-server",
+            fiveHourLeft: 82,
+            sevenDayLeft: 76,
+            fiveHourResetText: "4h",
+            sevenDayResetText: "5d22h",
+            fiveHourResetProgress: 18,
+            sevenDayResetProgress: 52,
+            source: "live",
+            unavailable: false,
+            reportFive: "-8%",
+            reportSeven: "-3%",
+            sourceMix: "Source: Live 12",
+            health: "5 OK"
+        )),
+        ("codex-closed", signalConsolePreviewModel(
+            title: "Codex closed",
+            detail: "Open Codex",
+            statusTitle: "Open Codex desktop once to enable live usage",
+            statusDetail: "After Codex is open, Codex Gauge refreshes hands-free from the menu bar.",
+            fiveHourLeft: nil,
+            sevenDayLeft: nil,
+            fiveHourResetText: "--",
+            sevenDayResetText: "--",
+            fiveHourResetProgress: nil,
+            sevenDayResetProgress: nil,
+            source: nil,
+            unavailable: true,
+            reportFive: "collecting",
+            reportSeven: "collecting",
+            sourceMix: "Need 2 samples for a 24h quota summary",
+            health: "3 OK · 1 check"
+        )),
+        ("last-live", signalConsolePreviewModel(
+            title: "Last live",
+            detail: "Cached",
+            statusTitle: "Showing last live cache",
+            statusDetail: "Codex not reachable - showing last live",
+            fiveHourLeft: 58,
+            sevenDayLeft: 63,
+            fiveHourResetText: "2h",
+            sevenDayResetText: "4d8h",
+            fiveHourResetProgress: 62,
+            sevenDayResetProgress: 39,
+            source: "last_live",
+            unavailable: false,
+            reportFive: "-21%",
+            reportSeven: "-6%",
+            sourceMix: "Source: Live 8 / Last live 2",
+            health: "4 OK · 1 optional"
+        )),
+        ("low-quota", signalConsolePreviewModel(
+            title: "Live",
+            detail: "Current",
+            statusTitle: "Live data is current",
+            statusDetail: "Read from local Codex app-server",
+            fiveHourLeft: 9,
+            sevenDayLeft: 44,
+            fiveHourResetText: "38m",
+            sevenDayResetText: "2d4h",
+            fiveHourResetProgress: 86,
+            sevenDayResetProgress: 70,
+            source: "live",
+            unavailable: false,
+            reportFive: "-81%",
+            reportSeven: "-18%",
+            sourceMix: "Source: Live 18",
+            health: "5 OK"
+        )),
+    ]
+
+    return themes.flatMap { item in
+        states.map { state in
+            SignalConsolePreviewCase(filename: "\(item.slug)-\(state.slug).png", theme: item.theme, model: state.model)
+        }
+    }
+}
+
+private func signalConsolePreviewModel(
+    title: String,
+    detail: String,
+    statusTitle: String,
+    statusDetail: String,
+    fiveHourLeft: Int?,
+    sevenDayLeft: Int?,
+    fiveHourResetText: String,
+    sevenDayResetText: String,
+    fiveHourResetProgress: Int?,
+    sevenDayResetProgress: Int?,
+    source: String?,
+    unavailable: Bool,
+    reportFive: String,
+    reportSeven: String,
+    sourceMix: String,
+    health: String
+) -> SignalConsoleModel {
+    SignalConsoleModel(
+        planName: unavailable ? "Codex Gauge" : "Codex Pro",
+        sourcePill: "Source: Menu Bar",
+        stateTitle: title,
+        stateDetail: detail,
+        statusTitle: statusTitle,
+        statusDetail: statusDetail,
+        fiveHourLeft: fiveHourLeft,
+        sevenDayLeft: sevenDayLeft,
+        fiveHourResetText: fiveHourResetText,
+        sevenDayResetText: sevenDayResetText,
+        fiveHourResetProgress: fiveHourResetProgress,
+        sevenDayResetProgress: sevenDayResetProgress,
+        fiveHourHistory: unavailable ? [] : [96, 88, 77, 69, fiveHourLeft ?? 0],
+        sevenDayHistory: unavailable ? [] : [91, 84, 78, 72, sevenDayLeft ?? 0],
+        fiveHourTrendText: unavailable ? "collecting" : reportFive,
+        sevenDayTrendText: unavailable ? "collecting" : reportSeven,
+        trendContextText: unavailable ? "Open Codex to start collecting live samples" : "Based on 12 live samples from 09:12 to 21:12",
+        reportFiveHourMovement: reportFive,
+        reportSevenDayMovement: reportSeven,
+        reportSourceMix: sourceMix,
+        healthSummaryText: health,
+        doctorChecks: [
+            DoctorCheck(title: "Codex process", state: unavailable ? "yellow" : "green", detail: unavailable ? "Closed" : "Open"),
+            DoctorCheck(title: "Menu bar source", state: "green", detail: "OK"),
+            DoctorCheck(title: "Cache age", state: source == "last_live" ? "blue" : "green", detail: source == "last_live" ? "Cached" : "Fresh"),
+            DoctorCheck(title: "LaunchAgent", state: "green", detail: "Loaded"),
+            DoctorCheck(title: "Last fetch", state: unavailable ? "grey" : "green", detail: unavailable ? "--" : "OK"),
+        ],
+        lastRefreshText: unavailable ? "none" : "21:12",
+        nextRefreshText: unavailable ? "1:00" : "4:58",
+        source: source,
+        isUnavailable: unavailable,
+        isRefreshing: false
+    )
 }
 
 private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
@@ -3456,6 +3659,19 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         _ = runLaunchctl(arguments: ["bootout", "\(launchctlDomain())/\(launchAgentLabel)"])
     }
 
+}
+
+if let renderIndex = CommandLine.arguments.firstIndex(of: "--render-signal-console-fixtures") {
+    let outputDirectory = CommandLine.arguments.indices.contains(renderIndex + 1)
+        ? CommandLine.arguments[renderIndex + 1]
+        : renderedSignalConsoleFixtureDirectory
+    do {
+        try renderSignalConsoleFixtures(outputDirectory: outputDirectory)
+        exit(0)
+    } catch {
+        fputs("Codex Gauge fixture render failed: \(error.localizedDescription)\n", stderr)
+        exit(1)
+    }
 }
 
 let app = NSApplication.shared

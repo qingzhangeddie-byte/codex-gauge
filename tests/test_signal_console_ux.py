@@ -56,6 +56,21 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("button.action = #selector(toggleSignalConsole", source)
         self.assertNotIn("statusItem.menu = menu", source)
 
+    def test_native_app_can_render_real_signal_console_fixtures(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "--render-signal-console-fixtures",
+            "renderSignalConsoleFixtures",
+            "SignalConsolePreviewTarget",
+            "SignalConsolePreviewCase",
+            "renderSignalConsolePanel",
+            "SignalConsolePanelView(",
+            "cacheDisplay(in: panel.bounds",
+            "docs/design/app-rendered-signal-console",
+        ]:
+            self.assertIn(token, source)
+
     def test_signal_console_popover_matches_selected_sections(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
@@ -127,6 +142,7 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("drawStatusStrip", source)
         self.assertIn("drawHealthRibbon", source)
         self.assertIn("SignalConsoleLayout", source)
+        self.assertIn('"Codex open · refreshes every 5 min"', source)
         self.assertNotIn("drawCommandButton", source)
         self.assertNotIn('drawSectionLabel("Status"', source)
         self.assertNotIn('drawSectionLabel("Reset"', source)
@@ -274,11 +290,21 @@ class SignalConsoleUXTests(unittest.TestCase):
 
         self.assertIn("drawClosedSignalState", source)
         self.assertIn('"Codex closed"', source)
-        self.assertIn('"Open Codex to refresh live usage"', source)
+        self.assertIn('"Open Codex for live quota"', source)
         self.assertIn('"Open Codex desktop once to enable live usage"', source)
         self.assertIn('"After Codex is open, Codex Gauge refreshes hands-free from the menu bar."', source)
         self.assertIn('"No live quota yet"', source)
         self.assertIn("if model.isUnavailable {", source)
+
+    def test_signal_console_closed_state_copy_stays_compact(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("width: unavailable ? 176 : 268", source)
+        self.assertIn('return "Open Codex for live quota"', source)
+        self.assertNotIn('return "Open Codex to refresh live usage."', source)
+        self.assertIn('case "LaunchAgent":', source)
+        self.assertIn('case "LaunchAgent running":', source)
+        self.assertIn('return "Login"', source)
 
     def test_quota_movement_uses_semantic_colors(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()

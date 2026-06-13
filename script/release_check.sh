@@ -8,7 +8,9 @@ swift script/generate_theme_state_previews.swift >/dev/null
 python3 -m unittest discover -s tests -v
 bash -n script/package_release.sh
 bash -n script/soak_check.sh
+bash -n script/render_signal_console_fixtures.sh
 ./script/build_and_run.sh --build-only
+script/render_signal_console_fixtures.sh
 
 TMP_PARENT="$(mktemp -d "${TMPDIR:-/tmp}/codex-gauge-release-check.XXXXXX")"
 trap 'rm -rf "$TMP_PARENT"' EXIT
@@ -37,5 +39,9 @@ sips -g pixelWidth -g pixelHeight docs/assets/codex-gauge-social-preview.png | g
 sips -g pixelWidth -g pixelHeight docs/assets/codex-gauge-social-preview.png | grep -q "pixelHeight: 640"
 sips -g pixelWidth -g pixelHeight docs/assets/codex-gauge-menubar-live.png | grep -q "pixelWidth: 790"
 sips -g pixelWidth -g pixelHeight docs/assets/codex-gauge-menubar-live.png | grep -q "pixelHeight: 96"
+for fixture in docs/design/app-rendered-signal-console/*.png; do
+  sips -g pixelWidth -g pixelHeight "$fixture" | grep -q "pixelWidth: 1120"
+  sips -g pixelWidth -g pixelHeight "$fixture" | grep -q "pixelHeight: 1120"
+done
 
 printf "Codex Gauge release check passed.\n"

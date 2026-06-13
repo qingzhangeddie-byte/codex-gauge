@@ -99,6 +99,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertNotIn("grep -R -I -n -E", script)
         self.assertIn("pixelWidth: 1280", script)
         self.assertIn("swift script/generate_theme_state_previews.swift", script)
+        self.assertIn("script/render_signal_console_fixtures.sh", script)
         self.assertIn("Codex Gauge release check passed.", script)
 
     def test_package_release_script_builds_zip_checksum_and_installer(self):
@@ -191,6 +192,42 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         )
         self.assertIn("pixelWidth: 1280", result.stdout)
         self.assertIn("pixelHeight: 960", result.stdout)
+
+    def test_actual_app_rendered_signal_console_fixtures_exist(self):
+        script = pathlib.Path("script/render_signal_console_fixtures.sh")
+        fixture_dir = pathlib.Path("docs/design/app-rendered-signal-console")
+        expected = [
+            "paper-console-live.png",
+            "paper-console-codex-closed.png",
+            "paper-console-last-live.png",
+            "paper-console-low-quota.png",
+            "signal-dark-live.png",
+            "signal-dark-codex-closed.png",
+            "signal-dark-last-live.png",
+            "signal-dark-low-quota.png",
+            "mono-graphite-live.png",
+            "mono-graphite-codex-closed.png",
+            "mono-graphite-last-live.png",
+            "mono-graphite-low-quota.png",
+        ]
+
+        self.assertTrue(script.exists())
+        self.assertTrue(fixture_dir.exists())
+        script_text = script.read_text()
+        self.assertIn("--render-signal-console-fixtures", script_text)
+        self.assertIn("native/dist/CodexGauge.app/Contents/MacOS/CodexGauge-bin", script_text)
+        for filename in expected:
+            fixture = fixture_dir / filename
+            self.assertTrue(fixture.exists(), filename)
+            self.assertLess(fixture.stat().st_size, 2_000_000)
+            result = subprocess.run(
+                ["sips", "-g", "pixelWidth", "-g", "pixelHeight", str(fixture)],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+            )
+            self.assertIn("pixelWidth: 1120", result.stdout)
+            self.assertIn("pixelHeight: 1120", result.stdout)
 
     def test_build_script_installs_public_app_name_and_removes_legacy_app(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()
