@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+swift script/generate_theme_state_previews.swift >/dev/null
 python3 -m unittest discover -s tests -v
 bash -n script/package_release.sh
 bash -n script/soak_check.sh

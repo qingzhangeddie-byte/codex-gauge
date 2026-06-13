@@ -46,6 +46,9 @@ private struct TrendContext {
 
 private struct UsageReportSummary {
     let windowLabel: String
+    let sampleCount: Int
+    let liveSampleCount: Int
+    let nonLiveSampleCount: Int
     let firstFiveHourLeft: Int?
     let latestFiveHourLeft: Int?
     let firstSevenDayLeft: Int?
@@ -60,6 +63,132 @@ private struct InlineUsageReportSummary {
     let fiveHourMovement: String
     let sevenDayMovement: String
     let sourceMix: String
+}
+
+private struct SignalConsoleLayout {
+    let bounds: NSRect
+    private let margin: CGFloat = 20
+    private let gutter: CGFloat = 12
+    private let innerInset: CGFloat = 16
+
+    func splitHorizontally(_ rect: NSRect, columns: Int, gap: CGFloat) -> [NSRect] {
+        guard columns > 0 else {
+            return []
+        }
+        let totalGap = gap * CGFloat(columns - 1)
+        let itemWidth = (rect.width - totalGap) / CGFloat(columns)
+        return (0..<columns).map { index in
+            NSRect(
+                x: rect.minX + CGFloat(index) * (itemWidth + gap),
+                y: rect.minY,
+                width: itemWidth,
+                height: rect.height
+            )
+        }
+    }
+
+    var panelRect: NSRect {
+        bounds.insetBy(dx: 1, dy: 1)
+    }
+
+    var headerTitleRect: NSRect {
+        NSRect(x: margin, y: 18, width: 300, height: 24)
+    }
+
+    var headerSignalPillRect: NSRect {
+        NSRect(x: 344, y: 16, width: 70, height: 28)
+    }
+
+    var headerSourcePillRect: NSRect {
+        NSRect(x: 422, y: 16, width: 118, height: 28)
+    }
+
+    var statusStripRect: NSRect {
+        NSRect(x: margin, y: 54, width: bounds.width - margin * 2, height: 42)
+    }
+
+    func statusStripDetailRect(unavailable: Bool) -> NSRect {
+        let rect = statusStripRect
+        return NSRect(x: rect.minX + 124, y: rect.minY + 9, width: unavailable ? 204 : 268, height: 18)
+    }
+
+    var closedSignalStateRect: NSRect {
+        let rect = statusStripRect
+        return NSRect(x: rect.maxX - 210, y: rect.minY + 7, width: 96, height: 28)
+    }
+
+    var nextRefreshPillRect: NSRect {
+        let rect = statusStripRect
+        return NSRect(x: rect.maxX - 104, y: rect.minY + 7, width: 86, height: 28)
+    }
+
+    var heroCardRect: NSRect {
+        NSRect(x: margin, y: 108, width: bounds.width - margin * 2, height: 152)
+    }
+
+    var fiveHourQuotaRowRect: NSRect {
+        NSRect(x: margin + 14, y: 124, width: bounds.width - 68, height: 58)
+    }
+
+    var sevenDayQuotaRowRect: NSRect {
+        NSRect(x: margin + 14, y: 190, width: bounds.width - 68, height: 58)
+    }
+
+    var trendCardRect: NSRect {
+        NSRect(x: margin, y: 274, width: 248, height: 122)
+    }
+
+    var reportCardRect: NSRect {
+        let trend = trendCardRect
+        return NSRect(x: trend.maxX + gutter, y: trend.minY, width: bounds.width - margin - trend.maxX - gutter, height: trend.height)
+    }
+
+    var reportSourceTextRect: NSRect {
+        let card = reportCardRect
+        return NSRect(x: card.minX + innerInset, y: card.minY + 34, width: 212, height: 12)
+    }
+
+    var reportMetricRects: [NSRect] {
+        let card = reportCardRect
+        return splitHorizontally(
+            NSRect(x: card.minX + innerInset, y: card.minY + 52, width: card.width - innerInset * 2, height: 32),
+            columns: 2,
+            gap: 10
+        )
+    }
+
+    var copyReportButtonRect: NSRect {
+        let card = reportCardRect
+        return NSRect(x: card.minX + 18, y: card.maxY - 32, width: 96, height: 30)
+    }
+
+    var clearDataButtonRect: NSRect {
+        let card = reportCardRect
+        return NSRect(x: card.minX + 122, y: card.maxY - 32, width: 120, height: 30)
+    }
+
+    var healthRibbonRect: NSRect {
+        NSRect(x: margin, y: 410, width: bounds.width - margin * 2, height: 66)
+    }
+
+    var healthStatusGridRect: NSRect {
+        let rect = healthRibbonRect
+        return NSRect(x: rect.minX + 118, y: rect.minY + 14, width: 300, height: 30)
+    }
+
+    var runCheckButtonRect: NSRect {
+        let rect = healthRibbonRect
+        return NSRect(x: rect.maxX - 90, y: rect.minY + 30, width: 82, height: 30)
+    }
+
+    var bottomCommandButtonRects: [NSRect] {
+        [
+            NSRect(x: margin, y: 496, width: 122, height: 40),
+            NSRect(x: margin + 130, y: 496, width: 122, height: 40),
+            NSRect(x: margin + 260, y: 496, width: 122, height: 40),
+            NSRect(x: margin + 390, y: 496, width: 130, height: 40),
+        ]
+    }
 }
 
 private struct GaugePalette {
@@ -351,13 +480,15 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func addSignalConsoleButtons() {
-        addButton(title: "Copy report", frame: NSRect(x: 298, y: 364, width: 96, height: 30), action: generateReportAction, style: .primary)
-        addButton(title: "Clear data", frame: NSRect(x: 402, y: 364, width: 120, height: 30), action: clearDataAction, style: .secondary)
-        addButton(title: "Run Check", frame: NSRect(x: 450, y: 440, width: 82, height: 30), action: runCheckAction, style: .secondary)
-        addButton(title: "Open Codex", frame: NSRect(x: 20, y: 496, width: 122, height: 40), action: openCodexAction, style: .command)
-        addButton(title: "Refresh Now", frame: NSRect(x: 150, y: 496, width: 122, height: 40), action: refreshAction, style: .command)
-        addButton(title: "Preferences", frame: NSRect(x: 280, y: 496, width: 122, height: 40), action: preferencesAction, style: .command)
-        addButton(title: "Quit", frame: NSRect(x: 410, y: 496, width: 130, height: 40), action: quitAction, style: .command)
+        let layout = SignalConsoleLayout(bounds: bounds)
+        let commandRects = layout.bottomCommandButtonRects
+        addButton(title: "Copy report", frame: layout.copyReportButtonRect, action: generateReportAction, style: .primary)
+        addButton(title: "Clear data", frame: layout.clearDataButtonRect, action: clearDataAction, style: .secondary)
+        addButton(title: "Run Check", frame: layout.runCheckButtonRect, action: runCheckAction, style: .secondary)
+        addButton(title: "Open Codex", frame: commandRects[0], action: openCodexAction, style: .command)
+        addButton(title: "Refresh Now", frame: commandRects[1], action: refreshAction, style: .command)
+        addButton(title: "Preferences", frame: commandRects[2], action: preferencesAction, style: .command)
+        addButton(title: "Quit", frame: commandRects[3], action: quitAction, style: .command)
     }
 
     private enum SignalButtonStyle {
@@ -416,7 +547,8 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawPanelBackground() {
-        let rect = bounds.insetBy(dx: 1, dy: 1)
+        let layout = SignalConsoleLayout(bounds: bounds)
+        let rect = layout.panelRect
         let background = NSBezierPath(roundedRect: rect, xRadius: 18, yRadius: 18)
         NSGradient(colors: [
             panelStrongBackground,
@@ -428,24 +560,31 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawHeader() {
-        drawText("Codex Gauge  •  Signal Console", x: 20, y: 18, width: 300, height: 24, size: 15, weight: .semibold, color: textPrimary)
-        drawPill(text: headerSignalText(), rect: NSRect(x: 344, y: 16, width: 70, height: 28), color: headerSignalColor().withAlphaComponent(0.12), dotColor: headerSignalColor())
-        drawPill(text: model.sourcePill, rect: NSRect(x: 422, y: 16, width: 118, height: 28), color: theme.secondaryButtonBackground)
+        let layout = SignalConsoleLayout(bounds: bounds)
+        let title = layout.headerTitleRect
+        let next = layout.headerSignalPillRect
+        let source = layout.headerSourcePillRect
+        drawText("Codex Gauge  •  Signal Console", x: title.minX, y: title.minY, width: title.width, height: title.height, size: 15, weight: .semibold, color: textPrimary)
+        drawPill(text: headerSignalText(), rect: next, color: headerSignalColor().withAlphaComponent(0.12), dotColor: headerSignalColor())
+        drawPill(text: model.sourcePill, rect: source, color: theme.secondaryButtonBackground)
     }
 
     private func drawStatusStrip() {
-        let rect = NSRect(x: 20, y: 54, width: bounds.width - 40, height: 42)
+        let layout = SignalConsoleLayout(bounds: bounds)
+        let rect = layout.statusStripRect
         let stateColor = sourceColor(source: model.source, unavailable: model.isUnavailable)
         drawRoundedRect(rect, radius: 13, fill: stateColor.withAlphaComponent(0.08), stroke: panelBorder.withAlphaComponent(0.42))
         drawCircle(center: NSPoint(x: rect.minX + 18, y: rect.midY), radius: 4, color: stateColor, stroke: nil)
         drawText("Live signal", x: rect.minX + 30, y: rect.minY + 9, width: 86, height: 18, size: 13, weight: .bold, color: stateColor)
-        drawText(statusStripDetail(), x: rect.minX + 124, y: rect.minY + 9, width: model.isUnavailable ? 204 : 268, height: 18, size: 12, weight: .regular, color: textSecondary)
+        let detail = layout.statusStripDetailRect(unavailable: model.isUnavailable)
+        drawText(statusStripDetail(), x: detail.minX, y: detail.minY, width: detail.width, height: detail.height, size: 12, weight: .regular, color: textSecondary)
         if model.isUnavailable {
-            drawClosedSignalState(in: NSRect(x: rect.maxX - 210, y: rect.minY + 7, width: 96, height: 28))
+            drawClosedSignalState(in: layout.closedSignalStateRect)
         }
-        drawRoundedRect(NSRect(x: rect.maxX - 104, y: rect.minY + 7, width: 86, height: 28), radius: 9, fill: theme.commandButtonBackground, stroke: panelBorder.withAlphaComponent(0.26))
-        drawText("next", x: rect.maxX - 94, y: rect.minY + 13, width: 30, height: 14, size: 10, weight: .regular, color: textMuted)
-        drawText(model.nextRefreshText, x: rect.maxX - 58, y: rect.minY + 13, width: 42, height: 14, size: 10, weight: .semibold, color: textPrimary, mono: true)
+        let next = layout.nextRefreshPillRect
+        drawRoundedRect(next, radius: 9, fill: theme.commandButtonBackground, stroke: panelBorder.withAlphaComponent(0.26))
+        drawText("next", x: next.minX + 10, y: next.minY + 6, width: 30, height: 14, size: 10, weight: .regular, color: textMuted)
+        drawText(model.nextRefreshText, x: next.minX + 46, y: next.minY + 6, width: 42, height: 14, size: 10, weight: .semibold, color: textPrimary, mono: true)
     }
 
     private func drawClosedSignalState(in rect: NSRect) {
@@ -455,7 +594,8 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawSignalHeroCard() {
-        let card = NSRect(x: 20, y: 108, width: bounds.width - 40, height: 152)
+        let layout = SignalConsoleLayout(bounds: bounds)
+        let card = layout.heroCardRect
         drawRoundedGradient(
             card,
             radius: 16,
@@ -471,7 +611,7 @@ private final class SignalConsolePanelView: NSView {
             value: model.fiveHourLeft,
             resetText: model.fiveHourResetText,
             resetProgress: model.fiveHourResetProgress,
-            rect: NSRect(x: 34, y: 124, width: 492, height: 58)
+            rect: layout.fiveHourQuotaRowRect
         )
         drawQuotaWindowRow(
             window: "7d",
@@ -479,7 +619,7 @@ private final class SignalConsolePanelView: NSView {
             value: model.sevenDayLeft,
             resetText: model.sevenDayResetText,
             resetProgress: model.sevenDayResetProgress,
-            rect: NSRect(x: 34, y: 190, width: 492, height: 58)
+            rect: layout.sevenDayQuotaRowRect
         )
     }
 
@@ -496,7 +636,8 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawTrendSection() {
-        let card = NSRect(x: 20, y: 274, width: 248, height: 122)
+        let layout = SignalConsoleLayout(bounds: bounds)
+        let card = layout.trendCardRect
         drawRoundedRect(card, radius: 15, fill: panelSoftBackground, stroke: panelBorder.withAlphaComponent(0.50))
         drawText("Quota movement", x: card.minX + 16, y: card.minY + 14, width: 126, height: 18, size: 12, weight: .bold, color: textPrimary)
         drawText("last 24h", x: card.maxX - 62, y: card.minY + 14, width: 46, height: 18, size: 10, weight: .regular, color: textMuted)
@@ -517,13 +658,16 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawReportSection() {
-        let card = NSRect(x: 280, y: 274, width: 260, height: 122)
+        let layout = SignalConsoleLayout(bounds: bounds)
+        let card = layout.reportCardRect
+        let metricRects = layout.reportMetricRects
+        let source = layout.reportSourceTextRect
         drawRoundedRect(card, radius: 15, fill: panelSoftBackground, stroke: panelBorder.withAlphaComponent(0.50))
         drawText("Usage Report", x: card.minX + 16, y: card.minY + 14, width: 108, height: 18, size: 12, weight: .bold, color: textPrimary)
         drawText("local only", x: card.maxX - 62, y: card.minY + 14, width: 46, height: 18, size: 10, weight: .regular, color: textMuted)
-        drawText(model.reportSourceMix, x: card.minX + 16, y: card.minY + 34, width: 212, height: 12, size: 8.8, weight: .regular, color: textMuted)
-        drawReportMetric(label: "5h move", value: model.reportFiveHourMovement, rect: NSRect(x: card.minX + 16, y: card.minY + 52, width: 106, height: 32))
-        drawReportMetric(label: "7d move", value: model.reportSevenDayMovement, rect: NSRect(x: card.minX + 132, y: card.minY + 52, width: 106, height: 32))
+        drawText(model.reportSourceMix, x: source.minX, y: source.minY, width: source.width, height: source.height, size: 8.8, weight: .regular, color: textMuted)
+        drawReportMetric(label: "5h move", value: model.reportFiveHourMovement, rect: metricRects[0])
+        drawReportMetric(label: "7d move", value: model.reportSevenDayMovement, rect: metricRects[1])
     }
 
     private func drawReportMetric(label: String, value: String, rect: NSRect) {
@@ -543,11 +687,12 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawHealthRibbon() {
-        let rect = NSRect(x: 20, y: 410, width: 520, height: 66)
+        let layout = SignalConsoleLayout(bounds: bounds)
+        let rect = layout.healthRibbonRect
         drawRoundedRect(rect, radius: 15, fill: panelSoftBackground, stroke: panelBorder.withAlphaComponent(0.50))
         drawText("Health", x: rect.minX + 16, y: rect.minY + 17, width: 66, height: 18, size: 12, weight: .bold, color: textPrimary)
         drawText(model.healthSummaryText, x: rect.minX + 16, y: rect.minY + 36, width: 94, height: 16, size: 10, weight: .regular, color: textMuted)
-        drawHealthStatusGrid(in: NSRect(x: rect.minX + 118, y: rect.minY + 14, width: 300, height: 30))
+        drawHealthStatusGrid(in: layout.healthStatusGridRect)
     }
 
     private func drawHealthStatusGrid(in rect: NSRect) {
@@ -1280,7 +1425,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             )
         }
 
-        let detail = lastError == nil ? "Live data is unavailable until Codex is open." : clipped(lastError ?? "", limit: 96)
+        let detail = lastError == nil
+            ? "After Codex is open, Codex Gauge refreshes hands-free from the menu bar."
+            : clipped(lastError ?? "", limit: 96)
         let fiveHourSamples = currentFiveHourWindowSamples(from: samples, resetEpoch: nil, now: now)
         let sevenDaySamples = lastDaySamples
         let fiveHourHistory = quotaHistoryValues(fiveHourSamples, \.fiveHourLeft)
@@ -1291,7 +1438,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             sourcePill: "Source: Menu Bar",
             stateTitle: "Codex closed",
             stateDetail: "Open Codex",
-            statusTitle: "Open Codex to refresh live usage.",
+            statusTitle: "Open Codex desktop once to enable live usage",
             statusDetail: detail,
             fiveHourLeft: nil,
             sevenDayLeft: nil,
@@ -2145,7 +2292,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func sourceStatusTitle(_ status: ServiceStatus) -> String {
         if isUnavailableStatus(status) {
-            return "Open Codex to refresh live usage"
+            return "Open Codex desktop once to enable live usage"
         }
         switch status.source {
         case "last_live":
@@ -2161,7 +2308,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func sourceStatusDetail(_ status: ServiceStatus) -> String {
         if isUnavailableStatus(status) {
-            return "Codex is closed or unreachable. Open Codex, then Refresh Now."
+            return "After Codex is open, Codex Gauge refreshes hands-free from the menu bar."
         }
         switch status.source {
         case "last_live":
@@ -2784,8 +2931,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         guard usable.count >= 2 else {
             return nil
         }
+        let liveSampleCount = usable.filter { $0.source == "live" }.count
         return UsageReportSummary(
             windowLabel: "24h",
+            sampleCount: usable.count,
+            liveSampleCount: liveSampleCount,
+            nonLiveSampleCount: usable.count - liveSampleCount,
             firstFiveHourLeft: firstValue(in: usable, \.fiveHourLeft),
             latestFiveHourLeft: latestValue(in: usable, \.fiveHourLeft),
             firstSevenDayLeft: firstValue(in: usable, \.sevenDayLeft),
@@ -2834,6 +2985,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             "Window: \(summary.windowLabel)",
             "Current source: \(sourceDisplayName(status?.source))",
             "",
+            "## Summary",
+            reportHeadline(summary),
+            sampleCoverageLine(summary),
+            stalePeriodsLine(summary),
+            "",
             "## Quota movement estimate",
             movementLine(label: "5-hour", first: summary.firstFiveHourLeft, latest: summary.latestFiveHourLeft, largestDrop: summary.largestFiveHourDrop),
             movementLine(label: "7-day", first: summary.firstSevenDayLeft, latest: summary.latestSevenDayLeft, largestDrop: summary.largestSevenDayDrop),
@@ -2845,6 +3001,35 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             "This report estimates quota movement from local snapshots.",
             "It is not token accounting, billing, or spend.",
         ].joined(separator: "\n")
+    }
+
+    private func reportHeadline(_ summary: UsageReportSummary) -> String {
+        let five = compactMovementText(first: summary.firstFiveHourLeft, latest: summary.latestFiveHourLeft)
+        let seven = compactMovementText(first: summary.firstSevenDayLeft, latest: summary.latestSevenDayLeft)
+        return "Quota movement over \(summary.windowLabel): 5-hour \(five), 7-day \(seven)."
+    }
+
+    private func sampleCoverageLine(_ summary: UsageReportSummary) -> String {
+        return "Observed samples: \(summary.sampleCount) total, \(summary.liveSampleCount) live, \(summary.nonLiveSampleCount) non-live."
+    }
+
+    private func stalePeriodsLine(_ summary: UsageReportSummary) -> String {
+        if summary.nonLiveSampleCount == 0 {
+            return "Stale/unavailable periods: none observed in this local window."
+        }
+        return "Stale/unavailable periods: \(summary.nonLiveSampleCount) non-live samples in this local window."
+    }
+
+    private func compactMovementText(first: Int?, latest: Int?) -> String {
+        guard let first, let latest else {
+            return "unavailable"
+        }
+        let delta = latest - first
+        if abs(delta) < 2 {
+            return "steady"
+        }
+        let sign = delta > 0 ? "+" : ""
+        return "\(sign)\(delta)%"
     }
 
     private func compactSourceCountsText(_ counts: [String: Int]) -> String {

@@ -126,10 +126,31 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("drawResetCountdownLane", source)
         self.assertIn("drawStatusStrip", source)
         self.assertIn("drawHealthRibbon", source)
+        self.assertIn("SignalConsoleLayout", source)
         self.assertNotIn("drawCommandButton", source)
         self.assertNotIn('drawSectionLabel("Status"', source)
         self.assertNotIn('drawSectionLabel("Reset"', source)
         self.assertNotIn('drawDivider(y: 144)', source)
+
+    def test_signal_console_routes_geometry_through_layout_helper(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "private struct SignalConsoleLayout",
+            "func splitHorizontally",
+            "let layout = SignalConsoleLayout(bounds: bounds)",
+            "layout.statusStripRect",
+            "layout.heroCardRect",
+            "layout.trendCardRect",
+            "layout.reportCardRect",
+            "layout.reportMetricRects",
+            "layout.copyReportButtonRect",
+            "layout.clearDataButtonRect",
+            "layout.bottomCommandButtonRects",
+        ]:
+            self.assertIn(token, source)
+        self.assertNotIn('addButton(title: "Copy report", frame: NSRect(x:', source)
+        self.assertNotIn('addButton(title: "Clear data", frame: NSRect(x:', source)
 
     def test_signal_console_uses_refined_palette_tokens(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -218,8 +239,8 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("signalPopoverSize = NSSize(width: 560, height: 560)", source)
         self.assertIn("drawStatusStrip", source)
         self.assertIn("drawHealthStatusGrid", source)
-        self.assertIn('addButton(title: "Run Check", frame: NSRect(x: 450, y: 440, width: 82, height: 30)', source)
-        self.assertIn('drawHealthStatusGrid(in: NSRect(x: rect.minX + 118, y: rect.minY + 14, width: 300, height: 30)', source)
+        self.assertIn('addButton(title: "Run Check", frame: layout.runCheckButtonRect', source)
+        self.assertIn("drawHealthStatusGrid(in: layout.healthStatusGridRect)", source)
         self.assertNotIn("drawCommandButton", source)
         self.assertNotIn("drawBottomCommands", source)
         self.assertNotIn("signalPopoverSize = NSSize(width: 640, height: 750)", source)
@@ -234,7 +255,8 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("nextRefreshAt = Date().addingTimeInterval(interval)", source)
         self.assertIn("startPopoverCountdownTimer()", source)
         self.assertIn("stopPopoverCountdownTimer()", source)
-        self.assertIn('drawText(model.nextRefreshText, x: rect.maxX - 58', source)
+        self.assertIn("let next = layout.nextRefreshPillRect", source)
+        self.assertIn("drawText(model.nextRefreshText, x: next.minX + 46", source)
         self.assertNotIn('model.isRefreshing ? "now" : "5 min"', source)
 
     def test_quota_movement_labels_include_signed_window_deltas(self):
@@ -253,6 +275,8 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("drawClosedSignalState", source)
         self.assertIn('"Codex closed"', source)
         self.assertIn('"Open Codex to refresh live usage"', source)
+        self.assertIn('"Open Codex desktop once to enable live usage"', source)
+        self.assertIn('"After Codex is open, Codex Gauge refreshes hands-free from the menu bar."', source)
         self.assertIn('"No live quota yet"', source)
         self.assertIn("if model.isUnavailable {", source)
 
@@ -271,7 +295,12 @@ class SignalConsoleUXTests(unittest.TestCase):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         self.assertIn("Codex Gauge Usage Report", source)
+        self.assertIn("## Summary", source)
+        self.assertIn("reportHeadline(summary)", source)
         self.assertIn("Quota movement estimate", source)
+        self.assertIn("Stale/unavailable periods", source)
+        self.assertIn("nonLiveSampleCount", source)
+        self.assertIn("liveSampleCount", source)
         self.assertIn("This report estimates quota movement from local snapshots.", source)
         self.assertIn("It is not token accounting, billing, or spend.", source)
         self.assertIn("NSPasteboard.general", source)
@@ -294,14 +323,14 @@ class SignalConsoleUXTests(unittest.TestCase):
     def test_usage_report_actions_do_not_overlap_source_text(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        card_y = self._first_float(r"let card = NSRect\(x: 280, y: ([0-9.]+), width: 260, height: 122\)", source)
-        source_offset = self._first_float(r"drawText\(model\.reportSourceMix, x: card\.minX \+ 16, y: card\.minY \+ ([0-9.]+),", source)
-        source_height = self._first_float(r"drawText\(model\.reportSourceMix,.*?height: ([0-9.]+),", source)
-        copy_y = self._first_float(r'addButton\(title: "Copy report", frame: NSRect\(x: 298, y: ([0-9.]+), width: 96, height: 30\)', source)
-        clear_y = self._first_float(r'addButton\(title: "Clear data", frame: NSRect\(x: 402, y: ([0-9.]+), width: 120, height: 30\)', source)
+        card_height = self._first_float(r"var trendCardRect: NSRect \{\n        NSRect\(x: margin, y: 274, width: 248, height: ([0-9.]+)\)", source)
+        source_offset = self._first_float(r"return NSRect\(x: card\.minX \+ innerInset, y: card\.minY \+ ([0-9.]+), width: 212, height: 12\)", source)
+        source_height = self._first_float(r"return NSRect\(x: card\.minX \+ innerInset, y: card\.minY \+ 34, width: 212, height: ([0-9.]+)\)", source)
+        copy_from_bottom = self._first_float(r"return NSRect\(x: card\.minX \+ 18, y: card\.maxY - ([0-9.]+), width: 96, height: 30\)", source)
+        clear_from_bottom = self._first_float(r"return NSRect\(x: card\.minX \+ 122, y: card\.maxY - ([0-9.]+), width: 120, height: 30\)", source)
 
-        source_bottom = card_y + source_offset + source_height
-        button_top = min(copy_y, clear_y)
+        source_bottom = source_offset + source_height
+        button_top = card_height - max(copy_from_bottom, clear_from_bottom)
         self.assertLessEqual(source_bottom + 6, button_top)
 
     def test_native_app_can_clear_local_data_without_touching_auth(self):

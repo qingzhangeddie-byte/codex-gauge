@@ -98,6 +98,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("git grep -n -I -E", script)
         self.assertNotIn("grep -R -I -n -E", script)
         self.assertIn("pixelWidth: 1280", script)
+        self.assertIn("swift script/generate_theme_state_previews.swift", script)
         self.assertIn("Codex Gauge release check passed.", script)
 
     def test_package_release_script_builds_zip_checksum_and_installer(self):
@@ -161,6 +162,35 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         )
         self.assertIn("pixelWidth: 1280", console_result.stdout)
         self.assertIn("pixelHeight: 640", console_result.stdout)
+
+    def test_theme_state_visual_fixture_generator_covers_all_states(self):
+        script = pathlib.Path("script/generate_theme_state_previews.swift")
+        fixture = pathlib.Path("docs/design/codex-gauge-theme-state-fixtures.png")
+
+        self.assertTrue(script.exists())
+        self.assertTrue(fixture.exists())
+        script_text = script.read_text()
+        for phrase in [
+            "Paper Console",
+            "Signal Dark",
+            "Mono Graphite",
+            "Live",
+            "Codex closed",
+            "Last live",
+            "Low quota",
+            "docs/design/codex-gauge-theme-state-fixtures.png",
+        ]:
+            self.assertIn(phrase, script_text)
+        self.assertLess(fixture.stat().st_size, 3_000_000)
+
+        result = subprocess.run(
+            ["sips", "-g", "pixelWidth", "-g", "pixelHeight", str(fixture)],
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+        )
+        self.assertIn("pixelWidth: 1280", result.stdout)
+        self.assertIn("pixelHeight: 960", result.stdout)
 
     def test_build_script_installs_public_app_name_and_removes_legacy_app(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()
