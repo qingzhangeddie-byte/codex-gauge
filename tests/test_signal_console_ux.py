@@ -56,20 +56,16 @@ class SignalConsoleUXTests(unittest.TestCase):
         for label in [
             "Codex Gauge  •  Signal Console",
             "Source: Menu Bar",
-            "Status",
-            "Quota",
-            "Reset",
-            "Trend",
+            "Live signal",
+            "Quota movement",
             "Health",
-            "Diagnostics",
-            "5-hour trend",
-            "7-day trend",
+            "Usage Report",
             "this window",
             "in 24h",
-            "Run Check...",
-            "Copy Safe Diagnostics...",
+            "Run Check",
+            "Copy diagnostics",
             "Open Codex",
-            "Quit Codex Gauge",
+            "Quit",
         ]:
             self.assertIn(f'"{label}"', source)
         self.assertIn("drawSignalConsolePanel", source)
@@ -78,6 +74,8 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("signalConsoleModel", source)
         self.assertIn("runSetupDoctorChecks()", source)
         self.assertNotIn('drawSectionLabel("Doctor"', source)
+        self.assertNotIn('drawSectionLabel("Status"', source)
+        self.assertNotIn('drawSectionLabel("Reset"', source)
         self.assertNotIn('"5-hour  (last 48)"', source)
         self.assertNotIn('"7-day  (last 48)"', source)
 
@@ -87,17 +85,62 @@ class SignalConsoleUXTests(unittest.TestCase):
         for label in [
             "Based on",
             "Usage Report",
-            "24h quota summary",
             "Generate",
             "Health",
-            "Copy Safe Diagnostics...",
+            "Copy diagnostics",
         ]:
             self.assertIn(f'"{label}"', source)
+        self.assertIn("24h quota summary", source)
         self.assertIn("drawTrendContext", source)
         self.assertIn("drawReportSection", source)
-        self.assertIn("drawHealthSection", source)
+        self.assertIn("drawHealthRibbon", source)
         self.assertIn("healthSummaryText", source)
         self.assertIn("generateUsageReport", source)
+
+    def test_signal_console_uses_v07_command_center_layout(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for label in [
+            "Live signal",
+            "next refresh",
+            "5-hour quota left",
+            "7-day quota left",
+            "window",
+            "Quota movement",
+            "last 24h",
+            "local only",
+            "Open Codex",
+            "Refresh Now",
+            "Preferences",
+            "Quit",
+        ]:
+            self.assertIn(f'"{label}"', source)
+        self.assertIn("drawQuotaWindowRow", source)
+        self.assertIn("drawResetCountdownLane", source)
+        self.assertIn("drawCommandButton", source)
+        self.assertIn("drawHealthRibbon", source)
+        self.assertNotIn('drawSectionLabel("Status"', source)
+        self.assertNotIn('drawSectionLabel("Reset"', source)
+        self.assertNotIn('drawDivider(y: 144)', source)
+
+    def test_signal_console_uses_refined_palette_tokens(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "panelStrongBackground",
+            "panelSoftBackground",
+            "mintAccent",
+            "amberAccent",
+            "coralAccent",
+            "blueAccent",
+            "mintSoft",
+            "amberSoft",
+            "coralSoft",
+            "blueSoft",
+        ]:
+            self.assertIn(token, source)
+        self.assertIn("NSGradient(colors: [mintAccent, NSColor(calibratedRed: 0.72", source)
+        self.assertIn("NSGradient(colors: [coralAccent, NSColor(calibratedRed: 1.00", source)
 
     def test_usage_report_is_safe_and_honest(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()

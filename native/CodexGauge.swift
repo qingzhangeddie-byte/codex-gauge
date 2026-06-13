@@ -144,19 +144,19 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func addSignalConsoleButtons() {
-        addButton(title: "Generate", frame: NSRect(x: 528, y: 500, width: 82, height: 28), action: generateReportAction, style: .filled)
-        addButton(title: "Run Check...", frame: NSRect(x: 518, y: 558, width: 90, height: 28), action: runCheckAction, style: .icon)
-        addButton(title: "Copy", frame: NSRect(x: 548, y: 628, width: 60, height: 30), action: copyDiagnosticsAction, style: .icon)
-        addButton(title: "Open Codex", frame: NSRect(x: 28, y: 678, width: 160, height: 30), action: openCodexAction, style: .plain)
-        addButton(title: "Refresh Now", frame: NSRect(x: 200, y: 678, width: 150, height: 30), action: refreshAction, style: .plain)
-        addButton(title: "Preferences...", frame: NSRect(x: 362, y: 678, width: 150, height: 30), action: preferencesAction, style: .plain)
-        addButton(title: "Quit Codex Gauge", frame: NSRect(x: 28, y: 716, width: 220, height: 30), action: quitAction, style: .plain)
+        addButton(title: "Generate", frame: NSRect(x: 376, y: 442, width: 82, height: 32), action: generateReportAction, style: .primary)
+        addButton(title: "Copy diagnostics", frame: NSRect(x: 468, y: 442, width: 128, height: 32), action: copyDiagnosticsAction, style: .secondary)
+        addButton(title: "Run Check", frame: NSRect(x: 504, y: 525, width: 92, height: 30), action: runCheckAction, style: .secondary)
+        addButton(title: "Open Codex", frame: NSRect(x: 28, y: 632, width: 136, height: 46), action: openCodexAction, style: .command)
+        addButton(title: "Refresh Now", frame: NSRect(x: 174, y: 632, width: 136, height: 46), action: refreshAction, style: .command)
+        addButton(title: "Preferences", frame: NSRect(x: 320, y: 632, width: 136, height: 46), action: preferencesAction, style: .command)
+        addButton(title: "Quit", frame: NSRect(x: 466, y: 632, width: 146, height: 46), action: quitAction, style: .command)
     }
 
     private enum SignalButtonStyle {
-        case filled
-        case icon
-        case plain
+        case primary
+        case secondary
+        case command
     }
 
     private func addButton(title: String, frame: NSRect, action: Selector, style: SignalButtonStyle) {
@@ -164,14 +164,14 @@ private final class SignalConsolePanelView: NSView {
         button.frame = frame
         button.isBordered = false
         button.wantsLayer = true
-        button.layer?.cornerRadius = style == .plain ? 7 : 8
+        button.layer?.cornerRadius = style == .command ? 12 : 10
         button.layer?.backgroundColor = buttonBackground(style).cgColor
         button.attributedTitle = NSAttributedString(
             string: title,
             attributes: textAttributes(
                 size: 13,
-                weight: style == .filled ? .medium : .regular,
-                color: style == .plain ? textPrimary : textSecondary
+                weight: style == .primary ? .semibold : .medium,
+                color: buttonTextColor(style)
             )
         )
         addSubview(button)
@@ -179,12 +179,21 @@ private final class SignalConsolePanelView: NSView {
 
     private func buttonBackground(_ style: SignalButtonStyle) -> NSColor {
         switch style {
-        case .filled:
-            return NSColor.white.withAlphaComponent(0.10)
-        case .icon:
-            return NSColor.white.withAlphaComponent(0.12)
-        case .plain:
-            return NSColor.clear
+        case .primary:
+            return mintAccent
+        case .secondary:
+            return NSColor.white.withAlphaComponent(0.08)
+        case .command:
+            return NSColor.white.withAlphaComponent(0.045)
+        }
+    }
+
+    private func buttonTextColor(_ style: SignalButtonStyle) -> NSColor {
+        switch style {
+        case .primary:
+            return NSColor(calibratedRed: 0.03, green: 0.07, blue: 0.10, alpha: 1.0)
+        case .secondary, .command:
+            return textPrimary
         }
     }
 
@@ -192,137 +201,136 @@ private final class SignalConsolePanelView: NSView {
         drawPanelBackground()
         drawHeader()
         drawSignalHeroCard()
-        drawDivider(y: 144)
-        drawStatusSection()
-        drawDivider(y: 211)
-        drawQuotaSection()
-        drawDivider(y: 296)
-        drawResetSection()
-        drawDivider(y: 374)
         drawTrendSection()
-        drawDivider(y: 490)
         drawReportSection()
-        drawDivider(y: 548)
-        drawHealthSection()
-        drawDivider(y: 614)
-        drawDiagnosticsSection()
-        drawDivider(y: 668)
-        drawBottomKeyHints()
+        drawHealthRibbon()
+        drawBottomCommands()
     }
 
     private func drawPanelBackground() {
         let rect = bounds.insetBy(dx: 1, dy: 1)
         let background = NSBezierPath(roundedRect: rect, xRadius: 18, yRadius: 18)
-        panelBackground.setFill()
-        background.fill()
+        NSGradient(colors: [
+            NSColor.white.withAlphaComponent(0.06),
+            panelBackground,
+        ])?.draw(in: background, angle: 90)
         panelBorder.setStroke()
         background.lineWidth = 1
         background.stroke()
     }
 
     private func drawHeader() {
-        drawText("Codex Gauge  •  Signal Console", x: 28, y: 20, width: 320, height: 24, size: 14, weight: .medium, color: textSecondary)
-        drawPill(text: model.sourcePill, rect: NSRect(x: 462, y: 16, width: 132, height: 28), color: NSColor.white.withAlphaComponent(0.08))
-        drawCircle(center: NSPoint(x: 614, y: 30), radius: 10, color: NSColor.white.withAlphaComponent(0.08), stroke: panelBorder)
-        drawText("i", x: 610, y: 20, width: 10, height: 20, size: 13, weight: .medium, color: textSecondary)
+        drawText("Codex Gauge  •  Signal Console", x: 28, y: 20, width: 320, height: 24, size: 15, weight: .semibold, color: textPrimary)
+        drawPill(text: headerSignalText(), rect: NSRect(x: 414, y: 16, width: 70, height: 28), color: headerSignalColor().withAlphaComponent(0.12), dotColor: headerSignalColor())
+        drawPill(text: model.sourcePill, rect: NSRect(x: 492, y: 16, width: 120, height: 28), color: NSColor.white.withAlphaComponent(0.07))
     }
 
     private func drawSignalHeroCard() {
-        let card = NSRect(x: 28, y: 54, width: bounds.width - 56, height: 74)
-        drawRoundedRect(card, radius: 10, fill: cardBackground, stroke: panelBorder)
-        drawMiniGaugeRow(label: "5h", value: model.fiveHourLeft, resetProgress: model.fiveHourResetProgress, y: 73)
-        drawMiniGaugeRow(label: "7d", value: model.sevenDayLeft, resetProgress: model.sevenDayResetProgress, y: 101)
+        let card = NSRect(x: 28, y: 54, width: bounds.width - 56, height: 244)
+        drawRoundedGradient(
+            card,
+            radius: 16,
+            gradient: NSGradient(colors: [
+                panelStrongBackground,
+                panelSoftBackground,
+            ]),
+            stroke: panelBorder
+        )
+        drawQuotaWindowRow(
+            window: "5h",
+            label: "5-hour quota left",
+            value: model.fiveHourLeft,
+            resetText: model.fiveHourResetText,
+            resetProgress: model.fiveHourResetProgress,
+            rect: NSRect(x: 44, y: 72, width: 414, height: 90)
+        )
+        drawQuotaWindowRow(
+            window: "7d",
+            label: "7-day quota left",
+            value: model.sevenDayLeft,
+            resetText: model.sevenDayResetText,
+            resetProgress: model.sevenDayResetProgress,
+            rect: NSRect(x: 44, y: 176, width: 414, height: 90)
+        )
 
         let stateColor = sourceColor(source: model.source, unavailable: model.isUnavailable)
-        drawText(model.stateTitle, x: 456, y: 72, width: 128, height: 22, size: 16, weight: .medium, color: stateColor)
-        drawText(model.stateDetail, x: 456, y: 98, width: 130, height: 22, size: 14, weight: .regular, color: textPrimary)
-        drawCircle(center: NSPoint(x: 602, y: 91), radius: 7, color: stateColor, stroke: nil)
-        drawRoundedRect(NSRect(x: 615, y: 70, width: 2, height: 42), radius: 1, fill: stateColor, stroke: nil)
+        let stateRect = NSRect(x: 472, y: 72, width: 124, height: 194)
+        drawRoundedRect(stateRect, radius: 14, fill: stateColor.withAlphaComponent(0.10), stroke: panelBorder.withAlphaComponent(0.56))
+        drawText("Live signal", x: stateRect.minX + 14, y: stateRect.minY + 18, width: 96, height: 22, size: 16, weight: .bold, color: stateColor)
+        drawWrappedText(model.stateDetail, rect: NSRect(x: stateRect.minX + 14, y: stateRect.minY + 48, width: 96, height: 70), size: 12, weight: .regular, color: textSecondary)
+        let refreshRect = NSRect(x: stateRect.minX + 14, y: stateRect.maxY - 48, width: stateRect.width - 28, height: 34)
+        drawRoundedRect(refreshRect, radius: 10, fill: NSColor.black.withAlphaComponent(0.16), stroke: panelBorder.withAlphaComponent(0.34))
+        drawText("next refresh", x: refreshRect.minX + 10, y: refreshRect.minY + 10, width: 66, height: 16, size: 10, weight: .medium, color: textSecondary)
+        drawText(model.isRefreshing ? "now" : "5 min", x: refreshRect.maxX - 42, y: refreshRect.minY + 10, width: 32, height: 16, size: 11, weight: .semibold, color: textPrimary, mono: true)
     }
 
-    private func drawMiniGaugeRow(label: String, value: Int?, resetProgress: Int?, y: CGFloat) {
-        drawText(label, x: 44, y: y - 11, width: 30, height: 22, size: 15, weight: .bold, color: textPrimary, mono: true)
-        drawSegmentedRail(value: value, rect: NSRect(x: 86, y: y - 2, width: 126, height: 8), fill: quotaColor(value), segments: 10)
-        drawText(percentText(value), x: 232, y: y - 11, width: 52, height: 22, size: 14, weight: .medium, color: value == nil ? textMuted : textPrimary, mono: true)
-        drawMoodLane(value: resetProgress, rect: NSRect(x: 324, y: y - 2, width: 104, height: 8))
-    }
-
-    private func drawStatusSection() {
-        drawSectionLabel("Status", y: 166)
-        let color = sourceColor(source: model.source, unavailable: model.isUnavailable)
-        drawCircle(center: NSPoint(x: 164, y: 178), radius: 5, color: color, stroke: nil)
-        drawText(model.statusTitle, x: 178, y: 164, width: 250, height: 22, size: 14, weight: .medium, color: textPrimary)
-        drawText(model.statusDetail, x: 178, y: 188, width: 380, height: 22, size: 13, weight: .regular, color: textSecondary)
-        if model.isRefreshing {
-            drawPill(text: "Refreshing", rect: NSRect(x: 512, y: 164, width: 88, height: 26), color: NSColor.white.withAlphaComponent(0.08))
-        }
-    }
-
-    private func drawQuotaSection() {
-        drawSectionLabel("Quota", y: 238)
-        drawQuotaRow(label: "5-hour", value: model.fiveHourLeft, y: 232)
-        drawQuotaRow(label: "7-day", value: model.sevenDayLeft, y: 264)
-    }
-
-    private func drawQuotaRow(label: String, value: Int?, y: CGFloat) {
-        drawText(label, x: 158, y: y - 3, width: 84, height: 22, size: 14, weight: .regular, color: textPrimary)
-        drawText(value.map { "\($0) / 100" } ?? "-- / --", x: 258, y: y - 3, width: 80, height: 22, size: 14, weight: .medium, color: value == nil ? textMuted : textPrimary, mono: true)
-        drawSegmentedRail(value: value, rect: NSRect(x: 356, y: y, width: 220, height: 18), fill: quotaColor(value), segments: 12)
-        drawText(value == nil ? "Unavailable" : "Live", x: 590, y: y - 3, width: 60, height: 22, size: 13, weight: .regular, color: value == nil ? textMuted : textSecondary)
-    }
-
-    private func drawResetSection() {
-        drawSectionLabel("Reset", y: 318)
-        drawText("5-hour resets in", x: 158, y: 314, width: 140, height: 22, size: 14, weight: .regular, color: textPrimary)
-        drawText(model.fiveHourResetText, x: 330, y: 314, width: 120, height: 22, size: 14, weight: .medium, color: resetTextColor(model.fiveHourResetText), mono: true)
-        drawText("7-day resets", x: 158, y: 344, width: 140, height: 22, size: 14, weight: .regular, color: textPrimary)
-        drawText(model.sevenDayResetText, x: 330, y: 344, width: 140, height: 22, size: 14, weight: .medium, color: resetTextColor(model.sevenDayResetText), mono: true)
+    private func drawQuotaWindowRow(window: String, label: String, value: Int?, resetText: String, resetProgress: Int?, rect: NSRect) {
+        drawRoundedRect(rect, radius: 13, fill: NSColor.white.withAlphaComponent(0.045), stroke: panelBorder.withAlphaComponent(0.48))
+        drawText(window, x: rect.minX + 16, y: rect.minY + 20, width: 44, height: 24, size: 22, weight: .bold, color: textPrimary, mono: true)
+        drawText("window", x: rect.minX + 16, y: rect.minY + 50, width: 54, height: 16, size: 9, weight: .bold, color: textMuted)
+        drawText(label, x: rect.minX + 86, y: rect.minY + 24, width: 168, height: 18, size: 12, weight: .medium, color: textSecondary)
+        drawText(percentText(value), x: rect.minX + 250, y: rect.minY + 18, width: 56, height: 24, size: 19, weight: .bold, color: value == nil ? textMuted : quotaColor(value), mono: true)
+        drawQuotaRail(value: value, rect: NSRect(x: rect.minX + 86, y: rect.minY + 58, width: 214, height: 12))
+        drawText("reset", x: rect.minX + 318, y: rect.minY + 24, width: 34, height: 16, size: 11, weight: .regular, color: textSecondary)
+        drawText(resetText, x: rect.maxX - 76, y: rect.minY + 24, width: 60, height: 16, size: 11, weight: .semibold, color: resetTextColor(resetText), mono: true)
+        drawResetCountdownLane(value: resetProgress, rect: NSRect(x: rect.minX + 318, y: rect.minY + 58, width: 80, height: 10))
     }
 
     private func drawTrendSection() {
-        drawSectionLabel("Trend", y: 402)
-        drawTrendRow(label: "5-hour trend", text: model.fiveHourTrendText, values: model.fiveHourHistory, y: 398)
-        drawTrendRow(label: "7-day trend", text: model.sevenDayTrendText, values: model.sevenDayHistory, y: 438)
+        let card = NSRect(x: 28, y: 312, width: 322, height: 166)
+        drawRoundedRect(card, radius: 15, fill: panelSoftBackground, stroke: panelBorder.withAlphaComponent(0.50))
+        drawText("Quota movement", x: card.minX + 18, y: card.minY + 17, width: 138, height: 20, size: 13, weight: .bold, color: textPrimary)
+        drawText("last 24h", x: card.maxX - 72, y: card.minY + 17, width: 54, height: 20, size: 11, weight: .regular, color: textMuted)
+        drawTrendRow(label: "5h", text: model.fiveHourTrendText, values: model.fiveHourHistory, y: 368)
+        drawTrendRow(label: "7d", text: model.sevenDayTrendText, values: model.sevenDayHistory, y: 416)
         drawTrendContext()
     }
 
     private func drawTrendContext() {
-        drawText(model.trendContextText, x: 158, y: 466, width: 430, height: 18, size: 11, weight: .regular, color: textMuted)
+        drawText(model.trendContextText, x: 46, y: 454, width: 286, height: 16, size: 10, weight: .regular, color: textMuted)
     }
 
     private func drawTrendRow(label: String, text: String, values: [Int], y: CGFloat) {
-        drawText(label, x: 158, y: y - 3, width: 150, height: 22, size: 14, weight: .regular, color: textPrimary)
-        drawText(text, x: 314, y: y - 3, width: 132, height: 22, size: 13, weight: .regular, color: textSecondary)
-        drawTrendSparkline(values: values, rect: NSRect(x: 456, y: y - 6, width: 116, height: 30))
-        drawPill(text: values.isEmpty ? "--" : deltaPill(values), rect: NSRect(x: 586, y: y - 7, width: 34, height: 24), color: NSColor.white.withAlphaComponent(0.07))
+        drawText(label, x: 46, y: y - 3, width: 34, height: 22, size: 14, weight: .bold, color: textPrimary, mono: true)
+        drawText(shortTrendText(text), x: 96, y: y - 3, width: 82, height: 22, size: 12, weight: .regular, color: textSecondary)
+        drawTrendSparkline(values: values, rect: NSRect(x: 170, y: y - 8, width: 124, height: 32))
+        drawPill(text: values.isEmpty ? "--" : deltaPill(values), rect: NSRect(x: 306, y: y - 4, width: 30, height: 24), color: NSColor.white.withAlphaComponent(0.07))
     }
 
     private func drawReportSection() {
-        drawSectionLabel("Report", y: 512)
-        drawText("Usage Report", x: 158, y: 506, width: 112, height: 22, size: 14, weight: .regular, color: textPrimary)
-        drawText("24h quota summary", x: 286, y: 506, width: 160, height: 22, size: 13, weight: .regular, color: textSecondary)
+        let card = NSRect(x: 364, y: 312, width: 248, height: 166)
+        drawRoundedRect(card, radius: 15, fill: panelSoftBackground, stroke: panelBorder.withAlphaComponent(0.50))
+        drawText("Usage Report", x: card.minX + 18, y: card.minY + 17, width: 112, height: 20, size: 13, weight: .bold, color: textPrimary)
+        drawText("local only", x: card.maxX - 72, y: card.minY + 17, width: 54, height: 20, size: 11, weight: .regular, color: textMuted)
+        drawWrappedText("24h quota summary from local snapshots. No prompts, cookies, auth files, or billing data.", rect: NSRect(x: card.minX + 18, y: card.minY + 54, width: 190, height: 66), size: 12, weight: .regular, color: textSecondary)
     }
 
-    private func drawHealthSection() {
-        drawSectionLabel("Health", y: 570)
-        drawText(model.healthSummaryText, x: 158, y: 562, width: 96, height: 22, size: 13, weight: .medium, color: textPrimary)
+    private func drawHealthRibbon() {
+        let rect = NSRect(x: 28, y: 492, width: 584, height: 84)
+        drawRoundedRect(rect, radius: 15, fill: panelSoftBackground, stroke: panelBorder.withAlphaComponent(0.50))
+        drawText("Health", x: rect.minX + 18, y: rect.minY + 22, width: 72, height: 20, size: 13, weight: .bold, color: textPrimary)
+        drawText(model.healthSummaryText, x: rect.minX + 18, y: rect.minY + 43, width: 110, height: 18, size: 11, weight: .regular, color: textMuted)
         let checks = Array(model.doctorChecks.prefix(5))
         for (index, check) in checks.enumerated() {
-            let x = 270 + CGFloat(index) * 47
-            drawCircle(center: NSPoint(x: x, y: 573), radius: 4.5, color: doctorColor(check.state), stroke: nil)
-            drawText(healthShortLabel(check.title), x: x + 8, y: 563, width: 38, height: 18, size: 10, weight: .regular, color: textSecondary)
+            let itemRect = NSRect(x: 158 + CGFloat(index) * 86, y: rect.minY + 20, width: 76, height: 44)
+            drawRoundedRect(itemRect, radius: 11, fill: NSColor.white.withAlphaComponent(0.045), stroke: panelBorder.withAlphaComponent(0.24))
+            drawCircle(center: NSPoint(x: itemRect.minX + 18, y: itemRect.midY), radius: 4, color: doctorColor(check.state), stroke: nil)
+            drawText(healthShortLabel(check.title), x: itemRect.minX + 30, y: itemRect.minY + 14, width: 42, height: 16, size: 10, weight: .regular, color: textSecondary)
         }
     }
 
-    private func drawDiagnosticsSection() {
-        drawSectionLabel("Diagnostics", y: 635)
-        drawText("Copy Safe Diagnostics...", x: 158, y: 628, width: 220, height: 22, size: 13, weight: .regular, color: textPrimary)
-        drawText("Includes: version, source, last error, LaunchAgent state.", x: 158, y: 650, width: 350, height: 20, size: 11, weight: .regular, color: textMuted)
+    private func drawBottomCommands() {
+        drawDivider(y: 604)
+        drawCommandButton(label: "Open Codex", shortcut: "⌘O", rect: NSRect(x: 28, y: 632, width: 136, height: 46))
+        drawCommandButton(label: "Refresh Now", shortcut: "5 min", rect: NSRect(x: 174, y: 632, width: 136, height: 46))
+        drawCommandButton(label: "Preferences", shortcut: "⌘,", rect: NSRect(x: 320, y: 632, width: 136, height: 46))
+        drawCommandButton(label: "Quit", shortcut: "⌘Q", rect: NSRect(x: 466, y: 632, width: 146, height: 46))
     }
 
-    private func drawBottomKeyHints() {
-        drawText("⌘O", x: 584, y: 681, width: 40, height: 22, size: 12, weight: .regular, color: textMuted)
-        drawText("⌘Q", x: 584, y: 719, width: 40, height: 22, size: 12, weight: .regular, color: textMuted)
+    private func drawCommandButton(label: String, shortcut: String, rect: NSRect) {
+        drawRoundedRect(rect, radius: 12, fill: NSColor.white.withAlphaComponent(0.045), stroke: panelBorder.withAlphaComponent(0.26))
+        drawText(label, x: rect.minX + 12, y: rect.minY + 14, width: rect.width - 54, height: 18, size: 12, weight: .medium, color: textPrimary)
+        drawText(shortcut, x: rect.maxX - 44, y: rect.minY + 14, width: 32, height: 18, size: 10, weight: .regular, color: textMuted, mono: true)
     }
 
     private func drawTrendSparkline(values: [Int], rect: NSRect) {
@@ -361,9 +369,123 @@ private final class SignalConsolePanelView: NSView {
         path.stroke()
     }
 
-    private func drawPill(text: String, rect: NSRect, color: NSColor) {
+    private func drawPill(text: String, rect: NSRect, color: NSColor, dotColor: NSColor? = nil) {
         drawRoundedRect(rect, radius: rect.height / 2, fill: color, stroke: panelBorder.withAlphaComponent(0.42))
-        drawText(text, x: rect.minX + 10, y: rect.minY + 4, width: rect.width - 20, height: rect.height - 8, size: 12, weight: .regular, color: textSecondary)
+        if let dotColor {
+            drawCircle(center: NSPoint(x: rect.minX + 13, y: rect.midY), radius: 3.5, color: dotColor, stroke: nil)
+            drawText(text, x: rect.minX + 22, y: rect.minY + 4, width: rect.width - 30, height: rect.height - 8, size: 12, weight: .regular, color: textSecondary)
+        } else {
+            drawText(text, x: rect.minX + 10, y: rect.minY + 4, width: rect.width - 20, height: rect.height - 8, size: 12, weight: .regular, color: textSecondary)
+        }
+    }
+
+    private func drawQuotaRail(value: Int?, rect: NSRect) {
+        drawRoundedRect(rect, radius: rect.height / 2, fill: NSColor.white.withAlphaComponent(0.12), stroke: nil)
+        guard let value else {
+            return
+        }
+        let fillWidth = max(rect.height, rect.width * clamped(value))
+        let fillRect = NSRect(x: rect.minX, y: rect.minY, width: min(rect.width, fillWidth), height: rect.height)
+        let gradient = value < 25
+            ? NSGradient(colors: [coralAccent, NSColor(calibratedRed: 1.00, green: 0.58, blue: 0.38, alpha: 0.96)])
+            : NSGradient(colors: [mintAccent, NSColor(calibratedRed: 0.72, green: 0.94, blue: 0.51, alpha: 0.96)])
+        drawRoundedGradient(fillRect, radius: rect.height / 2, gradient: gradient, stroke: nil)
+    }
+
+    private func drawResetCountdownLane(value: Int?, rect: NSRect) {
+        drawRoundedGradient(
+            rect,
+            radius: rect.height / 2,
+            gradient: NSGradient(colors: [coralAccent, NSColor(calibratedRed: 1.00, green: 0.58, blue: 0.38, alpha: 0.96), amberAccent]),
+            stroke: nil
+        )
+        guard let value else {
+            drawResetMoodFace(value: 0, center: NSPoint(x: rect.minX + 10, y: rect.midY), radius: 11, fill: textMuted)
+            return
+        }
+        let x = rect.minX + (rect.width - 18) * clamped(value) + 9
+        drawResetMoodFace(value: value, center: NSPoint(x: x, y: rect.midY), radius: 11, fill: resetColor(value))
+    }
+
+    private func drawResetMoodFace(value: Int, center: NSPoint, radius: CGFloat, fill: NSColor) {
+        drawCircle(center: center, radius: radius, color: fill, stroke: NSColor.black.withAlphaComponent(0.18))
+        let eyeY = center.y - 3
+        drawCircle(center: NSPoint(x: center.x - 4, y: eyeY), radius: 1.4, color: NSColor.black.withAlphaComponent(0.58), stroke: nil)
+        drawCircle(center: NSPoint(x: center.x + 4, y: eyeY), radius: 1.4, color: NSColor.black.withAlphaComponent(0.58), stroke: nil)
+        let mouth = NSBezierPath()
+        if value < 35 {
+            mouth.move(to: NSPoint(x: center.x - 4, y: center.y + 5))
+            mouth.curve(
+                to: NSPoint(x: center.x + 4, y: center.y + 5),
+                controlPoint1: NSPoint(x: center.x - 2, y: center.y + 2),
+                controlPoint2: NSPoint(x: center.x + 2, y: center.y + 2)
+            )
+        } else {
+            mouth.move(to: NSPoint(x: center.x - 4, y: center.y + 4))
+            mouth.curve(
+                to: NSPoint(x: center.x + 4, y: center.y + 4),
+                controlPoint1: NSPoint(x: center.x - 2, y: center.y + 7),
+                controlPoint2: NSPoint(x: center.x + 2, y: center.y + 7)
+            )
+        }
+        mouth.lineWidth = 1.4
+        NSColor.black.withAlphaComponent(0.58).setStroke()
+        mouth.stroke()
+    }
+
+    private func drawWrappedText(_ text: String, rect: NSRect, size: CGFloat, weight: NSFont.Weight, color: NSColor) {
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineBreakMode = .byWordWrapping
+        paragraph.lineSpacing = 1.5
+        (text as NSString).draw(
+            in: rect,
+            withAttributes: [
+                .font: NSFont.systemFont(ofSize: size, weight: weight),
+                .foregroundColor: color,
+                .paragraphStyle: paragraph,
+            ]
+        )
+    }
+
+    private func drawRoundedGradient(_ rect: NSRect, radius: CGFloat, gradient: NSGradient?, stroke: NSColor?) {
+        let path = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
+        gradient?.draw(in: path, angle: 0)
+        if let stroke {
+            stroke.setStroke()
+            path.lineWidth = 1
+            path.stroke()
+        }
+    }
+
+    private func headerSignalText() -> String {
+        if model.isUnavailable {
+            return "Closed"
+        }
+        switch model.source {
+        case "last_live":
+            return "Cache"
+        case "local_snapshot":
+            return "Snapshot"
+        default:
+            return "Live"
+        }
+    }
+
+    private func headerSignalColor() -> NSColor {
+        sourceColor(source: model.source, unavailable: model.isUnavailable)
+    }
+
+    private func shortTrendText(_ text: String) -> String {
+        if text.localizedCaseInsensitiveContains("stable") {
+            return "steady"
+        }
+        if text.localizedCaseInsensitiveContains("collecting") {
+            return "collecting"
+        }
+        return text
+            .replacingOccurrences(of: "this window", with: "")
+            .replacingOccurrences(of: "in 24h", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func drawSegmentedRail(value: Int?, rect: NSRect, fill: NSColor, segments: Int) {
@@ -467,51 +589,51 @@ private final class SignalConsolePanelView: NSView {
         }
         switch max(0, min(100, value)) {
         case 0..<20:
-            return NSColor(calibratedRed: 0.92, green: 0.24, blue: 0.28, alpha: 0.96)
+            return coralAccent
         case 20..<45:
-            return NSColor(calibratedRed: 0.97, green: 0.49, blue: 0.25, alpha: 0.96)
+            return NSColor(calibratedRed: 1.00, green: 0.58, blue: 0.38, alpha: 0.96)
         case 45..<75:
-            return NSColor(calibratedRed: 0.91, green: 0.72, blue: 0.30, alpha: 0.96)
+            return amberAccent
         default:
-            return NSColor(calibratedRed: 0.22, green: 0.83, blue: 0.64, alpha: 0.96)
+            return mintAccent
         }
     }
 
     private func resetColor(_ value: Int) -> NSColor {
         switch max(0, min(100, value)) {
         case 0..<25:
-            return NSColor(calibratedRed: 0.85, green: 0.25, blue: 0.22, alpha: 0.95)
+            return coralAccent
         case 25..<55:
-            return NSColor(calibratedRed: 0.94, green: 0.43, blue: 0.24, alpha: 0.95)
+            return NSColor(calibratedRed: 1.00, green: 0.58, blue: 0.38, alpha: 0.96)
         case 55..<80:
-            return NSColor(calibratedRed: 0.98, green: 0.65, blue: 0.25, alpha: 0.95)
+            return NSColor(calibratedRed: 1.00, green: 0.68, blue: 0.35, alpha: 0.96)
         default:
-            return NSColor(calibratedRed: 1.00, green: 0.79, blue: 0.31, alpha: 0.95)
+            return amberAccent
         }
     }
 
     private func sourceColor(source: String?, unavailable: Bool) -> NSColor {
         if unavailable {
-            return NSColor(calibratedRed: 1.00, green: 0.67, blue: 0.28, alpha: 1.0)
+            return amberAccent
         }
         switch source {
         case "last_live":
-            return NSColor(calibratedRed: 1.00, green: 0.67, blue: 0.28, alpha: 1.0)
+            return amberAccent
         case "local_snapshot":
-            return NSColor(calibratedRed: 0.42, green: 0.66, blue: 0.98, alpha: 1.0)
+            return blueAccent
         default:
-            return NSColor(calibratedRed: 0.28, green: 0.84, blue: 0.64, alpha: 1.0)
+            return mintAccent
         }
     }
 
     private func doctorColor(_ state: String) -> NSColor {
         switch state {
         case "green":
-            return NSColor(calibratedRed: 0.28, green: 0.76, blue: 0.46, alpha: 1.0)
+            return mintAccent
         case "amber":
-            return NSColor(calibratedRed: 1.00, green: 0.67, blue: 0.28, alpha: 1.0)
+            return amberAccent
         case "red":
-            return NSColor(calibratedRed: 0.92, green: 0.24, blue: 0.28, alpha: 1.0)
+            return coralAccent
         default:
             return NSColor(calibratedRed: 0.47, green: 0.52, blue: 0.58, alpha: 1.0)
         }
@@ -554,27 +676,67 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private var panelBackground: NSColor {
-        NSColor(calibratedRed: 0.04, green: 0.08, blue: 0.12, alpha: 0.84)
+        NSColor(calibratedRed: 0.03, green: 0.07, blue: 0.10, alpha: 0.86)
     }
 
-    private var cardBackground: NSColor {
+    private var panelStrongBackground: NSColor {
+        NSColor(calibratedRed: 0.07, green: 0.13, blue: 0.18, alpha: 0.88)
+    }
+
+    private var panelSoftBackground: NSColor {
         NSColor.white.withAlphaComponent(0.055)
     }
 
+    private var cardBackground: NSColor {
+        panelSoftBackground
+    }
+
     private var panelBorder: NSColor {
-        NSColor.white.withAlphaComponent(0.16)
+        NSColor(calibratedRed: 0.68, green: 0.81, blue: 0.92, alpha: 0.18)
     }
 
     private var textPrimary: NSColor {
-        NSColor(calibratedRed: 0.88, green: 0.93, blue: 1.00, alpha: 0.96)
+        NSColor(calibratedRed: 0.93, green: 0.97, blue: 1.00, alpha: 0.96)
     }
 
     private var textSecondary: NSColor {
-        NSColor(calibratedRed: 0.72, green: 0.78, blue: 0.88, alpha: 0.90)
+        NSColor(calibratedRed: 0.66, green: 0.73, blue: 0.80, alpha: 0.90)
     }
 
     private var textMuted: NSColor {
-        NSColor(calibratedRed: 0.54, green: 0.60, blue: 0.68, alpha: 0.78)
+        NSColor(calibratedRed: 0.41, green: 0.48, blue: 0.56, alpha: 0.78)
+    }
+
+    private var mintAccent: NSColor {
+        NSColor(calibratedRed: 0.31, green: 0.94, blue: 0.68, alpha: 0.96)
+    }
+
+    private var amberAccent: NSColor {
+        NSColor(calibratedRed: 1.00, green: 0.78, blue: 0.35, alpha: 0.96)
+    }
+
+    private var coralAccent: NSColor {
+        NSColor(calibratedRed: 1.00, green: 0.37, blue: 0.40, alpha: 0.96)
+    }
+
+    private var blueAccent: NSColor {
+        NSColor(calibratedRed: 0.47, green: 0.72, blue: 1.00, alpha: 0.96)
+    }
+
+    private var mintSoft: NSColor {
+        mintAccent.withAlphaComponent(0.18)
+    }
+
+    private var amberSoft: NSColor {
+        amberAccent.withAlphaComponent(0.18)
+    }
+
+    private var coralSoft: NSColor {
+        coralAccent.withAlphaComponent(0.20)
+    }
+
+    private var blueSoft: NSColor {
+        blueAccent.withAlphaComponent(0.16)
     }
 }
 

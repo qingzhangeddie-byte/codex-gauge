@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Codex Gauge Command Center v0.7 Mockup</title>
+  <style>
+    :root {
+      --bg-a: #06111a;
+      --bg-b: #0f1f2b;
+      --panel: rgba(12, 22, 31, 0.82);
+      --panel-strong: rgba(19, 34, 46, 0.88);
+      --panel-soft: rgba(255, 255, 255, 0.055);
+      --line: rgba(173, 207, 235, 0.18);
+      --line-soft: rgba(173, 207, 235, 0.10);
+      --text: #edf7ff;
+      --sub: #a8bacb;
+      --muted: #687b8e;
+      --mint: #4ff0ad;
+      --mint-soft: rgba(79, 240, 173, 0.18);
+      --amber: #ffc85a;
+      --amber-soft: rgba(255, 200, 90, 0.18);
+      --coral: #ff5f66;
+      --coral-soft: rgba(255, 95, 102, 0.20);
+      --blue: #78b8ff;
+      --blue-soft: rgba(120, 184, 255, 0.16);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      width: 1600px;
+      height: 1080px;
+      margin: 0;
+      overflow: hidden;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 19% 72%, rgba(70, 210, 176, 0.34) 0 10%, transparent 36%),
+        radial-gradient(circle at 81% 18%, rgba(88, 143, 255, 0.24) 0 12%, transparent 34%),
+        linear-gradient(138deg, #071326 0%, #06111a 44%, #112633 100%);
+    }
+
+    .menubar {
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 64px;
+      background: rgba(7, 15, 28, 0.42);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 26px;
+      padding: 0 88px;
+      color: rgba(255, 255, 255, 0.86);
+      font-size: 21px;
+      letter-spacing: 0;
+    }
+
+    .appicon {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      color: #68ffe1;
+      font-weight: 800;
+      border: 1px solid rgba(126, 184, 255, 0.32);
+      background: rgba(8, 18, 30, 0.66);
+      box-shadow: inset 0 0 12px rgba(90, 210, 255, 0.14);
+    }
+
+    .bar-widget {
+      width: 184px;
+      height: 38px;
+      border-radius: 9px;
+      background: rgba(237, 247, 255, 0.10);
+      border: 1px solid rgba(237, 247, 255, 0.12);
+      display: grid;
+      align-content: center;
+      gap: 4px;
+      padding: 6px 10px;
+    }
+
+    .minirow {
+      display: grid;
+      grid-template-columns: 24px 76px 38px 1fr;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      line-height: 1;
+      color: rgba(237, 247, 255, 0.88);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .minirail {
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(237, 247, 255, 0.18);
+      overflow: hidden;
+    }
+
+    .minirail i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--mint);
+    }
+
+    .mini-face {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid rgba(10, 12, 14, 0.28);
+      background: var(--amber);
+      position: relative;
+    }
+
+    .mini-face::before,
+    .mini-face::after {
+      content: "";
+      position: absolute;
+      top: 4px;
+      width: 2px;
+      height: 2px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.58);
+    }
+
+    .mini-face::before { left: 3px; }
+    .mini-face::after { right: 3px; }
+
+    .popover-wrap {
+      position: absolute;
+      top: 67px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 898px;
+      height: 754px;
+    }
+
+    .notch {
+      position: absolute;
+      left: 50%;
+      top: -13px;
+      width: 28px;
+      height: 28px;
+      transform: translateX(-50%) rotate(45deg);
+      background: rgba(12, 22, 31, 0.86);
+      border-left: 1px solid var(--line);
+      border-top: 1px solid var(--line);
+      border-radius: 4px;
+    }
+
+    .panel {
+      position: absolute;
+      inset: 0;
+      border-radius: 19px;
+      padding: 22px 26px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+        linear-gradient(135deg, rgba(8, 18, 27, 0.95), rgba(8, 19, 28, 0.78));
+      border: 1px solid var(--line);
+      box-shadow:
+        0 34px 100px rgba(0, 0, 0, 0.46),
+        inset 0 1px 0 rgba(255, 255, 255, 0.10);
+      backdrop-filter: blur(34px);
+    }
+
+    .header {
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      color: var(--text);
+      font-size: 17px;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .brand span {
+      color: var(--sub);
+      font-weight: 450;
+    }
+
+    .header-tools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill {
+      height: 29px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 11px;
+      color: var(--sub);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--mint);
+      box-shadow: 0 0 16px var(--mint);
+    }
+
+    .hero {
+      height: 245px;
+      border-radius: 16px;
+      padding: 18px;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(79, 240, 173, 0.13), transparent 32%),
+        radial-gradient(circle at 100% 0%, rgba(255, 200, 90, 0.12), transparent 34%),
+        var(--panel-strong);
+      border: 1px solid rgba(173, 207, 235, 0.20);
+      display: grid;
+      grid-template-columns: 1fr 188px;
+      gap: 16px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    }
+
+    .quota-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .quota-row {
+      min-height: 96px;
+      display: grid;
+      grid-template-columns: 54px 1fr 154px;
+      align-items: center;
+      gap: 15px;
+      padding: 14px 16px;
+      border-radius: 13px;
+      border: 1px solid var(--line-soft);
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .window {
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .window small {
+      display: block;
+      margin-top: 7px;
+      font-size: 11px;
+      font-weight: 650;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .quota-main {
+      display: grid;
+      gap: 10px;
+    }
+
+    .quota-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      color: var(--sub);
+      font-size: 13px;
+    }
+
+    .percent {
+      color: var(--text);
+      font-size: 20px;
+      font-weight: 780;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rail {
+      height: 13px;
+      border-radius: 999px;
+      padding: 2px;
+      background: rgba(255, 255, 255, 0.11);
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #45e4ad, #b7f082);
+      box-shadow: 0 0 18px rgba(79, 240, 173, 0.18);
+    }
+
+    .fill.low {
+      background: linear-gradient(90deg, #ff5f66, #ff9562);
+      box-shadow: 0 0 18px rgba(255, 95, 102, 0.18);
+    }
+
+    .reset-card {
+      display: grid;
+      gap: 9px;
+      justify-items: stretch;
+      align-items: center;
+      color: var(--sub);
+      font-size: 12px;
+    }
+
+    .reset-caption {
+      display: flex;
+      justify-content: space-between;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .reset-lane {
+      height: 10px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--coral) 0%, #ff9365 52%, var(--amber) 100%);
+      position: relative;
+      opacity: 0.95;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+
+    .face {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.32);
+      border: 1px solid rgba(0, 0, 0, 0.20);
+    }
+
+    .face::before,
+    .face::after {
+      content: "";
+      position: absolute;
+      top: 8px;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.62);
+    }
+
+    .face::before { left: 7px; }
+    .face::after { right: 7px; }
+
+    .face i {
+      position: absolute;
+      left: 7px;
+      right: 7px;
+      bottom: 6px;
+      height: 4px;
+      border-bottom: 2px solid rgba(0, 0, 0, 0.58);
+      border-radius: 0 0 999px 999px;
+    }
+
+    .face.tense {
+      background: #ff7568;
+    }
+
+    .face.tense i {
+      bottom: 5px;
+      border-bottom: 0;
+      border-top: 2px solid rgba(0, 0, 0, 0.58);
+      border-radius: 999px 999px 0 0;
+    }
+
+    .state-card {
+      border-radius: 14px;
+      padding: 16px 15px;
+      border: 1px solid var(--line-soft);
+      background:
+        linear-gradient(180deg, rgba(79, 240, 173, 0.10), rgba(255, 255, 255, 0.035));
+      display: grid;
+      align-content: space-between;
+    }
+
+    .state-top {
+      display: grid;
+      gap: 7px;
+    }
+
+    .state-title {
+      color: var(--mint);
+      font-size: 18px;
+      font-weight: 750;
+    }
+
+    .state-detail {
+      color: var(--sub);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .refresh-chip {
+      height: 34px;
+      border-radius: 10px;
+      padding: 0 11px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--text);
+      background: rgba(0, 0, 0, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .grid {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1.16fr 0.84fr;
+      gap: 14px;
+    }
+
+    .card {
+      min-height: 166px;
+      border-radius: 15px;
+      padding: 16px 18px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line-soft);
+    }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 720;
+      color: var(--text);
+    }
+
+    .card-kicker {
+      font-size: 12px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .trend-row {
+      display: grid;
+      grid-template-columns: 56px 68px 1fr 34px;
+      align-items: center;
+      gap: 13px;
+      height: 48px;
+      color: var(--sub);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .trend-row strong {
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .spark {
+      height: 30px;
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.13);
+    }
+
+    .spark i {
+      display: block;
+      width: 7px;
+      min-height: 4px;
+      border-radius: 2px 2px 0 0;
+      background: rgba(168, 186, 203, 0.25);
+    }
+
+    .spark i:nth-last-child(-n+4) {
+      background: rgba(79, 240, 173, 0.38);
+    }
+
+    .delta {
+      height: 24px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: rgba(255, 255, 255, 0.075);
+      color: var(--sub);
+      font-size: 12px;
+    }
+
+    .report {
+      display: grid;
+      align-content: space-between;
+      gap: 12px;
+    }
+
+    .report-text {
+      color: var(--sub);
+      font-size: 13px;
+      line-height: 1.45;
+      max-width: 26ch;
+    }
+
+    .report-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .button {
+      height: 34px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 14px;
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      background: rgba(255, 255, 255, 0.075);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 620;
+    }
+
+    .button.primary {
+      color: #071119;
+      background: linear-gradient(180deg, #91ffd3, var(--mint));
+      border-color: rgba(255, 255, 255, 0.25);
+      box-shadow: 0 10px 26px rgba(79, 240, 173, 0.18);
+    }
+
+    .health {
+      height: 84px;
+      margin-top: 14px;
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid var(--line-soft);
+      display: grid;
+      grid-template-columns: 120px 1fr 124px;
+      align-items: center;
+      gap: 18px;
+      padding: 0 18px;
+    }
+
+    .health-title {
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 720;
+    }
+
+    .health-sub {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .health-dots {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+
+    .health-item {
+      height: 44px;
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--sub);
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .health-item .dot {
+      width: 8px;
+      height: 8px;
+      box-shadow: none;
+    }
+
+    .health-item.warn .dot { background: var(--amber); }
+    .health-item.blue .dot { background: var(--blue); }
+
+    .bottom {
+      margin-top: 14px;
+      height: 84px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 10px;
+      align-items: center;
+      border-top: 1px solid var(--line-soft);
+      padding-top: 14px;
+    }
+
+    .command {
+      height: 46px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 13px;
+      background: rgba(255, 255, 255, 0.045);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 13px;
+    }
+
+    .command span {
+      color: var(--muted);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body>
+  <div class="menubar">
+    <div class="appicon">B</div>
+    <div class="bar-widget">
+      <div class="minirow"><b>5h</b><div class="minirail"><i style="width:65%"></i></div><b>65%</b><span>4h</span></div>
+      <div class="minirow"><b>7d</b><div class="minirail"><i style="width:15%;background:#ff6b68"></i></div><b>15%</b><span>5d22h</span></div>
+    </div>
+    <span>▭</span><span>◴</span><span>⌁</span><span>⌕</span><span>Tue May 20&nbsp;&nbsp;9:41 AM</span>
+  </div>
+
+  <div class="popover-wrap">
+    <div class="notch"></div>
+    <main class="panel">
+      <section class="header">
+        <div class="brand">Codex Gauge <span>Signal Console</span></div>
+        <div class="header-tools">
+          <div class="pill"><i class="dot"></i> Live</div>
+          <div class="pill">Source: Menu Bar</div>
+          <div class="pill">13:25</div>
+        </div>
+      </section>
+
+      <section class="hero">
+        <div class="quota-stack">
+          <div class="quota-row">
+            <div class="window">5h<small>window</small></div>
+            <div class="quota-main">
+              <div class="quota-title"><span>5-hour quota left</span><span class="percent">65%</span></div>
+              <div class="rail"><div class="fill" style="width:65%"></div></div>
+            </div>
+            <div class="reset-card">
+              <div class="reset-caption"><span>reset</span><b>4h 15m</b></div>
+              <div class="reset-lane"><span class="face" style="left:72%"><i></i></span></div>
+            </div>
+          </div>
+
+          <div class="quota-row">
+            <div class="window">7d<small>window</small></div>
+            <div class="quota-main">
+              <div class="quota-title"><span>7-day quota left</span><span class="percent" style="color:var(--coral)">15%</span></div>
+              <div class="rail"><div class="fill low" style="width:15%"></div></div>
+            </div>
+            <div class="reset-card">
+              <div class="reset-caption"><span>reset</span><b>5d 22h</b></div>
+              <div class="reset-lane"><span class="face tense" style="left:15%"><i></i></span></div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="state-card">
+          <div class="state-top">
+            <div class="state-title">Live signal</div>
+            <div class="state-detail">Codex is open. Quota refreshes hands-free every 5 minutes.</div>
+          </div>
+          <div class="refresh-chip"><span>next refresh</span><b>4:58</b></div>
+        </aside>
+      </section>
+
+      <section class="grid">
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Quota movement</div>
+            <div class="card-kicker">last 24h</div>
+          </div>
+          <div class="trend-row">
+            <strong>5h</strong><span>steady</span>
+            <div class="spark"><i style="height:8px"></i><i style="height:9px"></i><i style="height:8px"></i><i style="height:14px"></i><i style="height:13px"></i><i style="height:15px"></i><i style="height:18px"></i><i style="height:14px"></i><i style="height:16px"></i><i style="height:20px"></i><i style="height:24px"></i><i style="height:21px"></i></div>
+            <div class="delta">-3</div>
+          </div>
+          <div class="trend-row">
+            <strong>7d</strong><span>heavy</span>
+            <div class="spark"><i style="height:22px"></i><i style="height:20px"></i><i style="height:19px"></i><i style="height:18px"></i><i style="height:16px"></i><i style="height:14px"></i><i style="height:13px"></i><i style="height:11px"></i><i style="height:10px"></i><i style="height:8px"></i><i style="height:7px"></i><i style="height:6px"></i></div>
+            <div class="delta" style="color:var(--coral)">-18</div>
+          </div>
+        </div>
+
+        <div class="card report">
+          <div>
+            <div class="card-head">
+              <div class="card-title">Usage report</div>
+              <div class="card-kicker">local only</div>
+            </div>
+            <div class="report-text">Generates a quota movement summary from local snapshots. No prompts, cookies, auth files, or billing data.</div>
+          </div>
+          <div class="report-actions">
+            <div class="button primary">Generate</div>
+            <div class="button">Copy diagnostics</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="health">
+        <div>
+          <div class="health-title">Health</div>
+          <div class="health-sub">4 OK · 1 optional</div>
+        </div>
+        <div class="health-dots">
+          <div class="health-item"><i class="dot"></i>Codex</div>
+          <div class="health-item"><i class="dot"></i>Helper</div>
+          <div class="health-item blue"><i class="dot"></i>Live</div>
+          <div class="health-item"><i class="dot"></i>Login</div>
+          <div class="health-item warn"><i class="dot"></i>Alerts</div>
+        </div>
+        <div class="button">Run Check</div>
+      </section>
+
+      <section class="bottom">
+        <div class="command">Open Codex <span>⌘O</span></div>
+        <div class="command">Refresh Now <span>5 min</span></div>
+        <div class="command">Preferences <span>⌘,</span></div>
+        <div class="command">Quit <span>⌘Q</span></div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
