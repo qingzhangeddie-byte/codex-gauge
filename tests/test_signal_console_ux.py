@@ -63,7 +63,8 @@ class SignalConsoleUXTests(unittest.TestCase):
             "this window",
             "in 24h",
             "Run Check",
-            "Copy diagnostics",
+            "Copy report",
+            "Clear data",
             "Open Codex",
             "Quit",
         ]:
@@ -85,9 +86,9 @@ class SignalConsoleUXTests(unittest.TestCase):
         for label in [
             "Based on",
             "Usage Report",
-            "Generate",
+            "Copy report",
             "Health",
-            "Copy diagnostics",
+            "Clear data",
         ]:
             self.assertIn(f'"{label}"', source)
         self.assertIn("24h quota summary", source)
@@ -128,6 +129,11 @@ class SignalConsoleUXTests(unittest.TestCase):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         for token in [
+            "SignalConsoleTheme",
+            "activeSignalConsoleTheme",
+            "paperConsoleTheme",
+            "signalDarkTheme",
+            "monoGraphiteTheme",
             "panelStrongBackground",
             "panelSoftBackground",
             "mintAccent",
@@ -140,8 +146,32 @@ class SignalConsoleUXTests(unittest.TestCase):
             "blueSoft",
         ]:
             self.assertIn(token, source)
-        self.assertIn("NSGradient(colors: [mintAccent, NSColor(calibratedRed: 0.72", source)
-        self.assertIn("NSGradient(colors: [coralAccent, NSColor(calibratedRed: 1.00", source)
+        self.assertIn("quotaFillGradient(value:", source)
+        self.assertIn("resetLaneGradient", source)
+
+    def test_signal_console_supports_selectable_themes_with_paper_default(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn('themePreferenceKey = "signalConsoleTheme"', source)
+        self.assertIn('paperConsoleThemeKey = "paperConsole"', source)
+        self.assertIn('signalDarkThemeKey = "signalDark"', source)
+        self.assertIn('monoGraphiteThemeKey = "monoGraphite"', source)
+        self.assertIn("UserDefaults.standard.set(paperConsoleThemeKey, forKey: themePreferenceKey)", source)
+        self.assertIn("currentSignalConsoleTheme()", source)
+        self.assertIn("Signal Dark", source)
+        self.assertIn("Paper Console", source)
+        self.assertIn("Mono Graphite", source)
+        self.assertIn("#selector(themePreferenceChanged)", source)
+        self.assertIn("themePopup?.selectItem(withTitle: currentSignalConsoleTheme().name)", source)
+
+    def test_mono_graphite_theme_keeps_accents_monochrome(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("private func monoGraphiteTheme() -> SignalConsoleTheme", source)
+        self.assertIn("monoAccent(0.86", source)
+        self.assertIn("monoAccent(0.64", source)
+        self.assertIn("monoAccent(0.48", source)
+        self.assertIn("monoAccent(0.34", source)
 
     def test_signal_console_is_compact_and_avoids_control_overlap(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -205,10 +235,36 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("Quota movement estimate", source)
         self.assertIn("This report estimates quota movement from local snapshots.", source)
         self.assertIn("It is not token accounting, billing, or spend.", source)
-        self.assertIn("CodexGauge-usage-report.md", source)
         self.assertIn("NSPasteboard.general", source)
         self.assertNotIn("promptText", source)
         self.assertNotIn("responseText", source)
+
+    def test_usage_report_is_visible_inline_and_copy_only(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("reportFiveHourMovement", source)
+        self.assertIn("reportSevenDayMovement", source)
+        self.assertIn("reportSourceMix", source)
+        self.assertIn("inlineUsageReportSummary", source)
+        self.assertIn("drawReportMetric", source)
+        self.assertIn('"Copy report"', source)
+        self.assertIn("NSPasteboard.general.setString(report, forType: .string)", source)
+        self.assertNotIn("CodexGauge-usage-report.md", source)
+        self.assertNotIn("report.write(to:", source)
+
+    def test_native_app_can_clear_local_data_without_touching_auth(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("clearLocalData", source)
+        self.assertIn("performClearLocalData", source)
+        self.assertIn("localDataPathsForClearing", source)
+        self.assertIn('"last-live-status.json"', source)
+        self.assertIn("runtimeLogFileName", source)
+        self.assertIn("historyFileName", source)
+        self.assertIn("FileManager.default.removeItem(atPath:", source)
+        self.assertIn("This clears local history, last-live cache, and logs.", source)
+        self.assertNotIn('removeItem(atPath: NSHomeDirectory() + "/.codex/auth.json"', source)
+        self.assertNotIn("browser cookies path", source.lower())
 
     def test_native_app_stores_bounded_safe_history(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()

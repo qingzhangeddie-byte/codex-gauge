@@ -14,10 +14,12 @@ Codex Gauge 是一个**简单、安全的 Codex 菜单栏额度仪表**，用于
 - 分段信号条让菜单栏里的额度健康状态更直观，同时不增加占用宽度
 - 自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口
 - Signal Console 显示真实的下次刷新倒计时，不再只是静态刷新标签
+- 三套可选主题：默认 Paper Console，并提供 Signal Dark 和 Mono Graphite
 - 趋势按真实时间窗口显示：当前 5 小时窗口变化，以及过去 24 小时内的 7 天额度变化，并直接标出正负百分比
-- Signal Console 可生成本地 24 小时额度变化报告，并用紧凑 Health 状态条显示本地组件状态
+- Signal Console 会直接显示本地 24 小时额度变化报告；Copy report 只复制，不保存报告文件
+- Clear local data 只清理 Codex Gauge 的历史、Last live 缓存和日志，不触碰 Codex 登录或会话数据
 - 自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
-- 偏好设置支持自适应、5 分钟、10 分钟刷新，也可以控制是否登录时启动
+- 偏好设置支持主题、自适应、5 分钟、10 分钟刷新，也可以控制是否登录时启动
 - 可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
 - Signal Console 会在弹出面板解释 Live、Last live、Snapshot、Codex closed 和不可用状态
 - Setup Doctor 和 Copy Diagnostics 可帮助排查本地设置，但不会复制 prompts、Cookie、auth 文件或日志

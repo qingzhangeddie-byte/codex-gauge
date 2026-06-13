@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.8.0 - 2026-06-13
+
+- Added selectable Signal Console themes: Paper Console by default, Signal Dark, and Mono Graphite.
+- Made the local 24-hour usage report visible directly inside the Signal Console.
+- Changed usage report generation to copy-only; Codex Gauge no longer saves a report Markdown file.
+- Added Clear local data for Codex Gauge history, Last live cache, and logs without touching Codex auth/session data.
+- Updated app version metadata and release instructions for the theme release.
+
 ## v0.7.0 - 2026-06-13
 
 - Added a real next-refresh countdown in the Signal Console that follows the actual scheduled refresh timer.

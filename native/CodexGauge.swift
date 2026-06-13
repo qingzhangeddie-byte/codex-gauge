@@ -56,6 +56,12 @@ private struct UsageReportSummary {
     let generatedAt: Date
 }
 
+private struct InlineUsageReportSummary {
+    let fiveHourMovement: String
+    let sevenDayMovement: String
+    let sourceMix: String
+}
+
 private struct GaugePalette {
     let background: NSColor
     let border: NSColor
@@ -64,6 +70,197 @@ private struct GaugePalette {
     let primaryText: NSColor
     let secondaryText: NSColor
     let mutedText: NSColor
+}
+
+private let themePreferenceKey = "signalConsoleTheme"
+private let paperConsoleThemeKey = "paperConsole"
+private let signalDarkThemeKey = "signalDark"
+private let monoGraphiteThemeKey = "monoGraphite"
+
+private struct SignalConsoleTheme {
+    let key: String
+    let name: String
+    let appearance: NSAppearance.Name
+    let material: NSVisualEffectView.Material
+    let panelBackground: NSColor
+    let panelStrongBackground: NSColor
+    let panelSoftBackground: NSColor
+    let panelBorder: NSColor
+    let textPrimary: NSColor
+    let textSecondary: NSColor
+    let textMuted: NSColor
+    let buttonPrimaryText: NSColor
+    let secondaryButtonBackground: NSColor
+    let commandButtonBackground: NSColor
+    let trackFill: NSColor
+    let baselineStroke: NSColor
+    let mintAccent: NSColor
+    let amberAccent: NSColor
+    let coralAccent: NSColor
+    let blueAccent: NSColor
+    let mintSoft: NSColor
+    let amberSoft: NSColor
+    let coralSoft: NSColor
+    let blueSoft: NSColor
+    let quotaLowEnd: NSColor
+    let quotaHighEnd: NSColor
+    let resetMidAccent: NSColor
+    let menuDarkPalette: GaugePalette
+    let menuLightPalette: GaugePalette
+}
+
+private func monoAccent(_ white: CGFloat, alpha: CGFloat = 1.0) -> NSColor {
+    NSColor(calibratedWhite: white, alpha: alpha)
+}
+
+private func signalDarkTheme() -> SignalConsoleTheme {
+    SignalConsoleTheme(
+        key: signalDarkThemeKey,
+        name: "Signal Dark",
+        appearance: .darkAqua,
+        material: .hudWindow,
+        panelBackground: NSColor(calibratedRed: 0.03, green: 0.07, blue: 0.10, alpha: 0.86),
+        panelStrongBackground: NSColor(calibratedRed: 0.07, green: 0.13, blue: 0.18, alpha: 0.88),
+        panelSoftBackground: NSColor.white.withAlphaComponent(0.055),
+        panelBorder: NSColor(calibratedRed: 0.68, green: 0.81, blue: 0.92, alpha: 0.18),
+        textPrimary: NSColor(calibratedRed: 0.93, green: 0.97, blue: 1.00, alpha: 0.96),
+        textSecondary: NSColor(calibratedRed: 0.66, green: 0.73, blue: 0.80, alpha: 0.90),
+        textMuted: NSColor(calibratedRed: 0.41, green: 0.48, blue: 0.56, alpha: 0.78),
+        buttonPrimaryText: NSColor(calibratedRed: 0.03, green: 0.07, blue: 0.10, alpha: 1.0),
+        secondaryButtonBackground: NSColor.white.withAlphaComponent(0.08),
+        commandButtonBackground: NSColor.white.withAlphaComponent(0.045),
+        trackFill: NSColor.white.withAlphaComponent(0.12),
+        baselineStroke: NSColor.white.withAlphaComponent(0.16),
+        mintAccent: NSColor(calibratedRed: 0.31, green: 0.94, blue: 0.68, alpha: 0.96),
+        amberAccent: NSColor(calibratedRed: 1.00, green: 0.78, blue: 0.35, alpha: 0.96),
+        coralAccent: NSColor(calibratedRed: 1.00, green: 0.37, blue: 0.40, alpha: 0.96),
+        blueAccent: NSColor(calibratedRed: 0.47, green: 0.72, blue: 1.00, alpha: 0.96),
+        mintSoft: NSColor(calibratedRed: 0.31, green: 0.94, blue: 0.68, alpha: 0.18),
+        amberSoft: NSColor(calibratedRed: 1.00, green: 0.78, blue: 0.35, alpha: 0.18),
+        coralSoft: NSColor(calibratedRed: 1.00, green: 0.37, blue: 0.40, alpha: 0.20),
+        blueSoft: NSColor(calibratedRed: 0.47, green: 0.72, blue: 1.00, alpha: 0.16),
+        quotaLowEnd: NSColor(calibratedRed: 1.00, green: 0.58, blue: 0.38, alpha: 0.96),
+        quotaHighEnd: NSColor(calibratedRed: 0.72, green: 0.94, blue: 0.51, alpha: 0.96),
+        resetMidAccent: NSColor(calibratedRed: 1.00, green: 0.58, blue: 0.38, alpha: 0.96),
+        menuDarkPalette: GaugePalette(
+            background: NSColor(calibratedRed: 0.05, green: 0.11, blue: 0.12, alpha: 0.88),
+            border: NSColor(calibratedRed: 0.30, green: 0.62, blue: 0.58, alpha: 0.62),
+            track: NSColor.white.withAlphaComponent(0.18),
+            resetTrack: NSColor(calibratedRed: 1.00, green: 0.68, blue: 0.22, alpha: 0.24),
+            primaryText: NSColor.white.withAlphaComponent(0.94),
+            secondaryText: NSColor.white.withAlphaComponent(0.72),
+            mutedText: NSColor.white.withAlphaComponent(0.42)
+        ),
+        menuLightPalette: GaugePalette(
+            background: NSColor.white.withAlphaComponent(0.72),
+            border: NSColor.black.withAlphaComponent(0.22),
+            track: NSColor.black.withAlphaComponent(0.15),
+            resetTrack: NSColor(calibratedRed: 0.92, green: 0.50, blue: 0.12, alpha: 0.26),
+            primaryText: NSColor.black.withAlphaComponent(0.82),
+            secondaryText: NSColor.black.withAlphaComponent(0.58),
+            mutedText: NSColor.black.withAlphaComponent(0.34)
+        )
+    )
+}
+
+private func paperConsoleTheme() -> SignalConsoleTheme {
+    SignalConsoleTheme(
+        key: paperConsoleThemeKey,
+        name: "Paper Console",
+        appearance: .aqua,
+        material: .popover,
+        panelBackground: NSColor(calibratedRed: 0.94, green: 0.92, blue: 0.86, alpha: 0.94),
+        panelStrongBackground: NSColor(calibratedRed: 0.99, green: 0.98, blue: 0.94, alpha: 0.96),
+        panelSoftBackground: NSColor(calibratedRed: 0.15, green: 0.20, blue: 0.18, alpha: 0.055),
+        panelBorder: NSColor(calibratedRed: 0.10, green: 0.16, blue: 0.14, alpha: 0.18),
+        textPrimary: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.96),
+        textSecondary: NSColor(calibratedRed: 0.34, green: 0.40, blue: 0.37, alpha: 0.90),
+        textMuted: NSColor(calibratedRed: 0.56, green: 0.60, blue: 0.57, alpha: 0.84),
+        buttonPrimaryText: NSColor(calibratedRed: 0.03, green: 0.08, blue: 0.06, alpha: 1.0),
+        secondaryButtonBackground: NSColor(calibratedRed: 0.11, green: 0.16, blue: 0.14, alpha: 0.07),
+        commandButtonBackground: NSColor(calibratedRed: 0.11, green: 0.16, blue: 0.14, alpha: 0.055),
+        trackFill: NSColor(calibratedRed: 0.11, green: 0.16, blue: 0.14, alpha: 0.13),
+        baselineStroke: NSColor(calibratedRed: 0.11, green: 0.16, blue: 0.14, alpha: 0.15),
+        mintAccent: NSColor(calibratedRed: 0.11, green: 0.65, blue: 0.46, alpha: 0.96),
+        amberAccent: NSColor(calibratedRed: 0.95, green: 0.68, blue: 0.25, alpha: 0.96),
+        coralAccent: NSColor(calibratedRed: 0.84, green: 0.29, blue: 0.25, alpha: 0.96),
+        blueAccent: NSColor(calibratedRed: 0.23, green: 0.45, blue: 0.72, alpha: 0.96),
+        mintSoft: NSColor(calibratedRed: 0.11, green: 0.65, blue: 0.46, alpha: 0.16),
+        amberSoft: NSColor(calibratedRed: 0.95, green: 0.68, blue: 0.25, alpha: 0.18),
+        coralSoft: NSColor(calibratedRed: 0.84, green: 0.29, blue: 0.25, alpha: 0.16),
+        blueSoft: NSColor(calibratedRed: 0.23, green: 0.45, blue: 0.72, alpha: 0.14),
+        quotaLowEnd: NSColor(calibratedRed: 0.95, green: 0.45, blue: 0.28, alpha: 0.96),
+        quotaHighEnd: NSColor(calibratedRed: 0.62, green: 0.78, blue: 0.36, alpha: 0.96),
+        resetMidAccent: NSColor(calibratedRed: 0.94, green: 0.50, blue: 0.22, alpha: 0.96),
+        menuDarkPalette: GaugePalette(
+            background: NSColor(calibratedRed: 0.91, green: 0.89, blue: 0.82, alpha: 0.92),
+            border: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.22),
+            track: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.18),
+            resetTrack: NSColor(calibratedRed: 0.95, green: 0.68, blue: 0.25, alpha: 0.24),
+            primaryText: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.92),
+            secondaryText: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.64),
+            mutedText: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.38)
+        ),
+        menuLightPalette: GaugePalette(
+            background: NSColor(calibratedRed: 0.96, green: 0.94, blue: 0.88, alpha: 0.92),
+            border: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.20),
+            track: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.15),
+            resetTrack: NSColor(calibratedRed: 0.95, green: 0.68, blue: 0.25, alpha: 0.22),
+            primaryText: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.88),
+            secondaryText: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.58),
+            mutedText: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.34)
+        )
+    )
+}
+
+private func monoGraphiteTheme() -> SignalConsoleTheme {
+    SignalConsoleTheme(
+        key: monoGraphiteThemeKey,
+        name: "Mono Graphite",
+        appearance: .darkAqua,
+        material: .hudWindow,
+        panelBackground: monoAccent(0.05, alpha: 0.92),
+        panelStrongBackground: monoAccent(0.12, alpha: 0.92),
+        panelSoftBackground: monoAccent(1.00, alpha: 0.055),
+        panelBorder: monoAccent(1.00, alpha: 0.17),
+        textPrimary: monoAccent(0.94, alpha: 0.96),
+        textSecondary: monoAccent(0.70, alpha: 0.90),
+        textMuted: monoAccent(0.48, alpha: 0.82),
+        buttonPrimaryText: monoAccent(0.05),
+        secondaryButtonBackground: monoAccent(1.00, alpha: 0.08),
+        commandButtonBackground: monoAccent(1.00, alpha: 0.045),
+        trackFill: monoAccent(1.00, alpha: 0.12),
+        baselineStroke: monoAccent(1.00, alpha: 0.16),
+        mintAccent: monoAccent(0.86, alpha: 0.96),
+        amberAccent: monoAccent(0.64, alpha: 0.96),
+        coralAccent: monoAccent(0.48, alpha: 0.96),
+        blueAccent: monoAccent(0.72, alpha: 0.96),
+        mintSoft: monoAccent(0.86, alpha: 0.18),
+        amberSoft: monoAccent(0.64, alpha: 0.18),
+        coralSoft: monoAccent(0.48, alpha: 0.20),
+        blueSoft: monoAccent(0.72, alpha: 0.16),
+        quotaLowEnd: monoAccent(0.58, alpha: 0.96),
+        quotaHighEnd: monoAccent(0.78, alpha: 0.96),
+        resetMidAccent: monoAccent(0.58, alpha: 0.96),
+        menuDarkPalette: GaugePalette(
+            background: monoAccent(0.06, alpha: 0.90),
+            border: monoAccent(0.76, alpha: 0.40),
+            track: monoAccent(1.00, alpha: 0.16),
+            resetTrack: monoAccent(1.00, alpha: 0.16),
+            primaryText: monoAccent(0.94, alpha: 0.94),
+            secondaryText: monoAccent(0.74, alpha: 0.74),
+            mutedText: monoAccent(0.52, alpha: 0.52)
+        ),
+        menuLightPalette: GaugePalette(
+            background: monoAccent(0.94, alpha: 0.86),
+            border: monoAccent(0.18, alpha: 0.25),
+            track: monoAccent(0.12, alpha: 0.16),
+            resetTrack: monoAccent(0.12, alpha: 0.16),
+            primaryText: monoAccent(0.08, alpha: 0.84),
+            secondaryText: monoAccent(0.16, alpha: 0.58),
+            mutedText: monoAccent(0.34, alpha: 0.36)
+        )
+    )
 }
 
 private struct SignalConsoleModel {
@@ -84,6 +281,9 @@ private struct SignalConsoleModel {
     let fiveHourTrendText: String
     let sevenDayTrendText: String
     let trendContextText: String
+    let reportFiveHourMovement: String
+    let reportSevenDayMovement: String
+    let reportSourceMix: String
     let healthSummaryText: String
     let doctorChecks: [DoctorCheck]
     let lastRefreshText: String
@@ -95,10 +295,12 @@ private struct SignalConsoleModel {
 
 private final class SignalConsolePanelView: NSView {
     private let model: SignalConsoleModel
+    private let theme: SignalConsoleTheme
     private weak var target: AnyObject?
     private let runCheckAction: Selector
     private let generateReportAction: Selector
     private let copyDiagnosticsAction: Selector
+    private let clearDataAction: Selector
     private let openCodexAction: Selector
     private let refreshAction: Selector
     private let preferencesAction: Selector
@@ -111,20 +313,24 @@ private final class SignalConsolePanelView: NSView {
     init(
         frame frameRect: NSRect,
         model: SignalConsoleModel,
+        theme: SignalConsoleTheme,
         target: AnyObject,
         runCheckAction: Selector,
         generateReportAction: Selector,
         copyDiagnosticsAction: Selector,
+        clearDataAction: Selector,
         openCodexAction: Selector,
         refreshAction: Selector,
         preferencesAction: Selector,
         quitAction: Selector
     ) {
         self.model = model
+        self.theme = theme
         self.target = target
         self.runCheckAction = runCheckAction
         self.generateReportAction = generateReportAction
         self.copyDiagnosticsAction = copyDiagnosticsAction
+        self.clearDataAction = clearDataAction
         self.openCodexAction = openCodexAction
         self.refreshAction = refreshAction
         self.preferencesAction = preferencesAction
@@ -145,8 +351,8 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func addSignalConsoleButtons() {
-        addButton(title: "Generate", frame: NSRect(x: 298, y: 358, width: 78, height: 30), action: generateReportAction, style: .primary)
-        addButton(title: "Copy diagnostics", frame: NSRect(x: 384, y: 358, width: 138, height: 30), action: copyDiagnosticsAction, style: .secondary)
+        addButton(title: "Copy report", frame: NSRect(x: 298, y: 358, width: 96, height: 30), action: generateReportAction, style: .primary)
+        addButton(title: "Clear data", frame: NSRect(x: 402, y: 358, width: 120, height: 30), action: clearDataAction, style: .secondary)
         addButton(title: "Run Check", frame: NSRect(x: 450, y: 440, width: 82, height: 30), action: runCheckAction, style: .secondary)
         addButton(title: "Open Codex", frame: NSRect(x: 20, y: 496, width: 122, height: 40), action: openCodexAction, style: .command)
         addButton(title: "Refresh Now", frame: NSRect(x: 150, y: 496, width: 122, height: 40), action: refreshAction, style: .command)
@@ -183,16 +389,16 @@ private final class SignalConsolePanelView: NSView {
         case .primary:
             return mintAccent
         case .secondary:
-            return NSColor.white.withAlphaComponent(0.08)
+            return theme.secondaryButtonBackground
         case .command:
-            return NSColor.white.withAlphaComponent(0.045)
+            return theme.commandButtonBackground
         }
     }
 
     private func buttonTextColor(_ style: SignalButtonStyle) -> NSColor {
         switch style {
         case .primary:
-            return NSColor(calibratedRed: 0.03, green: 0.07, blue: 0.10, alpha: 1.0)
+            return theme.buttonPrimaryText
         case .secondary, .command:
             return textPrimary
         }
@@ -213,7 +419,7 @@ private final class SignalConsolePanelView: NSView {
         let rect = bounds.insetBy(dx: 1, dy: 1)
         let background = NSBezierPath(roundedRect: rect, xRadius: 18, yRadius: 18)
         NSGradient(colors: [
-            NSColor.white.withAlphaComponent(0.06),
+            theme.trackFill.withAlphaComponent(0.32),
             panelBackground,
         ])?.draw(in: background, angle: 90)
         panelBorder.setStroke()
@@ -224,7 +430,7 @@ private final class SignalConsolePanelView: NSView {
     private func drawHeader() {
         drawText("Codex Gauge  •  Signal Console", x: 20, y: 18, width: 300, height: 24, size: 15, weight: .semibold, color: textPrimary)
         drawPill(text: headerSignalText(), rect: NSRect(x: 344, y: 16, width: 70, height: 28), color: headerSignalColor().withAlphaComponent(0.12), dotColor: headerSignalColor())
-        drawPill(text: model.sourcePill, rect: NSRect(x: 422, y: 16, width: 118, height: 28), color: NSColor.white.withAlphaComponent(0.07))
+        drawPill(text: model.sourcePill, rect: NSRect(x: 422, y: 16, width: 118, height: 28), color: theme.secondaryButtonBackground)
     }
 
     private func drawStatusStrip() {
@@ -237,7 +443,7 @@ private final class SignalConsolePanelView: NSView {
         if model.isUnavailable {
             drawClosedSignalState(in: NSRect(x: rect.maxX - 210, y: rect.minY + 7, width: 96, height: 28))
         }
-        drawRoundedRect(NSRect(x: rect.maxX - 104, y: rect.minY + 7, width: 86, height: 28), radius: 9, fill: NSColor.black.withAlphaComponent(0.14), stroke: panelBorder.withAlphaComponent(0.26))
+        drawRoundedRect(NSRect(x: rect.maxX - 104, y: rect.minY + 7, width: 86, height: 28), radius: 9, fill: theme.commandButtonBackground, stroke: panelBorder.withAlphaComponent(0.26))
         drawText("next", x: rect.maxX - 94, y: rect.minY + 13, width: 30, height: 14, size: 10, weight: .regular, color: textMuted)
         drawText(model.nextRefreshText, x: rect.maxX - 58, y: rect.minY + 13, width: 42, height: 14, size: 10, weight: .semibold, color: textPrimary, mono: true)
     }
@@ -278,7 +484,7 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawQuotaWindowRow(window: String, label: String, value: Int?, resetText: String, resetProgress: Int?, rect: NSRect) {
-        drawRoundedRect(rect, radius: 13, fill: NSColor.white.withAlphaComponent(0.045), stroke: panelBorder.withAlphaComponent(0.48))
+        drawRoundedRect(rect, radius: 13, fill: theme.commandButtonBackground, stroke: panelBorder.withAlphaComponent(0.48))
         drawText(window, x: rect.minX + 14, y: rect.minY + 13, width: 38, height: 22, size: 19, weight: .bold, color: textPrimary, mono: true)
         drawText("window", x: rect.minX + 14, y: rect.minY + 35, width: 48, height: 14, size: 8, weight: .bold, color: textMuted)
         drawText(label, x: rect.minX + 70, y: rect.minY + 12, width: 160, height: 16, size: 11, weight: .medium, color: textSecondary)
@@ -315,7 +521,25 @@ private final class SignalConsolePanelView: NSView {
         drawRoundedRect(card, radius: 15, fill: panelSoftBackground, stroke: panelBorder.withAlphaComponent(0.50))
         drawText("Usage Report", x: card.minX + 16, y: card.minY + 14, width: 108, height: 18, size: 12, weight: .bold, color: textPrimary)
         drawText("local only", x: card.maxX - 62, y: card.minY + 14, width: 46, height: 18, size: 10, weight: .regular, color: textMuted)
-        drawWrappedText("24h quota summary from local snapshots. No prompts, cookies, auth files, or billing data.", rect: NSRect(x: card.minX + 16, y: card.minY + 42, width: 212, height: 44), size: 11, weight: .regular, color: textSecondary)
+        drawReportMetric(label: "5h move", value: model.reportFiveHourMovement, rect: NSRect(x: card.minX + 16, y: card.minY + 42, width: 106, height: 34))
+        drawReportMetric(label: "7d move", value: model.reportSevenDayMovement, rect: NSRect(x: card.minX + 132, y: card.minY + 42, width: 106, height: 34))
+        drawText(model.reportSourceMix, x: card.minX + 16, y: card.minY + 82, width: 212, height: 16, size: 9.5, weight: .regular, color: textMuted)
+    }
+
+    private func drawReportMetric(label: String, value: String, rect: NSRect) {
+        drawRoundedRect(rect, radius: 10, fill: theme.commandButtonBackground, stroke: panelBorder.withAlphaComponent(0.22))
+        drawText(label, x: rect.minX + 10, y: rect.minY + 6, width: rect.width - 20, height: 11, size: 8.5, weight: .medium, color: textMuted)
+        drawText(value, x: rect.minX + 10, y: rect.minY + 18, width: rect.width - 20, height: 13, size: 10.5, weight: .bold, color: reportMetricColor(value), mono: true)
+    }
+
+    private func reportMetricColor(_ value: String) -> NSColor {
+        if value.hasPrefix("-") {
+            return coralAccent
+        }
+        if value.hasPrefix("+") {
+            return mintAccent
+        }
+        return textSecondary
     }
 
     private func drawHealthRibbon() {
@@ -330,7 +554,7 @@ private final class SignalConsolePanelView: NSView {
         let checks = Array(model.doctorChecks.prefix(5))
         for (index, check) in checks.enumerated() {
             let itemRect = NSRect(x: rect.minX + CGFloat(index) * 60, y: rect.minY, width: 54, height: rect.height)
-            drawRoundedRect(itemRect, radius: 9, fill: NSColor.white.withAlphaComponent(0.040), stroke: panelBorder.withAlphaComponent(0.20))
+            drawRoundedRect(itemRect, radius: 9, fill: theme.commandButtonBackground, stroke: panelBorder.withAlphaComponent(0.20))
             drawCircle(center: NSPoint(x: itemRect.minX + 12, y: itemRect.midY), radius: 3.4, color: doctorColor(check.state), stroke: nil)
             drawText(healthShortLabel(check.title), x: itemRect.minX + 21, y: itemRect.minY + 8, width: 30, height: 14, size: 8.5, weight: .regular, color: textSecondary)
         }
@@ -342,7 +566,7 @@ private final class SignalConsolePanelView: NSView {
         baseline.line(to: NSPoint(x: rect.maxX, y: rect.midY + 6))
         baseline.lineWidth = 1
         baseline.setLineDash([5, 5], count: 2, phase: 0)
-        NSColor.white.withAlphaComponent(0.16).setStroke()
+        theme.baselineStroke.setStroke()
         baseline.stroke()
 
         guard !values.isEmpty else {
@@ -367,7 +591,7 @@ private final class SignalConsolePanelView: NSView {
 
     private func trendDeltaPillColor(values: [Int]) -> NSColor {
         guard let first = values.first, let last = values.last else {
-            return NSColor.white.withAlphaComponent(0.07)
+            return theme.commandButtonBackground
         }
         let delta = last - first
         if delta <= -2 {
@@ -376,7 +600,7 @@ private final class SignalConsolePanelView: NSView {
         if delta >= 2 {
             return mintSoft
         }
-        return NSColor.white.withAlphaComponent(0.07)
+        return theme.commandButtonBackground
     }
 
     private func drawSectionLabel(_ text: String, y: CGFloat) {
@@ -403,23 +627,31 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawQuotaRail(value: Int?, rect: NSRect) {
-        drawRoundedRect(rect, radius: rect.height / 2, fill: NSColor.white.withAlphaComponent(0.12), stroke: nil)
+        drawRoundedRect(rect, radius: rect.height / 2, fill: theme.trackFill, stroke: nil)
         guard let value else {
             return
         }
         let fillWidth = max(rect.height, rect.width * clamped(value))
         let fillRect = NSRect(x: rect.minX, y: rect.minY, width: min(rect.width, fillWidth), height: rect.height)
-        let gradient = value < 25
-            ? NSGradient(colors: [coralAccent, NSColor(calibratedRed: 1.00, green: 0.58, blue: 0.38, alpha: 0.96)])
-            : NSGradient(colors: [mintAccent, NSColor(calibratedRed: 0.72, green: 0.94, blue: 0.51, alpha: 0.96)])
+        let gradient = quotaFillGradient(value: value)
         drawRoundedGradient(fillRect, radius: rect.height / 2, gradient: gradient, stroke: nil)
+    }
+
+    private func quotaFillGradient(value: Int) -> NSGradient? {
+        value < 25
+            ? NSGradient(colors: [coralAccent, theme.quotaLowEnd])
+            : NSGradient(colors: [mintAccent, theme.quotaHighEnd])
+    }
+
+    private var resetLaneGradient: NSGradient? {
+        NSGradient(colors: [coralAccent, theme.resetMidAccent, amberAccent])
     }
 
     private func drawResetCountdownLane(value: Int?, rect: NSRect) {
         drawRoundedGradient(
             rect,
             radius: rect.height / 2,
-            gradient: NSGradient(colors: [coralAccent, NSColor(calibratedRed: 1.00, green: 0.58, blue: 0.38, alpha: 0.96), amberAccent]),
+            gradient: resetLaneGradient,
             stroke: nil
         )
         guard let value else {
@@ -557,13 +789,13 @@ private final class SignalConsolePanelView: NSView {
         for index in 0..<segments {
             let x = rect.minX + CGFloat(index) * (segmentWidth + gap)
             let segmentRect = NSRect(x: x, y: rect.minY, width: segmentWidth, height: rect.height)
-            let color = index < filled ? fill : NSColor.white.withAlphaComponent(0.10)
+            let color = index < filled ? fill : theme.trackFill
             drawRoundedRect(segmentRect, radius: min(3, rect.height / 2), fill: color, stroke: nil)
         }
     }
 
     private func drawMoodLane(value: Int?, rect: NSRect) {
-        drawRoundedRect(rect, radius: rect.height / 2, fill: NSColor.white.withAlphaComponent(0.10), stroke: nil)
+        drawRoundedRect(rect, radius: rect.height / 2, fill: theme.trackFill, stroke: nil)
         guard let value else {
             drawCircle(center: NSPoint(x: rect.minX + 10, y: rect.midY), radius: 6, color: textMuted, stroke: nil)
             return
@@ -738,15 +970,19 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private var panelBackground: NSColor {
-        NSColor(calibratedRed: 0.03, green: 0.07, blue: 0.10, alpha: 0.86)
+        theme.panelBackground
+    }
+
+    private var activeSignalConsoleTheme: SignalConsoleTheme {
+        theme
     }
 
     private var panelStrongBackground: NSColor {
-        NSColor(calibratedRed: 0.07, green: 0.13, blue: 0.18, alpha: 0.88)
+        theme.panelStrongBackground
     }
 
     private var panelSoftBackground: NSColor {
-        NSColor.white.withAlphaComponent(0.055)
+        theme.panelSoftBackground
     }
 
     private var cardBackground: NSColor {
@@ -754,51 +990,51 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private var panelBorder: NSColor {
-        NSColor(calibratedRed: 0.68, green: 0.81, blue: 0.92, alpha: 0.18)
+        theme.panelBorder
     }
 
     private var textPrimary: NSColor {
-        NSColor(calibratedRed: 0.93, green: 0.97, blue: 1.00, alpha: 0.96)
+        theme.textPrimary
     }
 
     private var textSecondary: NSColor {
-        NSColor(calibratedRed: 0.66, green: 0.73, blue: 0.80, alpha: 0.90)
+        theme.textSecondary
     }
 
     private var textMuted: NSColor {
-        NSColor(calibratedRed: 0.41, green: 0.48, blue: 0.56, alpha: 0.78)
+        theme.textMuted
     }
 
     private var mintAccent: NSColor {
-        NSColor(calibratedRed: 0.31, green: 0.94, blue: 0.68, alpha: 0.96)
+        theme.mintAccent
     }
 
     private var amberAccent: NSColor {
-        NSColor(calibratedRed: 1.00, green: 0.78, blue: 0.35, alpha: 0.96)
+        theme.amberAccent
     }
 
     private var coralAccent: NSColor {
-        NSColor(calibratedRed: 1.00, green: 0.37, blue: 0.40, alpha: 0.96)
+        theme.coralAccent
     }
 
     private var blueAccent: NSColor {
-        NSColor(calibratedRed: 0.47, green: 0.72, blue: 1.00, alpha: 0.96)
+        theme.blueAccent
     }
 
     private var mintSoft: NSColor {
-        mintAccent.withAlphaComponent(0.18)
+        theme.mintSoft
     }
 
     private var amberSoft: NSColor {
-        amberAccent.withAlphaComponent(0.18)
+        theme.amberSoft
     }
 
     private var coralSoft: NSColor {
-        coralAccent.withAlphaComponent(0.20)
+        theme.coralSoft
     }
 
     private var blueSoft: NSColor {
-        blueAccent.withAlphaComponent(0.16)
+        theme.blueSoft
     }
 }
 
@@ -812,6 +1048,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var preferencesWindow: NSWindow?
     private var setupDoctorWindow: NSWindow?
     private var refreshPopup: NSPopUpButton?
+    private var themePopup: NSPopUpButton?
     private var notificationsCheckbox: NSButton?
     private var launchAtLoginCheckbox: NSButton?
     private var snapshot: UsageSnapshot?
@@ -852,6 +1089,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let sevenDayResetMenuLabel = "7d resets"
     private let runtimeLogFileName = "CodexGauge-runtime.log"
     private let historyFileName = "CodexGauge-history.json"
+    private let lastLiveCacheFileName = "last-live-status.json"
     private let launchAgentLabel = "app.codexgauge.menubar"
     private let launchAgentPlistName = "app.codexgauge.menubar.plist"
     private let refreshModeKey = "refreshMode"
@@ -868,7 +1106,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private lazy var resourcesDir = Bundle.main.resourcePath ?? FileManager.default.currentDirectoryPath
     private lazy var supportDir = applicationSupportDirectory()
     private lazy var pythonPath = infoString("CodexGaugePythonPath", fallback: "/usr/bin/python3")
-    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.7.0")
+    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.8.0")
     private lazy var releaseURL = infoString("CodexGaugeReleaseURL", fallback: "https://github.com/qingzhangeddie-byte/codex-gauge/releases")
     private lazy var usagePath = resolveUsagePath()
     private lazy var logPath = "\(supportDir)/\(runtimeLogFileName)"
@@ -924,7 +1162,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let popover = signalPopover ?? NSPopover()
         popover.behavior = .transient
         popover.animates = true
-        popover.appearance = NSAppearance(named: .darkAqua)
+        popover.appearance = NSAppearance(named: currentSignalConsoleTheme().appearance)
         popover.contentSize = signalPopoverSize
         popover.contentViewController = makeSignalConsoleViewController()
         signalPopover = popover
@@ -965,10 +1203,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func makeSignalConsoleViewController() -> NSViewController {
         let controller = NSViewController()
+        let theme = currentSignalConsoleTheme()
         let visual = NSVisualEffectView(frame: NSRect(origin: .zero, size: signalPopoverSize))
-        visual.material = .hudWindow
+        visual.material = theme.material
         visual.blendingMode = .behindWindow
         visual.state = .active
+        visual.appearance = NSAppearance(named: theme.appearance)
         visual.wantsLayer = true
         visual.layer?.cornerRadius = 18
         visual.layer?.masksToBounds = true
@@ -976,10 +1216,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let panel = SignalConsolePanelView(
             frame: visual.bounds,
             model: signalConsoleModel(),
+            theme: theme,
             target: self,
             runCheckAction: #selector(openSetupDoctor),
             generateReportAction: #selector(generateUsageReport),
             copyDiagnosticsAction: #selector(copyDiagnostics),
+            clearDataAction: #selector(clearLocalData),
             openCodexAction: #selector(openCodexApp),
             refreshAction: #selector(refreshNow),
             preferencesAction: #selector(openPreferences),
@@ -1006,6 +1248,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             let sevenDaySamples = lastDaySamples
             let fiveHourHistory = quotaHistoryValues(fiveHourSamples, \.fiveHourLeft)
             let sevenDayHistory = quotaHistoryValues(sevenDaySamples, \.sevenDayLeft)
+            let inlineReport = inlineUsageReportSummary(samples: lastDaySamples, status: status)
             return SignalConsoleModel(
                 planName: status.ok ? planTitle(status) : "Codex Gauge",
                 sourcePill: "Source: Menu Bar",
@@ -1024,6 +1267,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 fiveHourTrendText: trendText(values: fiveHourHistory, suffix: "this window"),
                 sevenDayTrendText: trendText(values: sevenDayHistory, suffix: "in 24h"),
                 trendContextText: trendContextText(samples: lastDaySamples, latestSource: status.source),
+                reportFiveHourMovement: inlineReport.fiveHourMovement,
+                reportSevenDayMovement: inlineReport.sevenDayMovement,
+                reportSourceMix: inlineReport.sourceMix,
                 healthSummaryText: healthSummaryText(doctorChecks),
                 doctorChecks: doctorChecks,
                 lastRefreshText: shortTime(status.dataTime ?? snapshot.updatedAt),
@@ -1039,6 +1285,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let sevenDaySamples = lastDaySamples
         let fiveHourHistory = quotaHistoryValues(fiveHourSamples, \.fiveHourLeft)
         let sevenDayHistory = quotaHistoryValues(sevenDaySamples, \.sevenDayLeft)
+        let inlineReport = inlineUsageReportSummary(samples: lastDaySamples, status: nil)
         return SignalConsoleModel(
             planName: "Codex Gauge",
             sourcePill: "Source: Menu Bar",
@@ -1057,6 +1304,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             fiveHourTrendText: trendText(values: fiveHourHistory, suffix: "this window"),
             sevenDayTrendText: trendText(values: sevenDayHistory, suffix: "in 24h"),
             trendContextText: trendContextText(samples: lastDaySamples, latestSource: nil),
+            reportFiveHourMovement: inlineReport.fiveHourMovement,
+            reportSevenDayMovement: inlineReport.sevenDayMovement,
+            reportSourceMix: inlineReport.sourceMix,
             healthSummaryText: healthSummaryText(doctorChecks),
             doctorChecks: doctorChecks,
             lastRefreshText: "none",
@@ -1172,16 +1422,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             showReportAlert(title: "Usage report not copied", detail: "The pasteboard did not accept the generated report.")
             return
         }
-
-        let reportURL = URL(fileURLWithPath: supportDir).appendingPathComponent("CodexGauge-usage-report.md")
-        do {
-            try report.write(to: reportURL, atomically: true, encoding: .utf8)
-            showReportAlert(title: "Usage report copied", detail: "Copied to clipboard and saved to Application Support.")
-            appendLog("usage report copied path=\(reportURL.path)")
-        } catch {
-            showReportAlert(title: "Usage report copied", detail: "Copied to clipboard. File save failed: \(error.localizedDescription)")
-            appendLog("usage report save failed=\(error.localizedDescription)")
-        }
+        showReportAlert(title: "Usage report copied", detail: "Copied to clipboard. No report file was saved.")
+        appendLog("usage report copied to clipboard")
     }
 
     private func showReportAlert(title: String, detail: String) {
@@ -1191,6 +1433,59 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         alert.alertStyle = .informational
         alert.addButton(withTitle: "OK")
         alert.runModal()
+    }
+
+    @objc private func clearLocalData() {
+        let alert = NSAlert()
+        alert.messageText = "Clear local Codex Gauge data?"
+        alert.informativeText = "This clears local history, last-live cache, and logs. It does not touch Codex, browser cookies, Keychain, or auth files."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Clear Data")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else {
+            return
+        }
+        performClearLocalData()
+    }
+
+    private func performClearLocalData() {
+        let manager = FileManager.default
+        var removed = 0
+        for path in localDataPathsForClearing() {
+            guard manager.fileExists(atPath: path) else {
+                continue
+            }
+            do {
+                try FileManager.default.removeItem(atPath: path)
+                removed += 1
+            } catch {
+                showReportAlert(title: "Some data was not cleared", detail: clipped(error.localizedDescription, limit: 180))
+                return
+            }
+        }
+        previousFiveHourLeft = nil
+        liveUnavailableSince = nil
+        didNotifyLiveUnavailable = false
+        resetHighlightUntil = nil
+        refreshSignalPopoverIfNeeded()
+        rebuildMenu()
+        if let snapshot {
+            setStatusImage(title: statusTooltipTitle(snapshot), status: snapshot.codex)
+        } else {
+            setStatusImage(title: "Codex quota")
+        }
+        showReportAlert(title: "Local data cleared", detail: removed == 0 ? "No local history, cache, or log files were present." : "Cleared \(removed) local Codex Gauge file(s).")
+    }
+
+    private func localDataPathsForClearing() -> [String] {
+        [
+            historyPath,
+            logPath,
+            "\(logPath).1",
+            "\(supportDir)/\(lastLiveCacheFileName)",
+            "\(supportDir)/launchd.out.log",
+            "\(supportDir)/launchd.err.log",
+        ]
     }
 
     @objc private func openCodexApp() {
@@ -1219,6 +1514,25 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))
             rebuildMenu()
         }
+    }
+
+    @objc private func themePreferenceChanged(_ sender: Any?) {
+        guard
+            let popup = sender as? NSPopUpButton,
+            let key = popup.selectedItem?.representedObject as? String
+        else {
+            return
+        }
+        UserDefaults.standard.set(key, forKey: themePreferenceKey)
+        if let signalPopover, signalPopover.isShown {
+            signalPopover.appearance = NSAppearance(named: currentSignalConsoleTheme().appearance)
+        }
+        if let snapshot {
+            setStatusImage(title: statusTooltipTitle(snapshot), status: snapshot.codex)
+        } else {
+            setStatusImage(title: "Codex quota")
+        }
+        refreshSignalPopoverIfNeeded()
     }
 
     @objc private func notificationsPreferenceChanged(_ sender: Any?) {
@@ -1353,6 +1667,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func registerDefaultPreferences() {
         let defaults = UserDefaults.standard
+        if defaults.object(forKey: themePreferenceKey) == nil {
+            UserDefaults.standard.set(paperConsoleThemeKey, forKey: themePreferenceKey)
+        }
         if defaults.object(forKey: refreshModeKey) == nil {
             defaults.set(adaptiveRefreshMode, forKey: refreshModeKey)
         }
@@ -1364,7 +1681,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func makePreferencesWindow() -> NSWindow {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 300),
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 340),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -1372,13 +1689,28 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         window.title = "Codex Gauge Preferences"
         window.isReleasedWhenClosed = false
 
-        let content = NSView(frame: NSRect(x: 0, y: 0, width: 420, height: 300))
+        let content = NSView(frame: NSRect(x: 0, y: 0, width: 420, height: 340))
         window.contentView = content
 
         let title = NSTextField(labelWithString: "Codex Gauge")
         title.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
-        title.frame = NSRect(x: 24, y: 254, width: 220, height: 24)
+        title.frame = NSRect(x: 24, y: 294, width: 220, height: 24)
         content.addSubview(title)
+
+        let themeLabel = NSTextField(labelWithString: "Theme")
+        themeLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        themeLabel.frame = NSRect(x: 24, y: 252, width: 96, height: 22)
+        content.addSubview(themeLabel)
+
+        let themeSelect = NSPopUpButton(frame: NSRect(x: 132, y: 250, width: 180, height: 26), pullsDown: false)
+        themeSelect.addItems(withTitles: ["Paper Console", "Signal Dark", "Mono Graphite"])
+        themeSelect.item(withTitle: "Paper Console")?.representedObject = paperConsoleThemeKey
+        themeSelect.item(withTitle: "Signal Dark")?.representedObject = signalDarkThemeKey
+        themeSelect.item(withTitle: "Mono Graphite")?.representedObject = monoGraphiteThemeKey
+        themeSelect.target = self
+        themeSelect.action = #selector(themePreferenceChanged)
+        content.addSubview(themeSelect)
+        themePopup = themeSelect
 
         let refreshLabel = NSTextField(labelWithString: "Refresh")
         refreshLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
@@ -1444,6 +1776,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func syncPreferencesControls() {
         let mode = currentRefreshMode()
         refreshPopup?.selectItem(withTitle: refreshTitle(for: mode))
+        themePopup?.selectItem(withTitle: currentSignalConsoleTheme().name)
         notificationsCheckbox?.state = notificationsEnabled() ? .on : .off
         let launchEnabled = isLaunchAgentConfigured()
         UserDefaults.standard.set(launchEnabled, forKey: launchAtLoginKey)
@@ -1458,6 +1791,27 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return "10 minutes"
         default:
             return "Adaptive"
+        }
+    }
+
+    private func currentSignalConsoleTheme() -> SignalConsoleTheme {
+        switch currentSignalConsoleThemeKey() {
+        case signalDarkThemeKey:
+            return signalDarkTheme()
+        case monoGraphiteThemeKey:
+            return monoGraphiteTheme()
+        default:
+            return paperConsoleTheme()
+        }
+    }
+
+    private func currentSignalConsoleThemeKey() -> String {
+        let key = UserDefaults.standard.string(forKey: themePreferenceKey) ?? paperConsoleThemeKey
+        switch key {
+        case paperConsoleThemeKey, signalDarkThemeKey, monoGraphiteThemeKey:
+            return key
+        default:
+            return paperConsoleThemeKey
         }
     }
 
@@ -1926,7 +2280,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func drawSignalSourceRail(source: String?, palette: GaugePalette) {
-        let color = sourceIndicatorColor(source) ?? NSColor(calibratedRed: 0.14, green: 0.79, blue: 0.60, alpha: 0.82)
+        let color = sourceIndicatorColor(source) ?? currentSignalConsoleTheme().mintAccent
         let alpha: CGFloat = isNonLiveSource(source) ? 0.36 : 0.58
         let rail = NSBezierPath(
             roundedRect: NSRect(x: 7, y: statusImageSize.height - 2.8, width: statusImageSize.width - 14, height: 1.2),
@@ -1938,20 +2292,21 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func sourceIndicatorColor(_ source: String?) -> NSColor? {
+        let theme = currentSignalConsoleTheme()
         switch source {
         case "last_live":
-            return NSColor(calibratedRed: 1.00, green: 0.67, blue: 0.22, alpha: 0.95)
+            return theme.amberAccent
         case "local_snapshot":
-            return NSColor(calibratedRed: 0.38, green: 0.64, blue: 0.92, alpha: 0.72)
+            return theme.blueAccent.withAlphaComponent(0.72)
         case .some:
-            return NSColor(calibratedRed: 0.62, green: 0.62, blue: 0.68, alpha: 0.70)
+            return theme.textMuted.withAlphaComponent(0.70)
         case .none:
             return unavailableSourceColor()
         }
     }
 
     private func unavailableSourceColor() -> NSColor {
-        NSColor(calibratedRed: 1.00, green: 0.62, blue: 0.22, alpha: 0.90)
+        currentSignalConsoleTheme().amberAccent.withAlphaComponent(0.90)
     }
 
     private func isUnavailableStatus(fiveHourLeft: Int?, sevenDayLeft: Int?, source: String?) -> Bool {
@@ -2133,26 +2488,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func gaugePalette() -> GaugePalette {
-        if isDarkMenuBar() {
-            return GaugePalette(
-                background: NSColor(calibratedRed: 0.05, green: 0.11, blue: 0.12, alpha: 0.88),
-                border: NSColor(calibratedRed: 0.30, green: 0.62, blue: 0.58, alpha: 0.62),
-                track: NSColor.white.withAlphaComponent(0.18),
-                resetTrack: NSColor(calibratedRed: 1.00, green: 0.68, blue: 0.22, alpha: 0.24),
-                primaryText: NSColor.white.withAlphaComponent(0.94),
-                secondaryText: NSColor.white.withAlphaComponent(0.72),
-                mutedText: NSColor.white.withAlphaComponent(0.42)
-            )
-        }
-        return GaugePalette(
-            background: NSColor.white.withAlphaComponent(0.72),
-            border: NSColor.black.withAlphaComponent(0.22),
-            track: NSColor.black.withAlphaComponent(0.15),
-            resetTrack: NSColor(calibratedRed: 0.92, green: 0.50, blue: 0.12, alpha: 0.26),
-            primaryText: NSColor.black.withAlphaComponent(0.82),
-            secondaryText: NSColor.black.withAlphaComponent(0.58),
-            mutedText: NSColor.black.withAlphaComponent(0.34)
-        )
+        let theme = currentSignalConsoleTheme()
+        return isDarkMenuBar() ? theme.menuDarkPalette : theme.menuLightPalette
     }
 
     private func isDarkMenuBar() -> Bool {
@@ -2161,6 +2498,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func bucketedGaugeColor(_ value: Int?) -> NSColor {
+        if currentSignalConsoleThemeKey() == monoGraphiteThemeKey {
+            guard let value else {
+                return monoAccent(isDarkMenuBar() ? 0.74 : 0.34, alpha: 0.50)
+            }
+            let normalized = CGFloat(max(0, min(100, value))) / 100
+            let white = 0.34 + normalized * 0.52
+            return monoAccent(white, alpha: 0.96)
+        }
         guard let value else {
             return NSColor(calibratedWhite: isDarkMenuBar() ? 0.75 : 0.35, alpha: 0.5)
         }
@@ -2193,6 +2538,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func resetLaneColor(_ value: Int?) -> NSColor {
+        if currentSignalConsoleThemeKey() == monoGraphiteThemeKey {
+            guard let value else {
+                return monoAccent(isDarkMenuBar() ? 0.74 : 0.34, alpha: 0.50)
+            }
+            let normalized = CGFloat(max(0, min(100, value))) / 100
+            let white = 0.44 + normalized * 0.42
+            return monoAccent(white, alpha: 0.92)
+        }
         guard let value else {
             return NSColor(calibratedWhite: isDarkMenuBar() ? 0.75 : 0.35, alpha: 0.5)
         }
@@ -2444,6 +2797,32 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         )
     }
 
+    private func inlineUsageReportSummary(samples: [HistorySample], status: ServiceStatus?) -> InlineUsageReportSummary {
+        guard let summary = usageReportSummary(samples: samples, status: status) else {
+            return InlineUsageReportSummary(
+                fiveHourMovement: "collecting",
+                sevenDayMovement: "collecting",
+                sourceMix: "Need 2 samples for a 24h quota summary"
+            )
+        }
+        return InlineUsageReportSummary(
+            fiveHourMovement: inlineMovementText(first: summary.firstFiveHourLeft, latest: summary.latestFiveHourLeft),
+            sevenDayMovement: inlineMovementText(first: summary.firstSevenDayLeft, latest: summary.latestSevenDayLeft),
+            sourceMix: "Source: \(compactSourceCountsText(summary.sourceCounts))"
+        )
+    }
+
+    private func inlineMovementText(first: Int?, latest: Int?) -> String {
+        guard let first, let latest else {
+            return "--"
+        }
+        let delta = latest - first
+        if abs(delta) < 2 {
+            return "steady"
+        }
+        return delta > 0 ? "+\(delta)%" : "\(delta)%"
+    }
+
     private func usageReportText(samples: [HistorySample], status: ServiceStatus?) -> String? {
         guard let summary = usageReportSummary(samples: samples, status: status) else {
             return nil
@@ -2466,6 +2845,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             "This report estimates quota movement from local snapshots.",
             "It is not token accounting, billing, or spend.",
         ].joined(separator: "\n")
+    }
+
+    private func compactSourceCountsText(_ counts: [String: Int]) -> String {
+        if counts.isEmpty {
+            return "none"
+        }
+        return counts.keys.sorted().map { key in
+            "\(sourceDisplayName(key)) \(counts[key] ?? 0)"
+        }.joined(separator: " / ")
     }
 
     private func firstValue(in samples: [HistorySample], _ keyPath: KeyPath<HistorySample, Int?>) -> Int? {

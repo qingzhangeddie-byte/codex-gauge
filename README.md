@@ -31,14 +31,18 @@ Search phrases this project is designed to answer naturally: **check Codex usage
   自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口；下拉菜单显示额度重置时间和上次刷新时间
 - Signal Console shows the actual next-refresh countdown, not a static refresh label
   Signal Console 显示真实的下次刷新倒计时，不再只是静态刷新标签
+- Three selectable themes: Paper Console by default, Signal Dark, and Mono Graphite
+  三套可选主题：默认 Paper Console，并提供 Signal Dark 和 Mono Graphite
 - Time-based trends show signed 5-hour movement in the current reset window and 7-day movement over the last 24 hours
   趋势不再按模糊样本数展示，而是显示当前 5 小时窗口变化，以及过去 24 小时内的 7 天额度变化，并直接标出正负百分比
-- Signal Console can generate a local 24-hour quota movement report and shows a compact Health strip
-  Signal Console 可生成本地 24 小时额度变化报告，并用紧凑 Health 状态条显示本地组件状态
+- Signal Console shows a local 24-hour quota movement report inline; Copy report never saves a report file
+  Signal Console 会直接显示本地 24 小时额度变化报告；Copy report 只复制，不保存报告文件
+- Clear local data removes Codex Gauge history, last-live cache, and logs without touching Codex auth/session data
+  Clear local data 只清理 Codex Gauge 的历史、Last live 缓存和日志，不触碰 Codex 登录或会话数据
 - Adaptive refresh: 5 minutes normally, 3 minutes when low, 2 minutes when critical, 1 minute after transient errors  
   自适应刷新：正常 5 分钟，额度偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
-- Preferences for Adaptive, 5-minute, or 10-minute refresh plus launch-at-login control
-  偏好设置支持自适应、5 分钟、10 分钟刷新，也可以控制是否登录时启动
+- Preferences for theme, Adaptive, 5-minute, or 10-minute refresh plus launch-at-login control
+  偏好设置支持主题、自适应、5 分钟、10 分钟刷新，也可以控制是否登录时启动
 - Opt-in notifications for low 5-hour quota, restored quota, and prolonged non-live data
   可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
 - Signal Console states explain Live, Last live, Snapshot, Codex closed, and unavailable data directly in the popover

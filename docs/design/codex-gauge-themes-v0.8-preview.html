@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Codex Gauge Theme Preview v0.8</title>
+  <style>
+    :root {
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      width: 1280px;
+      height: 900px;
+      margin: 0;
+      overflow: hidden;
+      font-family: var(--font);
+      color: #eaf5ff;
+      background:
+        linear-gradient(122deg, transparent 0 19%, rgba(72, 199, 167, 0.25) 19% 30%, transparent 30% 100%),
+        linear-gradient(150deg, #071322 0%, #081928 48%, #102531 100%);
+    }
+
+    .stage {
+      padding: 38px 46px;
+      height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 24px;
+    }
+
+    .topline {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      color: rgba(234, 245, 255, 0.62);
+      font-size: 14px;
+    }
+
+    .brief {
+      width: 370px;
+      color: rgba(234, 245, 255, 0.66);
+      font-size: 13px;
+      line-height: 1.42;
+      text-align: right;
+    }
+
+    .themes {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .theme-card {
+      min-width: 0;
+      border-radius: 22px;
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      box-shadow: 0 26px 80px rgba(0, 0, 0, 0.34);
+    }
+
+    .theme-card.signal {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03)), #081620;
+    }
+
+    .theme-card.paper {
+      background: #f4f1e8;
+      color: #17221e;
+      border-color: rgba(35, 48, 43, 0.14);
+      box-shadow: 0 26px 80px rgba(4, 14, 18, 0.22);
+    }
+
+    .theme-card.mono {
+      background: #0d0d0d;
+      color: #eeeeee;
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .theme-head {
+      height: 64px;
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .theme-title {
+      font-size: 17px;
+      font-weight: 750;
+      letter-spacing: 0;
+    }
+
+    .theme-note {
+      margin-top: 5px;
+      max-width: 250px;
+      color: rgba(234, 245, 255, 0.58);
+      font-size: 12px;
+      line-height: 1.32;
+    }
+
+    .paper .theme-note { color: rgba(23, 34, 30, 0.58); }
+    .mono .theme-note { color: #9b9b9b; }
+
+    .badge {
+      flex: 0 0 auto;
+      height: 28px;
+      border-radius: 999px;
+      padding: 0 10px;
+      display: inline-flex;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(234, 245, 255, 0.72);
+    }
+
+    .paper .badge {
+      background: rgba(23, 34, 30, 0.08);
+      color: rgba(23, 34, 30, 0.66);
+    }
+
+    .mono .badge {
+      background: #2a2a2a;
+      color: #d8d8d8;
+    }
+
+    .menubar {
+      height: 46px;
+      border-radius: 14px;
+      margin-bottom: 14px;
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 9px;
+    }
+
+    .signal .menubar {
+      background: rgba(237, 247, 255, 0.09);
+      border: 1px solid rgba(237, 247, 255, 0.12);
+    }
+
+    .paper .menubar {
+      background: rgba(23, 34, 30, 0.06);
+      border: 1px solid rgba(23, 34, 30, 0.10);
+    }
+
+    .mono .menubar {
+      background: #181818;
+      border: 1px solid #303030;
+    }
+
+    .mini-widget {
+      width: 178px;
+      height: 32px;
+      border-radius: 9px;
+      display: grid;
+      align-content: center;
+      gap: 4px;
+      padding: 5px 8px;
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .signal .mini-widget {
+      background: rgba(237, 247, 255, 0.10);
+      border: 1px solid rgba(237, 247, 255, 0.13);
+    }
+
+    .paper .mini-widget {
+      background: rgba(255, 255, 255, 0.70);
+      border: 1px solid rgba(23, 34, 30, 0.12);
+    }
+
+    .mono .mini-widget {
+      background: #222;
+      border: 1px solid #383838;
+    }
+
+    .minirow {
+      display: grid;
+      grid-template-columns: 22px 64px 32px 32px;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .mini-rail {
+      height: 4px;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .signal .mini-rail { background: rgba(237, 247, 255, 0.18); }
+    .paper .mini-rail { background: rgba(23, 34, 30, 0.14); }
+    .mono .mini-rail { background: #4a4a4a; }
+
+    .mini-rail i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+    }
+
+    .signal .mini-rail i { background: linear-gradient(90deg, #4ff0ad, #b7f082); }
+    .signal .minirow.low .mini-rail i { background: linear-gradient(90deg, #ff5f66, #ff9562); }
+    .paper .mini-rail i { background: #2f8f6d; }
+    .paper .minirow.low .mini-rail i { background: #c0563f; }
+    .mono .mini-rail i { background: #d8d8d8; }
+    .mono .minirow.low .mini-rail i { background: #8c8c8c; }
+
+    .popover {
+      height: 560px;
+      border-radius: 18px;
+      padding: 18px 20px;
+      display: grid;
+      grid-template-rows: 30px 42px 126px 122px 118px 50px;
+      gap: 12px;
+    }
+
+    .signal .popover {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)), rgba(8, 18, 27, 0.96);
+      border: 1px solid rgba(173, 207, 235, 0.18);
+    }
+
+    .paper .popover {
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(23, 34, 30, 0.12);
+    }
+
+    .mono .popover {
+      background: #151515;
+      border: 1px solid #3a3a3a;
+    }
+
+    .header-row,
+    .status,
+    .quota,
+    .report,
+    .settings-row {
+      min-width: 0;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 760;
+    }
+
+    .source-pill {
+      height: 26px;
+      border-radius: 999px;
+      padding: 0 9px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 650;
+    }
+
+    .signal .source-pill { background: rgba(79, 240, 173, 0.13); color: #bdfce1; }
+    .paper .source-pill { background: rgba(47, 143, 109, 0.12); color: #22664f; }
+    .mono .source-pill { background: #272727; color: #d8d8d8; }
+
+    .status {
+      border-radius: 13px;
+      display: grid;
+      grid-template-columns: 98px 1fr 72px;
+      align-items: center;
+      gap: 9px;
+      padding: 0 12px;
+      font-size: 11px;
+    }
+
+    .signal .status { background: rgba(79, 240, 173, 0.08); border: 1px solid rgba(173, 207, 235, 0.18); }
+    .paper .status { background: rgba(47, 143, 109, 0.08); border: 1px solid rgba(47, 143, 109, 0.14); }
+    .mono .status { background: #202020; border: 1px solid #343434; }
+
+    .live-label { font-weight: 800; }
+    .signal .live-label { color: #4ff0ad; }
+    .paper .live-label { color: #257153; }
+    .mono .live-label { color: #f0f0f0; }
+
+    .status small {
+      color: rgba(234, 245, 255, 0.62);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .paper .status small { color: rgba(23, 34, 30, 0.58); }
+    .mono .status small { color: #9b9b9b; }
+
+    .next {
+      height: 26px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 780;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .signal .next { background: rgba(0, 0, 0, 0.16); }
+    .paper .next { background: rgba(23, 34, 30, 0.08); }
+    .mono .next { background: #0f0f0f; }
+
+    .quota {
+      border-radius: 16px;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .signal .quota { background: rgba(18, 34, 46, 0.88); border: 1px solid rgba(173, 207, 235, 0.18); }
+    .paper .quota { background: rgba(255, 255, 255, 0.64); border: 1px solid rgba(23, 34, 30, 0.10); }
+    .mono .quota { background: #1d1d1d; border: 1px solid #333; }
+
+    .quota-line {
+      display: grid;
+      grid-template-columns: 34px 1fr 42px;
+      gap: 12px;
+      align-items: center;
+      font-size: 11px;
+    }
+
+    .window {
+      font-size: 19px;
+      font-weight: 850;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .quota-text {
+      display: grid;
+      gap: 6px;
+    }
+
+    .rail {
+      height: 9px;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .signal .rail { background: rgba(237, 247, 255, 0.13); }
+    .paper .rail { background: rgba(23, 34, 30, 0.12); }
+    .mono .rail { background: #4a4a4a; }
+
+    .rail i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+    }
+
+    .signal .rail i { background: linear-gradient(90deg, #4ff0ad, #b7f082); }
+    .signal .quota-line.low .rail i { background: linear-gradient(90deg, #ff5f66, #ff9562); }
+    .paper .rail i { background: #2f8f6d; }
+    .paper .quota-line.low .rail i { background: #c0563f; }
+    .mono .rail i { background: #d8d8d8; }
+    .mono .quota-line.low .rail i { background: #8c8c8c; }
+
+    .percent {
+      text-align: right;
+      font-size: 16px;
+      font-weight: 850;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .signal .quota-line.low .percent { color: #ff5f66; }
+    .paper .quota-line.low .percent { color: #aa4432; }
+    .mono .quota-line.low .percent { color: #b8b8b8; }
+
+    .report {
+      display: grid;
+      grid-template-columns: 1fr 128px;
+      gap: 12px;
+    }
+
+    .report-main,
+    .clear-main {
+      border-radius: 15px;
+      padding: 12px;
+      min-width: 0;
+    }
+
+    .signal .report-main,
+    .signal .clear-main { background: rgba(255, 255, 255, 0.055); border: 1px solid rgba(173, 207, 235, 0.12); }
+    .paper .report-main,
+    .paper .clear-main { background: rgba(255, 255, 255, 0.58); border: 1px solid rgba(23, 34, 30, 0.10); }
+    .mono .report-main,
+    .mono .clear-main { background: #202020; border: 1px solid #343434; }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 820;
+      margin-bottom: 8px;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .metric {
+      height: 34px;
+      border-radius: 10px;
+      display: grid;
+      align-content: center;
+      padding: 0 9px;
+      font-size: 10px;
+    }
+
+    .signal .metric { background: rgba(0, 0, 0, 0.12); }
+    .paper .metric { background: rgba(23, 34, 30, 0.06); }
+    .mono .metric { background: #151515; }
+
+    .metric b {
+      margin-top: 2px;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .signal .metric.danger b { color: #ff5f66; }
+    .paper .metric.danger b { color: #aa4432; }
+    .mono .metric.danger b { color: #c7c7c7; }
+
+    .report-foot {
+      color: rgba(234, 245, 255, 0.54);
+      font-size: 9.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .paper .report-foot { color: rgba(23, 34, 30, 0.52); }
+    .mono .report-foot { color: #8d8d8d; }
+
+    .clear-copy {
+      color: rgba(234, 245, 255, 0.58);
+      font-size: 10.5px;
+      line-height: 1.32;
+      margin-bottom: 9px;
+    }
+
+    .paper .clear-copy { color: rgba(23, 34, 30, 0.58); }
+    .mono .clear-copy { color: #9a9a9a; }
+
+    .clear-button {
+      height: 30px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .signal .clear-button { background: rgba(255, 95, 102, 0.17); color: #ff9da2; }
+    .paper .clear-button { background: rgba(170, 68, 50, 0.11); color: #8e3326; }
+    .mono .clear-button { background: #303030; color: #eeeeee; }
+
+    .settings-row {
+      border-radius: 15px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 78px 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .signal .settings-row { background: rgba(255, 255, 255, 0.055); border: 1px solid rgba(173, 207, 235, 0.12); }
+    .paper .settings-row { background: rgba(255, 255, 255, 0.58); border: 1px solid rgba(23, 34, 30, 0.10); }
+    .mono .settings-row { background: #202020; border: 1px solid #343434; }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      padding: 4px;
+      border-radius: 12px;
+    }
+
+    .signal .segmented { background: rgba(0, 0, 0, 0.14); }
+    .paper .segmented { background: rgba(23, 34, 30, 0.08); }
+    .mono .segmented { background: #111; }
+
+    .segment {
+      height: 28px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 750;
+    }
+
+    .signal .segment.active { background: rgba(79, 240, 173, 0.22); color: #bdfce1; }
+    .paper .segment.active { background: rgba(47, 143, 109, 0.14); color: #22664f; }
+    .mono .segment.active { background: #3a3a3a; color: #fff; }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .action {
+      height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 720;
+    }
+
+    .signal .action { background: rgba(255, 255, 255, 0.055); border: 1px solid rgba(173, 207, 235, 0.10); }
+    .paper .action { background: rgba(23, 34, 30, 0.06); border: 1px solid rgba(23, 34, 30, 0.10); }
+    .mono .action { background: #202020; border: 1px solid #343434; }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <section class="topline">
+      <div>
+        <h1>Codex Gauge v0.8 concept board</h1>
+        <div class="subtitle">Visible report, clear local data, and selectable themes before app implementation.</div>
+      </div>
+      <div class="brief">Report is read-only inside the popover. Clear Local Data is guarded and local only. Theme selection lives in Preferences and applies to the menu bar plus Signal Console.</div>
+    </section>
+
+    <section class="themes">
+      <article class="theme-card signal">
+        <div class="theme-head">
+          <div>
+            <div class="theme-title">A. Signal Dark</div>
+            <div class="theme-note">Keep the current premium dark identity, but make the report visible and compact.</div>
+          </div>
+          <div class="badge">Dark</div>
+        </div>
+        <div class="menubar">
+          <div class="mini-widget">
+            <div class="minirow"><b>5h</b><span class="mini-rail"><i style="width:43%"></i></span><b>43%</b><span>2h41m</span></div>
+            <div class="minirow low"><b>7d</b><span class="mini-rail"><i style="width:12%"></i></span><b>12%</b><span>4d18h</span></div>
+          </div>
+        </div>
+        <div class="popover">
+          <div class="header-row"><span>Codex Gauge <span class="theme-note">Signal Console</span></span><span class="source-pill">Live</span></div>
+          <div class="status"><span class="live-label">Live signal</span><small>Auto refresh</small><span class="next">4:32</span></div>
+          <div class="quota">
+            <div class="quota-line"><span class="window">5h</span><span class="quota-text"><span>5-hour quota left</span><span class="rail"><i style="width:43%"></i></span></span><span class="percent">43%</span></div>
+            <div class="quota-line low"><span class="window">7d</span><span class="quota-text"><span>7-day quota left</span><span class="rail"><i style="width:12%"></i></span></span><span class="percent">12%</span></div>
+          </div>
+          <div class="report">
+            <div class="report-main">
+              <div class="section-title">24h Report</div>
+              <div class="metric-grid">
+                <div class="metric danger"><span>5h movement</span><b>-29%</b></div>
+                <div class="metric danger"><span>7d movement</span><b>-9%</b></div>
+              </div>
+              <div class="report-foot">18 live / 1 cache</div>
+            </div>
+            <div class="clear-main">
+              <div class="section-title">Local Data</div>
+              <div class="clear-copy">History, last-live cache, reports, and logs stay on this Mac.</div>
+              <div class="clear-button">Clear...</div>
+            </div>
+          </div>
+          <div class="settings-row"><span class="section-title">Theme</span><div class="segmented"><span class="segment active">Signal</span><span class="segment">Paper</span><span class="segment">Mono</span></div></div>
+          <div class="actions"><div class="action">Open Codex</div><div class="action">Refresh</div><div class="action">Preferences</div></div>
+        </div>
+      </article>
+
+      <article class="theme-card paper">
+        <div class="theme-head">
+          <div>
+            <div class="theme-title">B. Paper Console</div>
+            <div class="theme-note">A softer light option for people who keep macOS in light mode all day.</div>
+          </div>
+          <div class="badge">Default</div>
+        </div>
+        <div class="menubar">
+          <div class="mini-widget">
+            <div class="minirow"><b>5h</b><span class="mini-rail"><i style="width:43%"></i></span><b>43%</b><span>2h41m</span></div>
+            <div class="minirow low"><b>7d</b><span class="mini-rail"><i style="width:12%"></i></span><b>12%</b><span>4d18h</span></div>
+          </div>
+        </div>
+        <div class="popover">
+          <div class="header-row"><span>Codex Gauge <span class="theme-note">Signal Console</span></span><span class="source-pill">Live</span></div>
+          <div class="status"><span class="live-label">Live signal</span><small>Auto refresh</small><span class="next">4:32</span></div>
+          <div class="quota">
+            <div class="quota-line"><span class="window">5h</span><span class="quota-text"><span>5-hour quota left</span><span class="rail"><i style="width:43%"></i></span></span><span class="percent">43%</span></div>
+            <div class="quota-line low"><span class="window">7d</span><span class="quota-text"><span>7-day quota left</span><span class="rail"><i style="width:12%"></i></span></span><span class="percent">12%</span></div>
+          </div>
+          <div class="report">
+            <div class="report-main">
+              <div class="section-title">24h Report</div>
+              <div class="metric-grid">
+                <div class="metric danger"><span>5h movement</span><b>-29%</b></div>
+                <div class="metric danger"><span>7d movement</span><b>-9%</b></div>
+              </div>
+              <div class="report-foot">18 live / 1 cache</div>
+            </div>
+            <div class="clear-main">
+              <div class="section-title">Local Data</div>
+              <div class="clear-copy">History, last-live cache, reports, and logs stay on this Mac.</div>
+              <div class="clear-button">Clear...</div>
+            </div>
+          </div>
+          <div class="settings-row"><span class="section-title">Theme</span><div class="segmented"><span class="segment">Signal</span><span class="segment active">Paper</span><span class="segment">Mono</span></div></div>
+          <div class="actions"><div class="action">Open Codex</div><div class="action">Refresh</div><div class="action">Preferences</div></div>
+        </div>
+      </article>
+
+      <article class="theme-card mono">
+        <div class="theme-head">
+          <div>
+            <div class="theme-title">C. Mono Graphite</div>
+            <div class="theme-note">Only black, white, and grey. State is carried by density, labels, and contrast.</div>
+          </div>
+          <div class="badge">B/W</div>
+        </div>
+        <div class="menubar">
+          <div class="mini-widget">
+            <div class="minirow"><b>5h</b><span class="mini-rail"><i style="width:43%"></i></span><b>43%</b><span>2h41m</span></div>
+            <div class="minirow low"><b>7d</b><span class="mini-rail"><i style="width:12%"></i></span><b>12%</b><span>4d18h</span></div>
+          </div>
+        </div>
+        <div class="popover">
+          <div class="header-row"><span>Codex Gauge <span class="theme-note">Signal Console</span></span><span class="source-pill">Live</span></div>
+          <div class="status"><span class="live-label">Live signal</span><small>Auto refresh</small><span class="next">4:32</span></div>
+          <div class="quota">
+            <div class="quota-line"><span class="window">5h</span><span class="quota-text"><span>5-hour quota left</span><span class="rail"><i style="width:43%"></i></span></span><span class="percent">43%</span></div>
+            <div class="quota-line low"><span class="window">7d</span><span class="quota-text"><span>7-day quota left</span><span class="rail"><i style="width:12%"></i></span></span><span class="percent">12%</span></div>
+          </div>
+          <div class="report">
+            <div class="report-main">
+              <div class="section-title">24h Report</div>
+              <div class="metric-grid">
+                <div class="metric danger"><span>5h movement</span><b>-29%</b></div>
+                <div class="metric danger"><span>7d movement</span><b>-9%</b></div>
+              </div>
+              <div class="report-foot">18 live / 1 cache</div>
+            </div>
+            <div class="clear-main">
+              <div class="section-title">Local Data</div>
+              <div class="clear-copy">History, last-live cache, reports, and logs stay on this Mac.</div>
+              <div class="clear-button">Clear...</div>
+            </div>
+          </div>
+          <div class="settings-row"><span class="section-title">Theme</span><div class="segmented"><span class="segment">Signal</span><span class="segment">Paper</span><span class="segment active">Mono</span></div></div>
+          <div class="actions"><div class="action">Open Codex</div><div class="action">Refresh</div><div class="action">Preferences</div></div>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
