@@ -140,6 +140,11 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn('"Last live ·"', source)
         self.assertIn('case "last_live"', source)
         self.assertIn("drawSourceIndicator(source: source", source)
+        self.assertIn("drawStatusStateBadge(source: source", source)
+        self.assertIn("statusImageStateLabel(source: source", source)
+        self.assertIn('return "Cache"', source)
+        self.assertIn('return "Snapshot"', source)
+        self.assertIn('return "Open"', source)
         self.assertIn("sourceIndicatorColor", source)
         self.assertIn("Last live", source)
 
@@ -172,6 +177,29 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("launchAtLoginPreferenceChanged", source)
         self.assertIn("installLaunchAgentForCurrentApp", source)
         self.assertIn("removeLaunchAgentPlist", source)
+        self.assertIn("makeThemedUtilityContentView", source)
+        self.assertIn("ThemedUtilityPanelView", source)
+        self.assertIn("styleUtilityButton", source)
+
+    def test_native_app_has_first_run_setup_window(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn('firstRunSetupSeenKey = "firstRunSetupSeen"', source)
+        self.assertIn("firstRunSetupWindow", source)
+        self.assertIn("firstRunSetupPopover", source)
+        self.assertIn("showFirstRunSetupIfNeeded", source)
+        self.assertIn("showFirstRunSetupPopover", source)
+        self.assertIn("makeFirstRunSetupWindow", source)
+        self.assertIn("completeFirstRunSetup", source)
+        self.assertIn('"Start in menu bar"', source)
+        self.assertIn('"Local first. No cookies."', source)
+        self.assertIn('"Open Codex"', source)
+        self.assertIn('"Run Check"', source)
+        self.assertIn("orderFrontRegardless", source)
+        self.assertIn(".canJoinAllSpaces", source)
+        self.assertIn("show(relativeTo: button.bounds", source)
+        self.assertIn("firstRunSetupPopover?.performClose", source)
+        self.assertIn("UserDefaults.standard.set(true, forKey: firstRunSetupSeenKey)", source)
 
     def test_native_app_sends_opt_in_quota_notifications(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()

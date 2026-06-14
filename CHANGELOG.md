@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Added a first-run setup surface that explains the local-only model and links to Codex and Setup Doctor.
+- Restyled Preferences and Setup Doctor with the selected Signal Console theme.
+- Added explicit Cache, Snapshot, and Open state badges to non-live menu bar states.
+
 ## v0.8.0 - 2026-06-13
 
 - Added selectable Signal Console themes: Paper Console by default, Signal Dark, and Mono Graphite.

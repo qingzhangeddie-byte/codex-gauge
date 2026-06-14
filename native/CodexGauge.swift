@@ -392,6 +392,37 @@ private func monoGraphiteTheme() -> SignalConsoleTheme {
     )
 }
 
+private final class ThemedUtilityPanelView: NSView {
+    private let theme: SignalConsoleTheme
+
+    init(frame frameRect: NSRect, theme: SignalConsoleTheme) {
+        self.theme = theme
+        super.init(frame: frameRect)
+        wantsLayer = true
+        layer?.backgroundColor = theme.panelBackground.cgColor
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        theme.panelBackground.setFill()
+        bounds.fill()
+
+        let panel = bounds.insetBy(dx: 10, dy: 10)
+        let path = NSBezierPath(roundedRect: panel, xRadius: 18, yRadius: 18)
+        NSGradient(colors: [
+            theme.panelStrongBackground,
+            theme.panelBackground,
+        ])?.draw(in: path, angle: 90)
+        theme.panelBorder.setStroke()
+        path.lineWidth = 1
+        path.stroke()
+    }
+}
+
 private struct SignalConsoleModel {
     let planName: String
     let sourcePill: String
@@ -1419,6 +1450,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var popoverCountdownTimer: Timer?
     private var preferencesWindow: NSWindow?
     private var setupDoctorWindow: NSWindow?
+    private var firstRunSetupWindow: NSWindow?
+    private var firstRunSetupPopover: NSPopover?
     private var refreshPopup: NSPopUpButton?
     private var themePopup: NSPopUpButton?
     private var notificationsCheckbox: NSButton?
@@ -1468,6 +1501,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let refreshModeKey = "refreshMode"
     private let notificationsEnabledKey = "notificationsEnabled"
     private let launchAtLoginKey = "launchAtLogin"
+    private let firstRunSetupSeenKey = "firstRunSetupSeen"
     private let adaptiveRefreshMode = "adaptive"
     private let fiveMinuteRefreshMode = "5m"
     private let tenMinuteRefreshMode = "10m"
@@ -1507,6 +1541,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         setStatusImage(title: "Codex quota")
         rebuildMenu()
         refresh()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
+            self?.showFirstRunSetupIfNeeded()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -1773,6 +1810,61 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         window.center()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func showFirstRunSetupIfNeeded() {
+        let seen = UserDefaults.standard.bool(forKey: firstRunSetupSeenKey)
+        appendLog("first-run setup seen=\(seen)")
+        guard !seen else {
+            return
+        }
+        if let button = statusItem.button {
+            showFirstRunSetupPopover(from: button)
+            return
+        }
+        let window = firstRunSetupWindow ?? makeFirstRunSetupWindow()
+        firstRunSetupWindow = window
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
+        NSApp.activate(ignoringOtherApps: true)
+        appendLog("first-run setup shown")
+    }
+
+    private func showFirstRunSetupPopover(from button: NSStatusBarButton) {
+        let size = NSSize(width: 460, height: 360)
+        let controller = NSViewController()
+        controller.view = makeFirstRunSetupContentView(size: size)
+        controller.preferredContentSize = size
+
+        firstRunSetupPopover?.performClose(nil)
+        let popover = NSPopover()
+        popover.behavior = .applicationDefined
+        popover.animates = true
+        popover.appearance = NSAppearance(named: currentSignalConsoleTheme().appearance)
+        popover.contentSize = size
+        popover.contentViewController = controller
+        firstRunSetupPopover = popover
+        NSApp.activate(ignoringOtherApps: true)
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        NSApp.activate(ignoringOtherApps: true)
+        appendLog("first-run setup shown popover=\(popover.isShown) buttonWindow=\(button.window != nil)")
+        if !popover.isShown {
+            appendLog("first-run setup popover fallback=window")
+            let window = firstRunSetupWindow ?? makeFirstRunSetupWindow()
+            firstRunSetupWindow = window
+            window.center()
+            window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
+        }
+    }
+
+    @objc private func completeFirstRunSetup() {
+        UserDefaults.standard.set(true, forKey: firstRunSetupSeenKey)
+        firstRunSetupWindow?.close()
+        firstRunSetupWindow = nil
+        firstRunSetupPopover?.performClose(nil)
+        firstRunSetupPopover = nil
     }
 
     @objc private func openSetupDoctor() {
@@ -2058,7 +2150,112 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         defaults.set(isLaunchAgentConfigured(), forKey: launchAtLoginKey)
     }
 
+    private func makeThemedUtilityContentView(size: NSSize) -> ThemedUtilityPanelView {
+        ThemedUtilityPanelView(
+            frame: NSRect(origin: .zero, size: size),
+            theme: currentSignalConsoleTheme()
+        )
+    }
+
+    private func utilityLabel(_ text: String, frame: NSRect, size: CGFloat, weight: NSFont.Weight, color: NSColor) -> NSTextField {
+        let label = NSTextField(labelWithString: text)
+        label.font = NSFont.systemFont(ofSize: size, weight: weight)
+        label.textColor = color
+        label.frame = frame
+        if frame.height > 24 {
+            label.lineBreakMode = .byWordWrapping
+            label.cell?.wraps = true
+            label.cell?.usesSingleLineMode = false
+        }
+        return label
+    }
+
+    private func styleUtilityButton(_ button: NSButton, primary: Bool = false) {
+        let theme = currentSignalConsoleTheme()
+        button.isBordered = false
+        button.wantsLayer = true
+        button.layer?.cornerRadius = 9
+        button.layer?.backgroundColor = (primary ? theme.mintAccent : theme.commandButtonBackground).cgColor
+        button.attributedTitle = NSAttributedString(
+            string: button.title,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 12, weight: primary ? .semibold : .medium),
+                .foregroundColor: primary ? theme.buttonPrimaryText : theme.textPrimary,
+            ]
+        )
+    }
+
+    private func addUtilityStatusRow(to content: NSView, y: CGFloat, title: String, detail: String, state: String) {
+        let theme = currentSignalConsoleTheme()
+        let card = NSView(frame: NSRect(x: 24, y: y, width: content.bounds.width - 48, height: 36))
+        card.wantsLayer = true
+        card.layer?.cornerRadius = 10
+        card.layer?.backgroundColor = theme.commandButtonBackground.cgColor
+        card.layer?.borderColor = theme.panelBorder.withAlphaComponent(0.28).cgColor
+        card.layer?.borderWidth = 1
+        content.addSubview(card)
+
+        let dot = NSView(frame: NSRect(x: 12, y: 13, width: 10, height: 10))
+        dot.wantsLayer = true
+        dot.layer?.cornerRadius = 5
+        dot.layer?.backgroundColor = doctorStatusColor(state).cgColor
+        card.addSubview(dot)
+
+        card.addSubview(utilityLabel(title, frame: NSRect(x: 32, y: 13, width: 150, height: 16), size: 12, weight: .semibold, color: theme.textPrimary))
+        card.addSubview(utilityLabel(detail, frame: NSRect(x: 190, y: 13, width: card.bounds.width - 204, height: 16), size: 11, weight: .regular, color: theme.textSecondary))
+    }
+
+    private func makeFirstRunSetupContentView(size: NSSize) -> ThemedUtilityPanelView {
+        let theme = currentSignalConsoleTheme()
+        let content = makeThemedUtilityContentView(size: size)
+
+        content.addSubview(utilityLabel("Codex Gauge is ready", frame: NSRect(x: 28, y: 306, width: 260, height: 26), size: 18, weight: .semibold, color: theme.textPrimary))
+        content.addSubview(utilityLabel("Local first. No cookies.", frame: NSRect(x: 28, y: 280, width: 260, height: 18), size: 12, weight: .medium, color: theme.mintAccent))
+        content.addSubview(utilityLabel("Open Codex once, then Codex Gauge keeps your 5-hour and 7-day quota visible from the menu bar.", frame: NSRect(x: 28, y: 248, width: 400, height: 34), size: 12, weight: .regular, color: theme.textSecondary))
+
+        addUtilityStatusRow(to: content, y: 192, title: "Live source", detail: "Uses the local Codex app-server", state: "green")
+        addUtilityStatusRow(to: content, y: 148, title: "Menu bar", detail: "Refreshes hands-free after setup", state: "green")
+        addUtilityStatusRow(to: content, y: 104, title: "Privacy", detail: "No browser cookies or auth-file reads", state: "green")
+
+        let openCodex = NSButton(title: "Open Codex", target: self, action: #selector(openCodexApp))
+        openCodex.frame = NSRect(x: 28, y: 42, width: 116, height: 32)
+        styleUtilityButton(openCodex)
+        content.addSubview(openCodex)
+
+        let runCheck = NSButton(title: "Run Check", target: self, action: #selector(openSetupDoctor))
+        runCheck.frame = NSRect(x: 152, y: 42, width: 104, height: 32)
+        styleUtilityButton(runCheck)
+        content.addSubview(runCheck)
+
+        let start = NSButton(title: "Start in menu bar", target: self, action: #selector(completeFirstRunSetup))
+        start.frame = NSRect(x: 280, y: 42, width: 148, height: 32)
+        styleUtilityButton(start, primary: true)
+        content.addSubview(start)
+
+        return content
+    }
+
+    private func makeFirstRunSetupWindow() -> NSWindow {
+        let theme = currentSignalConsoleTheme()
+        let size = NSSize(width: 460, height: 360)
+        let window = NSWindow(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Codex Gauge Setup"
+        window.appearance = NSAppearance(named: theme.appearance)
+        window.level = .floating
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.isReleasedWhenClosed = false
+        window.contentView = makeFirstRunSetupContentView(size: size)
+
+        return window
+    }
+
     private func makePreferencesWindow() -> NSWindow {
+        let theme = currentSignalConsoleTheme()
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 420, height: 340),
             styleMask: [.titled, .closable],
@@ -2066,20 +2263,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             defer: false
         )
         window.title = "Codex Gauge Preferences"
+        window.appearance = NSAppearance(named: theme.appearance)
         window.isReleasedWhenClosed = false
 
-        let content = NSView(frame: NSRect(x: 0, y: 0, width: 420, height: 340))
+        let content = makeThemedUtilityContentView(size: NSSize(width: 420, height: 340))
         window.contentView = content
 
-        let title = NSTextField(labelWithString: "Codex Gauge")
-        title.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
-        title.frame = NSRect(x: 24, y: 294, width: 220, height: 24)
-        content.addSubview(title)
+        content.addSubview(utilityLabel("Codex Gauge", frame: NSRect(x: 24, y: 294, width: 220, height: 24), size: 16, weight: .semibold, color: theme.textPrimary))
 
-        let themeLabel = NSTextField(labelWithString: "Theme")
-        themeLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        themeLabel.frame = NSRect(x: 24, y: 252, width: 96, height: 22)
-        content.addSubview(themeLabel)
+        content.addSubview(utilityLabel("Theme", frame: NSRect(x: 24, y: 252, width: 96, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
 
         let themeSelect = NSPopUpButton(frame: NSRect(x: 132, y: 250, width: 180, height: 26), pullsDown: false)
         themeSelect.addItems(withTitles: ["Paper Console", "Signal Dark", "Mono Graphite"])
@@ -2091,10 +2283,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         content.addSubview(themeSelect)
         themePopup = themeSelect
 
-        let refreshLabel = NSTextField(labelWithString: "Refresh")
-        refreshLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        refreshLabel.frame = NSRect(x: 24, y: 212, width: 96, height: 22)
-        content.addSubview(refreshLabel)
+        content.addSubview(utilityLabel("Refresh", frame: NSRect(x: 24, y: 212, width: 96, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
 
         let popup = NSPopUpButton(frame: NSRect(x: 132, y: 210, width: 180, height: 26), pullsDown: false)
         popup.addItems(withTitles: ["Adaptive", "5 minutes", "10 minutes"])
@@ -2106,48 +2295,40 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         content.addSubview(popup)
         refreshPopup = popup
 
-        let notificationsLabel = NSTextField(labelWithString: "Notifications")
-        notificationsLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        notificationsLabel.frame = NSRect(x: 24, y: 168, width: 110, height: 22)
-        content.addSubview(notificationsLabel)
+        content.addSubview(utilityLabel("Notifications", frame: NSRect(x: 24, y: 168, width: 110, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
 
         let notifications = NSButton(checkboxWithTitle: "Quota notifications", target: self, action: #selector(notificationsPreferenceChanged))
         notifications.frame = NSRect(x: 132, y: 166, width: 220, height: 24)
+        notifications.contentTintColor = theme.textSecondary
         content.addSubview(notifications)
         notificationsCheckbox = notifications
 
-        let startupLabel = NSTextField(labelWithString: "Startup")
-        startupLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        startupLabel.frame = NSRect(x: 24, y: 128, width: 110, height: 22)
-        content.addSubview(startupLabel)
+        content.addSubview(utilityLabel("Startup", frame: NSRect(x: 24, y: 128, width: 110, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
 
         let login = NSButton(checkboxWithTitle: "Launch at login", target: self, action: #selector(launchAtLoginPreferenceChanged))
         login.frame = NSRect(x: 132, y: 126, width: 220, height: 24)
+        login.contentTintColor = theme.textSecondary
         content.addSubview(login)
         launchAtLoginCheckbox = login
 
-        let diagnosticsLabel = NSTextField(labelWithString: "Diagnostics")
-        diagnosticsLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        diagnosticsLabel.frame = NSRect(x: 24, y: 82, width: 110, height: 22)
-        content.addSubview(diagnosticsLabel)
+        content.addSubview(utilityLabel("Diagnostics", frame: NSRect(x: 24, y: 82, width: 110, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
 
         let testRefresh = NSButton(title: "Test Refresh", target: self, action: #selector(refreshNow))
         testRefresh.frame = NSRect(x: 132, y: 78, width: 92, height: 28)
+        styleUtilityButton(testRefresh)
         content.addSubview(testRefresh)
 
         let setupDoctor = NSButton(title: "Setup Doctor", target: self, action: #selector(openSetupDoctor))
         setupDoctor.frame = NSRect(x: 230, y: 78, width: 108, height: 28)
+        styleUtilityButton(setupDoctor)
         content.addSubview(setupDoctor)
 
         let diagnostics = NSButton(title: "Copy Diagnostics", target: self, action: #selector(copyDiagnostics))
         diagnostics.frame = NSRect(x: 132, y: 46, width: 136, height: 28)
+        styleUtilityButton(diagnostics)
         content.addSubview(diagnostics)
 
-        let footer = NSTextField(labelWithString: "Live, Last live, Snapshot, and unavailable labels stay visible in the menu.")
-        footer.font = NSFont.systemFont(ofSize: 11)
-        footer.textColor = .secondaryLabelColor
-        footer.frame = NSRect(x: 24, y: 18, width: 372, height: 18)
-        content.addSubview(footer)
+        content.addSubview(utilityLabel("Live, Last live, Snapshot, and unavailable labels stay visible in the menu.", frame: NSRect(x: 24, y: 18, width: 372, height: 18), size: 11, weight: .regular, color: theme.textMuted))
 
         return window
     }
@@ -2367,9 +2548,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func makeSetupDoctorWindow() -> NSWindow {
+        let theme = currentSignalConsoleTheme()
         let checks = runSetupDoctorChecks()
-        let rowHeight: CGFloat = 34
-        let height = 118 + CGFloat(checks.count) * rowHeight
+        let rowHeight: CGFloat = 42
+        let height = 142 + CGFloat(checks.count) * rowHeight
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 440, height: height),
             styleMask: [.titled, .closable],
@@ -2377,48 +2559,28 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             defer: false
         )
         window.title = "Setup Doctor"
+        window.appearance = NSAppearance(named: theme.appearance)
         window.isReleasedWhenClosed = false
-        let content = NSView(frame: NSRect(x: 0, y: 0, width: 440, height: height))
+        let content = makeThemedUtilityContentView(size: NSSize(width: 440, height: height))
         window.contentView = content
 
-        let title = NSTextField(labelWithString: "Setup Doctor")
-        title.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
-        title.frame = NSRect(x: 24, y: height - 42, width: 240, height: 24)
-        content.addSubview(title)
+        content.addSubview(utilityLabel("Setup Doctor", frame: NSRect(x: 24, y: height - 46, width: 240, height: 24), size: 16, weight: .semibold, color: theme.textPrimary))
+        content.addSubview(utilityLabel("Checks local pieces only. No cookies, auth files, prompts, responses, or logs are copied.", frame: NSRect(x: 24, y: height - 72, width: 392, height: 18), size: 11, weight: .regular, color: theme.textSecondary))
 
-        let subtitle = NSTextField(labelWithString: "Checks the local pieces Codex Gauge needs. No cookies, auth files, or logs are copied.")
-        subtitle.font = NSFont.systemFont(ofSize: 11)
-        subtitle.textColor = .secondaryLabelColor
-        subtitle.frame = NSRect(x: 24, y: height - 66, width: 392, height: 18)
-        content.addSubview(subtitle)
-
-        var y = height - 104
+        var y = height - 118
         for check in checks {
-            let dot = NSView(frame: NSRect(x: 26, y: y + 9, width: 10, height: 10))
-            dot.wantsLayer = true
-            dot.layer?.backgroundColor = doctorStatusColor(check.state).cgColor
-            dot.layer?.cornerRadius = 5
-            content.addSubview(dot)
-
-            let label = NSTextField(labelWithString: check.title)
-            label.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-            label.frame = NSRect(x: 50, y: y + 12, width: 160, height: 17)
-            content.addSubview(label)
-
-            let detail = NSTextField(labelWithString: check.detail)
-            detail.font = NSFont.systemFont(ofSize: 12)
-            detail.textColor = .secondaryLabelColor
-            detail.frame = NSRect(x: 218, y: y + 11, width: 198, height: 18)
-            content.addSubview(detail)
+            addUtilityStatusRow(to: content, y: y, title: check.title, detail: check.detail, state: check.state)
             y -= rowHeight
         }
 
         let refresh = NSButton(title: "Run Check", target: self, action: #selector(openSetupDoctor))
         refresh.frame = NSRect(x: 24, y: 20, width: 94, height: 28)
+        styleUtilityButton(refresh)
         content.addSubview(refresh)
 
         let diagnostics = NSButton(title: "Copy Diagnostics", target: self, action: #selector(copyDiagnostics))
         diagnostics.frame = NSRect(x: 124, y: 20, width: 136, height: 28)
+        styleUtilityButton(diagnostics, primary: true)
         content.addSubview(diagnostics)
 
         return window
@@ -2627,6 +2789,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         frame.stroke()
         drawSignalSourceRail(source: source, palette: palette)
         drawSourceIndicator(source: source, palette: palette)
+        drawStatusStateBadge(source: source, palette: palette)
 
         if isUnavailableStatus(fiveHourLeft: fiveHourLeft, sevenDayLeft: sevenDayLeft, source: source) {
             drawUnavailableGauge(palette: palette)
@@ -2656,6 +2819,40 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         )
         color.setFill()
         marker.fill()
+    }
+
+    private func drawStatusStateBadge(source: String?, palette: GaugePalette) {
+        guard isNonLiveSource(source) || source == nil else {
+            return
+        }
+        let label = statusImageStateLabel(source: source)
+        let color = sourceIndicatorColor(source) ?? unavailableSourceColor()
+        let width: CGFloat = label == "Snapshot" ? 42 : 32
+        let rect = NSRect(x: 7, y: 16.2, width: width, height: 5.8)
+        let badge = NSBezierPath(roundedRect: rect, xRadius: 2.9, yRadius: 2.9)
+        color.withAlphaComponent(0.18).setFill()
+        badge.fill()
+        color.withAlphaComponent(0.55).setStroke()
+        badge.lineWidth = 0.7
+        badge.stroke()
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 4.8, weight: .bold),
+            .foregroundColor: palette.primaryText,
+        ]
+        (label as NSString).draw(at: NSPoint(x: rect.minX + 3.5, y: rect.minY + 0.4), withAttributes: attrs)
+    }
+
+    private func statusImageStateLabel(source: String?) -> String {
+        switch source {
+        case "last_live":
+            return "Cache"
+        case "local_snapshot":
+            return "Snapshot"
+        case nil:
+            return "Open"
+        default:
+            return "Live"
+        }
     }
 
     private func drawSignalSourceRail(source: String?, palette: GaugePalette) {

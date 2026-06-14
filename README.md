@@ -60,6 +60,10 @@ Search phrases this project is designed to answer naturally: **check Codex usage
   Signal Console 显示真实的下次刷新倒计时，不再只是静态刷新标签
 - Three selectable themes: Paper Console by default, Signal Dark, and Mono Graphite
   三套可选主题：默认 Paper Console，并提供 Signal Dark 和 Mono Graphite
+- First-run setup explains the local-only model and points new users to Codex, Setup Doctor, and the menu bar
+  首次运行设置页会解释本地优先模式，并引导新用户打开 Codex、运行 Setup Doctor、开始使用菜单栏
+- Preferences and Setup Doctor use the same selected Signal Console theme
+  Preferences 和 Setup Doctor 会跟随当前选择的 Signal Console 主题
 - Time-based trends show signed 5-hour movement in the current reset window and 7-day movement over the last 24 hours
   趋势不再按模糊样本数展示，而是显示当前 5 小时窗口变化，以及过去 24 小时内的 7 天额度变化，并直接标出正负百分比
 - Signal Console shows a local 24-hour quota movement report inline; Copy report never saves a report file
@@ -74,6 +78,8 @@ Search phrases this project is designed to answer naturally: **check Codex usage
   可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
 - Signal Console states explain Live, Last live, Snapshot, Codex closed, and unavailable data directly in the popover
   Signal Console 会在弹出面板解释 Live、Last live、Snapshot、Codex closed 和不可用状态
+- Menu bar states mark Cache, Snapshot, and Open explicitly so stale data is not confused with Live
+  菜单栏会明确标记 Cache、Snapshot 和 Open 状态，避免把非实时数据误认为 Live
 - Setup Doctor and Copy Diagnostics help debug local setup without copying prompts, cookies, auth files, or logs
   Setup Doctor 和 Copy Diagnostics 可帮助排查本地设置，但不会复制 prompts、Cookie、auth 文件或日志
 - Self-contained app bundle with its helper inside `Contents/Resources`  
