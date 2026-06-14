@@ -109,6 +109,8 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         script = script_path.read_text()
 
         self.assertIn("CodexGauge-$APP_VERSION.zip", script)
+        self.assertIn("COPYFILE_DISABLE=1", script)
+        self.assertIn("ditto --norsrc --noextattr -c -k --keepParent", script)
         self.assertIn("shasum -a 256", script)
         self.assertIn("Install Codex Gauge.command", script)
         self.assertIn("README-INSTALL.txt", script)

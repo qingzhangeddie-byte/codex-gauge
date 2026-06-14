@@ -4,8 +4,10 @@
 
 - Added selectable Signal Console themes: Paper Console by default, Signal Dark, and Mono Graphite.
 - Made the local 24-hour usage report visible directly inside the Signal Console.
+- Added a compact Today summary to the report card and copied report.
+- Added live-age wording for Live, Last live, and Snapshot states so stale data is obvious.
 - Changed usage report generation to copy-only; Codex Gauge no longer saves a report Markdown file.
-- Added Clear local data for Codex Gauge history, Last live cache, and logs without touching Codex auth/session data.
+- Added Clear local data for Codex Gauge history, Last live cache, legacy report files, and logs without touching Codex auth/session data.
 - Updated app version metadata and release instructions for the theme release.
 
 ## v0.7.0 - 2026-06-13

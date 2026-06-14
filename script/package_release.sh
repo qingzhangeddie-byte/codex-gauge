@@ -127,7 +127,7 @@ README
 
 (
   cd "$RELEASE_DIR"
-  ditto -c -k --keepParent "$PACKAGE_NAME" "$ZIP_PATH"
+  COPYFILE_DISABLE=1 ditto --norsrc --noextattr -c -k --keepParent "$PACKAGE_NAME" "$ZIP_PATH"
   shasum -a 256 "$ZIP_PATH" >"$CHECKSUM_PATH"
 )
 

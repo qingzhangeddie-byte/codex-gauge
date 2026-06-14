@@ -62,7 +62,7 @@ private struct UsageReportSummary {
 private struct InlineUsageReportSummary {
     let fiveHourMovement: String
     let sevenDayMovement: String
-    let sourceMix: String
+    let todaySummary: String
 }
 
 private struct SignalConsoleLayout {
@@ -143,7 +143,7 @@ private struct SignalConsoleLayout {
         return NSRect(x: trend.maxX + gutter, y: trend.minY, width: bounds.width - margin - trend.maxX - gutter, height: trend.height)
     }
 
-    var reportSourceTextRect: NSRect {
+    var reportTodayTextRect: NSRect {
         let card = reportCardRect
         return NSRect(x: card.minX + innerInset, y: card.minY + 34, width: 212, height: 12)
     }
@@ -412,10 +412,11 @@ private struct SignalConsoleModel {
     let trendContextText: String
     let reportFiveHourMovement: String
     let reportSevenDayMovement: String
-    let reportSourceMix: String
+    let reportTodaySummary: String
     let healthSummaryText: String
     let doctorChecks: [DoctorCheck]
     let lastRefreshText: String
+    let liveAgeText: String
     let nextRefreshText: String
     let source: String?
     let isUnavailable: Bool
@@ -676,11 +677,11 @@ private final class SignalConsolePanelView: NSView {
         let layout = SignalConsoleLayout(bounds: bounds)
         let card = layout.reportCardRect
         let metricRects = layout.reportMetricRects
-        let source = layout.reportSourceTextRect
+        let source = layout.reportTodayTextRect
         drawRoundedRect(card, radius: 15, fill: panelSoftBackground, stroke: panelBorder.withAlphaComponent(0.50))
         drawText("Usage Report", x: card.minX + 16, y: card.minY + 14, width: 108, height: 18, size: 12, weight: .bold, color: textPrimary)
         drawText("local only", x: card.maxX - 62, y: card.minY + 14, width: 46, height: 18, size: 10, weight: .regular, color: textMuted)
-        drawText(model.reportSourceMix, x: source.minX, y: source.minY, width: source.width, height: source.height, size: 8.8, weight: .regular, color: textMuted)
+        drawText(model.reportTodaySummary, x: source.minX, y: source.minY, width: source.width, height: source.height, size: 8.8, weight: .regular, color: textMuted)
         drawReportMetric(label: "5h move", value: model.reportFiveHourMovement, rect: metricRects[0])
         drawReportMetric(label: "7d move", value: model.reportSevenDayMovement, rect: metricRects[1])
     }
@@ -897,7 +898,14 @@ private final class SignalConsolePanelView: NSView {
         if model.isRefreshing {
             return "Refreshing quota now."
         }
-        return "Codex open · refreshes every 5 min"
+        switch model.source {
+        case "last_live":
+            return "Last live \(model.liveAgeText) · retrying"
+        case "local_snapshot":
+            return "Snapshot \(model.liveAgeText) · open Codex"
+        default:
+            return "Live \(model.liveAgeText) · refreshes every 5 min"
+        }
     }
 
     private func shortTrendText(_ text: String) -> String {
@@ -1280,7 +1288,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             unavailable: false,
             reportFive: "-8%",
             reportSeven: "-3%",
-            sourceMix: "Source: Live 12",
+            todaySummary: "Today 12 · 5h -8% · 7d -3%",
             health: "5 OK"
         )),
         ("codex-closed", signalConsolePreviewModel(
@@ -1298,7 +1306,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             unavailable: true,
             reportFive: "collecting",
             reportSeven: "collecting",
-            sourceMix: "Need 2 samples for a 24h quota summary",
+            todaySummary: "Today collecting · need 2 samples",
             health: "3 OK · 1 check"
         )),
         ("last-live", signalConsolePreviewModel(
@@ -1316,7 +1324,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             unavailable: false,
             reportFive: "-21%",
             reportSeven: "-6%",
-            sourceMix: "Source: Live 8 / Last live 2",
+            todaySummary: "Today 10 · 5h -21% · 7d -6%",
             health: "4 OK · 1 optional"
         )),
         ("low-quota", signalConsolePreviewModel(
@@ -1334,7 +1342,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             unavailable: false,
             reportFive: "-81%",
             reportSeven: "-18%",
-            sourceMix: "Source: Live 18",
+            todaySummary: "Today 18 · 5h -81% · 7d -18%",
             health: "5 OK"
         )),
     ]
@@ -1361,7 +1369,7 @@ private func signalConsolePreviewModel(
     unavailable: Bool,
     reportFive: String,
     reportSeven: String,
-    sourceMix: String,
+    todaySummary: String,
     health: String
 ) -> SignalConsoleModel {
     SignalConsoleModel(
@@ -1384,7 +1392,7 @@ private func signalConsolePreviewModel(
         trendContextText: unavailable ? "Open Codex to start collecting live samples" : "Based on 12 live samples from 09:12 to 21:12",
         reportFiveHourMovement: reportFive,
         reportSevenDayMovement: reportSeven,
-        reportSourceMix: sourceMix,
+        reportTodaySummary: todaySummary,
         healthSummaryText: health,
         doctorChecks: [
             DoctorCheck(title: "Codex process", state: unavailable ? "yellow" : "green", detail: unavailable ? "Closed" : "Open"),
@@ -1394,6 +1402,7 @@ private func signalConsolePreviewModel(
             DoctorCheck(title: "Last fetch", state: unavailable ? "grey" : "green", detail: unavailable ? "--" : "OK"),
         ],
         lastRefreshText: unavailable ? "none" : "21:12",
+        liveAgeText: unavailable ? "unknown" : "2m ago",
         nextRefreshText: unavailable ? "1:00" : "4:58",
         source: source,
         isUnavailable: unavailable,
@@ -1453,6 +1462,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let runtimeLogFileName = "CodexGauge-runtime.log"
     private let historyFileName = "CodexGauge-history.json"
     private let lastLiveCacheFileName = "last-live-status.json"
+    private let legacyUsageReportFileName = "CodexGauge-usage-report.md"
     private let launchAgentLabel = "app.codexgauge.menubar"
     private let launchAgentPlistName = "app.codexgauge.menubar.plist"
     private let refreshModeKey = "refreshMode"
@@ -1607,6 +1617,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             let status = snapshot.codex
             let unavailable = isUnavailableStatus(status)
             let title = signalStateTitle(status)
+            let statusAgeText = relativeAgeText(status.dataTime ?? snapshot.updatedAt, now: now)
             let fiveHourSamples = currentFiveHourWindowSamples(from: samples, resetEpoch: status.fiveHourReset, now: now)
             let sevenDaySamples = lastDaySamples
             let fiveHourHistory = quotaHistoryValues(fiveHourSamples, \.fiveHourLeft)
@@ -1632,10 +1643,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 trendContextText: trendContextText(samples: lastDaySamples, latestSource: status.source),
                 reportFiveHourMovement: inlineReport.fiveHourMovement,
                 reportSevenDayMovement: inlineReport.sevenDayMovement,
-                reportSourceMix: inlineReport.sourceMix,
+                reportTodaySummary: inlineReport.todaySummary,
                 healthSummaryText: healthSummaryText(doctorChecks),
                 doctorChecks: doctorChecks,
                 lastRefreshText: shortTime(status.dataTime ?? snapshot.updatedAt),
+                liveAgeText: statusAgeText,
                 nextRefreshText: nextRefreshCountdownText(now: now),
                 source: status.source,
                 isUnavailable: unavailable,
@@ -1671,10 +1683,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             trendContextText: trendContextText(samples: lastDaySamples, latestSource: nil),
             reportFiveHourMovement: inlineReport.fiveHourMovement,
             reportSevenDayMovement: inlineReport.sevenDayMovement,
-            reportSourceMix: inlineReport.sourceMix,
+            reportTodaySummary: inlineReport.todaySummary,
             healthSummaryText: healthSummaryText(doctorChecks),
             doctorChecks: doctorChecks,
             lastRefreshText: "none",
+            liveAgeText: "unknown",
             nextRefreshText: nextRefreshCountdownText(now: now),
             source: nil,
             isUnavailable: true,
@@ -1803,7 +1816,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     @objc private func clearLocalData() {
         let alert = NSAlert()
         alert.messageText = "Clear local Codex Gauge data?"
-        alert.informativeText = "This clears local history, last-live cache, and logs. It does not touch Codex, browser cookies, Keychain, or auth files."
+        alert.informativeText = "This clears local history, last-live cache, legacy report files, and logs. It does not touch Codex, browser cookies, Keychain, or auth files."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Clear Data")
         alert.addButton(withTitle: "Cancel")
@@ -1848,6 +1861,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             logPath,
             "\(logPath).1",
             "\(supportDir)/\(lastLiveCacheFileName)",
+            "\(supportDir)/\(legacyUsageReportFileName)",
             "\(supportDir)/launchd.out.log",
             "\(supportDir)/launchd.err.log",
         ]
@@ -3104,11 +3118,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func historyDate(_ sample: HistorySample) -> Date? {
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let plain = ISO8601DateFormatter()
-        plain.formatOptions = [.withInternetDateTime]
-        return fractional.date(from: sample.time) ?? plain.date(from: sample.time)
+        isoDate(sample.time)
     }
 
     private func historySamples(since start: Date, from samples: [HistorySample]) -> [HistorySample] {
@@ -3118,6 +3128,17 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             }
             return date >= start
         }
+    }
+
+    private var localCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        return calendar
+    }
+
+    private func todaySamples(from samples: [HistorySample], now: Date = Date()) -> [HistorySample] {
+        let start = localCalendar.startOfDay(for: now)
+        return historySamples(since: start, from: samples)
     }
 
     private func currentFiveHourWindowSamples(from samples: [HistorySample], resetEpoch: Double?, now: Date) -> [HistorySample] {
@@ -3171,14 +3192,26 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return InlineUsageReportSummary(
                 fiveHourMovement: "collecting",
                 sevenDayMovement: "collecting",
-                sourceMix: "Need 2 samples for a 24h quota summary"
+                todaySummary: todayUsageSummary(samples: samples)
             )
         }
         return InlineUsageReportSummary(
             fiveHourMovement: inlineMovementText(first: summary.firstFiveHourLeft, latest: summary.latestFiveHourLeft),
             sevenDayMovement: inlineMovementText(first: summary.firstSevenDayLeft, latest: summary.latestSevenDayLeft),
-            sourceMix: "Source: \(compactSourceCountsText(summary.sourceCounts))"
+            todaySummary: todayUsageSummary(samples: samples, now: summary.generatedAt)
         )
+    }
+
+    private func todayUsageSummary(samples: [HistorySample], now: Date = Date()) -> String {
+        let usable = todaySamples(from: samples, now: now).filter { sample in
+            historyDate(sample) != nil && (sample.fiveHourLeft != nil || sample.sevenDayLeft != nil)
+        }
+        guard usable.count >= 2 else {
+            return "Today collecting · need 2 samples"
+        }
+        let five = inlineMovementText(first: firstValue(in: usable, \.fiveHourLeft), latest: latestValue(in: usable, \.fiveHourLeft))
+        let seven = inlineMovementText(first: firstValue(in: usable, \.sevenDayLeft), latest: latestValue(in: usable, \.sevenDayLeft))
+        return "Today \(usable.count) · 5h \(five) · 7d \(seven)"
     }
 
     private func inlineMovementText(first: Int?, latest: Int?) -> String {
@@ -3211,6 +3244,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             "## Quota movement estimate",
             movementLine(label: "5-hour", first: summary.firstFiveHourLeft, latest: summary.latestFiveHourLeft, largestDrop: summary.largestFiveHourDrop),
             movementLine(label: "7-day", first: summary.firstSevenDayLeft, latest: summary.latestSevenDayLeft, largestDrop: summary.largestSevenDayDrop),
+            "",
+            "## Today",
+            todayUsageSummary(samples: samples, now: summary.generatedAt),
             "",
             "## Source mix",
             sourceCountsText(summary.sourceCounts),
@@ -3482,12 +3518,36 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         return String(compact[..<end]) + "..."
     }
 
-    private func shortTime(_ value: String) -> String {
+    private func isoDate(_ value: String) -> Date? {
         let fractional = ISO8601DateFormatter()
         fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let plain = ISO8601DateFormatter()
         plain.formatOptions = [.withInternetDateTime]
-        let date = fractional.date(from: value) ?? plain.date(from: value)
+        return fractional.date(from: value) ?? plain.date(from: value)
+    }
+
+    private func relativeAgeText(_ value: String?, now: Date = Date()) -> String {
+        guard let value, let date = isoDate(value) else {
+            return "unknown"
+        }
+        let seconds = max(0, Int(now.timeIntervalSince(date)))
+        if seconds < 60 {
+            return "now"
+        }
+        let minutes = seconds / 60
+        if minutes < 60 {
+            return "\(minutes)m ago"
+        }
+        let hours = minutes / 60
+        if hours < 48 {
+            return "\(hours)h ago"
+        }
+        let days = max(2, hours / 24)
+        return "\(days)d ago"
+    }
+
+    private func shortTime(_ value: String) -> String {
+        let date = isoDate(value)
         guard let date else {
             return value
         }

@@ -112,7 +112,7 @@ class SignalConsoleUXTests(unittest.TestCase):
             "Clear data",
         ]:
             self.assertIn(f'"{label}"', source)
-        self.assertIn("24h quota summary", source)
+        self.assertIn("Today collecting", source)
         self.assertIn("drawTrendContext", source)
         self.assertIn("drawReportSection", source)
         self.assertIn("drawHealthRibbon", source)
@@ -142,7 +142,7 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("drawStatusStrip", source)
         self.assertIn("drawHealthRibbon", source)
         self.assertIn("SignalConsoleLayout", source)
-        self.assertIn('"Codex open · refreshes every 5 min"', source)
+        self.assertIn('"Live \\(model.liveAgeText) · refreshes every 5 min"', source)
         self.assertNotIn("drawCommandButton", source)
         self.assertNotIn('drawSectionLabel("Status"', source)
         self.assertNotIn('drawSectionLabel("Reset"', source)
@@ -336,6 +336,8 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("## Summary", source)
         self.assertIn("reportHeadline(summary)", source)
         self.assertIn("Quota movement estimate", source)
+        self.assertIn("## Today", source)
+        self.assertIn("todayUsageSummary", source)
         self.assertIn("Stale/unavailable periods", source)
         self.assertIn("nonLiveSampleCount", source)
         self.assertIn("liveSampleCount", source)
@@ -350,20 +352,21 @@ class SignalConsoleUXTests(unittest.TestCase):
 
         self.assertIn("reportFiveHourMovement", source)
         self.assertIn("reportSevenDayMovement", source)
-        self.assertIn("reportSourceMix", source)
+        self.assertIn("reportTodaySummary", source)
         self.assertIn("inlineUsageReportSummary", source)
+        self.assertIn("localCalendar.startOfDay", source)
         self.assertIn("drawReportMetric", source)
         self.assertIn('"Copy report"', source)
         self.assertIn("NSPasteboard.general.setString(report, forType: .string)", source)
-        self.assertNotIn("CodexGauge-usage-report.md", source)
+        self.assertIn("legacyUsageReportFileName", source)
         self.assertNotIn("report.write(to:", source)
 
     def test_usage_report_actions_do_not_overlap_source_text(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         card_height = self._first_float(r"var trendCardRect: NSRect \{\n        NSRect\(x: margin, y: 274, width: 248, height: ([0-9.]+)\)", source)
-        source_offset = self._first_float(r"return NSRect\(x: card\.minX \+ innerInset, y: card\.minY \+ ([0-9.]+), width: 212, height: 12\)", source)
-        source_height = self._first_float(r"return NSRect\(x: card\.minX \+ innerInset, y: card\.minY \+ 34, width: 212, height: ([0-9.]+)\)", source)
+        source_offset = self._first_float(r"var reportTodayTextRect: NSRect \{\n        let card = reportCardRect\n        return NSRect\(x: card\.minX \+ innerInset, y: card\.minY \+ ([0-9.]+), width: 212, height: 12\)", source)
+        source_height = self._first_float(r"var reportTodayTextRect: NSRect \{\n        let card = reportCardRect\n        return NSRect\(x: card\.minX \+ innerInset, y: card\.minY \+ 34, width: 212, height: ([0-9.]+)\)", source)
         copy_from_bottom = self._first_float(r"return NSRect\(x: card\.minX \+ 18, y: card\.maxY - ([0-9.]+), width: 96, height: 30\)", source)
         clear_from_bottom = self._first_float(r"return NSRect\(x: card\.minX \+ 122, y: card\.maxY - ([0-9.]+), width: 120, height: 30\)", source)
 
@@ -378,10 +381,11 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("performClearLocalData", source)
         self.assertIn("localDataPathsForClearing", source)
         self.assertIn('"last-live-status.json"', source)
+        self.assertIn('"CodexGauge-usage-report.md"', source)
         self.assertIn("runtimeLogFileName", source)
         self.assertIn("historyFileName", source)
         self.assertIn("FileManager.default.removeItem(atPath:", source)
-        self.assertIn("This clears local history, last-live cache, and logs.", source)
+        self.assertIn("This clears local history, last-live cache, legacy report files, and logs.", source)
         self.assertNotIn('removeItem(atPath: NSHomeDirectory() + "/.codex/auth.json"', source)
         self.assertNotIn("browser cookies path", source.lower())
 
