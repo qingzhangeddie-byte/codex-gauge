@@ -58,6 +58,8 @@ Search phrases this project is designed to answer naturally: **check Codex usage
   可选 SSD 温度后缀会在 macOS 暴露传感器时显示本机硬盘温度；SSD 温度显示可以在 Preferences 里关闭
 - SSD temperature is explained as Normal, Warm, or Hot in the dropdown, diagnostics, and Setup Doctor
   SSD 温度会在下拉菜单、诊断和 Setup Doctor 里标注为 Normal、Warm 或 Hot
+- 1-second local SSD temperature history renders as a smooth 60-second temperature curve in the Movement section
+  1 秒本地 SSD 温度历史会在 Movement 区域显示为平滑的 60 秒温度曲线
 - Custom Signal Console popover with status, quota, reset timing, trend, doctor checks, diagnostics, and actions
   自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口；下拉菜单显示额度重置时间和上次刷新时间
 - Signal Console shows the actual next-refresh countdown, not a static refresh label
@@ -74,6 +76,8 @@ Search phrases this project is designed to answer naturally: **check Codex usage
   Signal Console 会直接显示本地 24 小时额度变化报告；Copy report 只复制，不保存报告文件
 - Clear local data removes Codex Gauge history, last-live cache, and logs without touching Codex auth/session data
   Clear local data 只清理 Codex Gauge 的历史、Last live 缓存和日志，不触碰 Codex 登录或会话数据
+- Clear local data removes temperature history together with quota history, cache, and logs
+  Clear local data 会同时删除温度历史、额度历史、缓存和日志
 - Adaptive refresh: 5 minutes normally, 3 minutes when low, 2 minutes when critical, 1 minute after transient errors  
   自适应刷新：正常 5 分钟，额度偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
 - Preferences for theme, Adaptive, 5-minute, or 10-minute refresh plus launch-at-login control
@@ -169,7 +173,7 @@ The generated zip includes `CodexGauge.app`, `Install Codex Gauge.command`, and 
 | Signal quality | Shows both 5-hour and 7-day quota instead of one vague number |
 | Refresh behavior | Adaptive refresh instead of constant polling: 5 minutes normally, 3 minutes when low, 2 minutes when critical, with quick retry after transient errors |
 | Preferences | Built-in refresh cadence, notifications, and launch-at-login controls |
-| Optional SSD temperature | Menu bar SSD chip can be hidden; diagnostics still label the sensor as Normal, Warm, or Hot |
+| Optional SSD temperature | Menu bar SSD chip can be hidden; diagnostics still label the sensor as Normal, Warm, or Hot, and the Signal Console can draw a local 60-second curve |
 | Notifications | Opt-in alerts for the moments users actually care about |
 | Signal Console | Explains whether data is live, cached, snapshot-based, or unavailable |
 | Setup Doctor | Local checks for Codex app, helper, live data, LaunchAgent, and notifications |
