@@ -35,7 +35,7 @@ bash install.sh
 - 分段信号条让菜单栏里的额度健康状态更直观，同时不会变成很占位置的大组件
 - 可选 SSD 温度后缀会在 macOS 暴露传感器时显示本机硬盘温度，也可以在 Preferences 里关闭
 - 下拉菜单、诊断和 Setup Doctor 会把 SSD 温度标注为 Normal、Warm 或 Hot
-- 1 秒本地 SSD 温度历史会在 Movement 区域显示为平滑的 60 秒温度曲线
+- 1 秒本地 SSD 温度历史会在 Movement 区域显示为平滑的 10 分钟温度曲线，并进行 24 小时本地保留
 - 自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口
 - Signal Console 显示真实的下次刷新倒计时，不再只是静态刷新标签
 - 三套可选主题：默认 Paper Console，并提供 Signal Dark 和 Mono Graphite
@@ -114,7 +114,7 @@ open native/dist/release
 | 信息密度 | 同时展示 5 小时和 7 天额度 |
 | 刷新策略 | 根据额度余量自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后快速重试 |
 | 偏好设置 | 内置刷新频率、通知、登录时启动控制 |
-| 可选 SSD 温度 | 菜单栏 SSD 温度 chip 可以隐藏；诊断里仍会标注 Normal、Warm 或 Hot；Signal Console 会显示本地 60 秒温度曲线 |
+| 可选 SSD 温度 | 菜单栏 SSD 温度 chip 可以隐藏；诊断里仍会标注 Normal、Warm 或 Hot；Signal Console 会显示本地 10 分钟温度曲线，并进行 24 小时本地保留 |
 | 通知 | 只在用户主动开启后提醒关键额度状态 |
 | Signal Console | 直接说明数据是实时、缓存、快照还是不可用 |
 | Setup Doctor | 检查 Codex App、helper、实时数据、LaunchAgent 和通知权限 |

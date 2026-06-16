@@ -89,7 +89,8 @@ class PublicReadmePackageTests(unittest.TestCase):
             "Optional SSD temperature",
             "Normal, Warm, or Hot",
             "1-second local SSD temperature history",
-            "smooth 60-second temperature curve",
+            "smooth 10-minute temperature curve",
+            "24-hour local retention",
             "Clear local data removes temperature history",
             "actual next-refresh countdown",
             "Codex closed",
@@ -189,7 +190,8 @@ class PublicReadmePackageTests(unittest.TestCase):
         self.assertTrue(readme.startswith("# Codex Gauge\n"))
         self.assertIn("简单、安全的 Codex 菜单栏额度仪表", readme)
         self.assertIn("1 秒本地 SSD 温度历史", readme)
-        self.assertIn("60 秒温度曲线", readme)
+        self.assertIn("10 分钟温度曲线", readme)
+        self.assertIn("24 小时本地保留", readme)
         self.assertIn("git clone https://github.com/qingzhangeddie-byte/codex-gauge.git", readme)
         for phrase in [
             "## FAQ",

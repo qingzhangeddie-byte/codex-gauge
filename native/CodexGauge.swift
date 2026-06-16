@@ -50,7 +50,7 @@ private func temperatureHistorySummaryText(_ samples: [TemperatureSample]) -> St
     if valid.count == 1 {
         return "collecting"
     }
-    return "last 60s"
+    return "last 10m"
 }
 
 private struct DoctorCheck {
@@ -751,7 +751,7 @@ private final class SignalConsolePanelView: NSView {
 
     private func drawTemperatureMovementRow(in card: NSRect) {
         let row = NSRect(x: card.minX + 16, y: card.maxY - 35, width: card.width - 32, height: 25)
-        let curveRect = NSRect(x: row.minX + 116, y: row.minY + 4, width: 52, height: 19)
+        let curveRect = NSRect(x: row.minX + 86, y: row.minY + 4, width: row.width - 134, height: 19)
         let color = temperatureCurveColor(samples: model.temperatureHistory)
         drawText("SSD temp", x: row.minX, y: row.minY + 1, width: 58, height: 12, size: 8.6, weight: .bold, color: color)
         drawText(model.temperatureHistoryText, x: row.minX, y: row.minY + 14, width: temperatureStatusTextWidth, height: 10, size: 7.5, weight: .regular, color: textMuted)
@@ -761,6 +761,8 @@ private final class SignalConsolePanelView: NSView {
         } else {
             drawTemperatureCurve(samples: model.temperatureHistory, rect: curveRect)
         }
+        drawText("10m", x: curveRect.minX, y: row.minY + 16, width: 20, height: 8, size: 5.8, weight: .regular, color: textMuted)
+        drawText("now", x: curveRect.maxX - 18, y: row.minY + 16, width: 20, height: 8, size: 5.8, weight: .regular, color: textMuted)
     }
 
     private func drawTemperatureCurve(samples: [TemperatureSample], rect: NSRect) {
@@ -770,6 +772,7 @@ private final class SignalConsolePanelView: NSView {
             return
         }
         let color = temperatureCurveColor(samples: samples)
+        drawTemperatureGraphGrid(rect: rect)
         let line = NSBezierPath()
         line.move(to: points[0])
         for index in 1..<points.count {
@@ -793,6 +796,26 @@ private final class SignalConsolePanelView: NSView {
         line.lineCapStyle = .round
         color.withAlphaComponent(0.92).setStroke()
         line.stroke()
+        drawTemperatureEndpoint(points.last ?? points[0], color: color)
+    }
+
+    private func drawTemperatureGraphGrid(rect: NSRect) {
+        let baseline = NSBezierPath()
+        baseline.move(to: NSPoint(x: rect.minX, y: rect.midY))
+        baseline.line(to: NSPoint(x: rect.maxX, y: rect.midY))
+        baseline.lineWidth = 0.8
+        baseline.setLineDash([2, 3], count: 2, phase: 0)
+        textMuted.withAlphaComponent(0.30).setStroke()
+        baseline.stroke()
+    }
+
+    private func drawTemperatureEndpoint(_ point: NSPoint, color: NSColor) {
+        let dot = NSBezierPath(ovalIn: NSRect(x: point.x - 2, y: point.y - 2, width: 4, height: 4))
+        color.withAlphaComponent(0.95).setFill()
+        dot.fill()
+        NSColor.white.withAlphaComponent(0.60).setStroke()
+        dot.lineWidth = 0.7
+        dot.stroke()
     }
 
     private func drawTemperatureUnavailableCurve(rect: NSRect) {
@@ -820,7 +843,7 @@ private final class SignalConsolePanelView: NSView {
         guard values.count >= 2 else {
             return []
         }
-        let shown = Array(values.suffix(60))
+        let shown = values
         let minimum = CGFloat(shown.min() ?? 0)
         let maximum = CGFloat(shown.max() ?? 1)
         let range = max(4, maximum - minimum)
@@ -1596,9 +1619,13 @@ private func previewTemperatureSamples(unavailable: Bool = false) -> [Temperatur
             TemperatureSample(time: "2026-06-16T21:12:00Z", temperatureC: nil, ok: false),
         ]
     }
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime]
+    let end = Date(timeIntervalSince1970: 1_781_600_000)
     let values = [41, 42, 42, 43, 42, 44, 43, 45, 44, 44, 43, 42]
     return values.enumerated().map { index, value in
-        TemperatureSample(time: String(format: "2026-06-16T21:11:%02dZ", index * 5), temperatureC: value, ok: true)
+        let offset = Double(index - values.count + 1) * 50
+        return TemperatureSample(time: formatter.string(from: end.addingTimeInterval(offset)), temperatureC: value, ok: true)
     }
 }
 
@@ -1625,6 +1652,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var lastValidSSDTemperatureAt: Date?
     private var temperatureTimer: Timer?
     private var temperatureReadInFlight = false
+    private var lastTemperaturePersistAt: Date?
     private var temperatureSamples: [TemperatureSample] = []
     private var lastError: String?
     private var isRefreshing = false
@@ -1645,10 +1673,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let maxHistorySamples = 720
     private let historyRetentionWindow: TimeInterval = 48 * 60 * 60
     private let temperatureSampleInterval: TimeInterval = 1
-    private let temperatureHistoryWindow: TimeInterval = 60
-    private let maxTemperatureSamples = 90
+    private let temperatureGraphWindow: TimeInterval = 10 * 60
+    private let temperatureHistoryRetentionWindow: TimeInterval = 24 * 60 * 60
+    private let temperaturePersistInterval: TimeInterval = 60
+    private let maxTemperatureSamples = 24 * 60 * 60
     private let ssdTemperatureReadTimeout: TimeInterval = 0.8
-    private let ssdTemperatureDisplayGraceInterval: TimeInterval = 10
+    private let ssdTemperatureDisplayGraceInterval: TimeInterval = 10 * 60
     private let statusItemWidth: CGFloat = 174
     private let statusImageSize = NSSize(width: 168, height: 22)
     private let menuBarTemperatureChipRect = NSRect(x: 82, y: 4.9, width: 27, height: 12.2)
@@ -1736,6 +1766,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         temperatureTimer?.invalidate()
         animationTimer?.invalidate()
         popoverCountdownTimer?.invalidate()
+        writeTemperatureSamples(temperatureSamples)
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -1846,7 +1877,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             let fiveHourHistory = quotaHistoryValues(fiveHourSamples, \.fiveHourLeft)
             let sevenDayHistory = quotaHistoryValues(sevenDaySamples, \.sevenDayLeft)
             let inlineReport = inlineUsageReportSummary(samples: lastDaySamples, status: status)
-            let retainedTemperatureHistory = retainedTemperatureSamples(temperatureSamples)
+            let retainedTemperatureHistory = temperatureGraphSamples(temperatureSamples)
             return SignalConsoleModel(
                 planName: status.ok ? planTitle(status) : "Codex Gauge",
                 sourcePill: "Source: Menu Bar",
@@ -1890,7 +1921,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let fiveHourHistory = quotaHistoryValues(fiveHourSamples, \.fiveHourLeft)
         let sevenDayHistory = quotaHistoryValues(sevenDaySamples, \.sevenDayLeft)
         let inlineReport = inlineUsageReportSummary(samples: lastDaySamples, status: nil)
-        let retainedTemperatureHistory = retainedTemperatureSamples(temperatureSamples)
+        let retainedTemperatureHistory = temperatureGraphSamples(temperatureSamples)
         return SignalConsoleModel(
             planName: "Codex Gauge",
             sourcePill: "Source: Menu Bar",
@@ -3777,17 +3808,33 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func appendTemperatureSample(_ status: SSDTemperatureStatus?) {
+        let now = Date()
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
         let sample = TemperatureSample(
-            time: formatter.string(from: Date()),
+            time: formatter.string(from: now),
             temperatureC: status?.ok == true ? status?.temperatureC : nil,
             ok: status?.ok == true && status?.temperatureC != nil
         )
         temperatureSamples.append(sample)
         temperatureSamples = retainedTemperatureSamples(temperatureSamples)
+        guard shouldPersistTemperatureSamples(now: now) else {
+            return
+        }
         let samplesSnapshot = temperatureSamples
         persistTemperatureSamplesAsync(samplesSnapshot)
+    }
+
+    private func shouldPersistTemperatureSamples(now: Date = Date()) -> Bool {
+        guard let lastTemperaturePersistAt else {
+            self.lastTemperaturePersistAt = now
+            return true
+        }
+        guard now.timeIntervalSince(lastTemperaturePersistAt) >= temperaturePersistInterval else {
+            return false
+        }
+        self.lastTemperaturePersistAt = now
+        return true
     }
 
     private func persistTemperatureSamplesAsync(_ samples: [TemperatureSample]) {
@@ -3824,7 +3871,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func retainedTemperatureSamples(_ samples: [TemperatureSample], now: Date = Date()) -> [TemperatureSample] {
-        let cutoff = now.addingTimeInterval(-temperatureHistoryWindow)
+        let cutoff = now.addingTimeInterval(-temperatureHistoryRetentionWindow)
         let recent = samples.filter { sample in
             guard let date = isoDate(sample.time) else {
                 return false
@@ -3832,6 +3879,16 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return date >= cutoff
         }
         return Array(recent.suffix(maxTemperatureSamples))
+    }
+
+    private func temperatureGraphSamples(_ samples: [TemperatureSample], now: Date = Date()) -> [TemperatureSample] {
+        let cutoff = now.addingTimeInterval(-temperatureGraphWindow)
+        return samples.filter { sample in
+            guard let date = isoDate(sample.time) else {
+                return false
+            }
+            return date >= cutoff
+        }
     }
 
     private func retainedHistorySamples(_ samples: [HistorySample], now: Date = Date()) -> [HistorySample] {

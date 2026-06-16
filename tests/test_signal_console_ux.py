@@ -508,8 +508,10 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("private var temperatureReadInFlight = false", source)
         self.assertIn("private var temperatureSamples: [TemperatureSample] = []", source)
         self.assertIn("private let temperatureSampleInterval: TimeInterval = 1", source)
-        self.assertIn("private let temperatureHistoryWindow: TimeInterval = 60", source)
-        self.assertIn("private let maxTemperatureSamples = 90", source)
+        self.assertIn("private let temperatureGraphWindow: TimeInterval = 10 * 60", source)
+        self.assertIn("private let temperatureHistoryRetentionWindow: TimeInterval = 24 * 60 * 60", source)
+        self.assertIn("private let temperaturePersistInterval: TimeInterval = 60", source)
+        self.assertIn("private let maxTemperatureSamples = 24 * 60 * 60", source)
         self.assertIn("startTemperatureSampler()", source)
         self.assertIn("sampleTemperature()", source)
         self.assertIn("Timer(timeInterval: temperatureSampleInterval, repeats: true)", source)
@@ -555,10 +557,11 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("temperatureC: status?.ok == true ? status?.temperatureC : nil", append_body)
         self.assertIn("ok: status?.ok == true && status?.temperatureC != nil", append_body)
         self.assertNotIn("writeTemperatureSamples", append_body)
+        self.assertIn("shouldPersistTemperatureSamples(now: now)", append_body)
         self.assertIn("temperatureQueue.async", persist_body)
         self.assertIn("self.writeTemperatureSamples(samples)", persist_body)
         self.assertIn("isoDate(sample.time)", retained_body)
-        self.assertIn("temperatureHistoryWindow", retained_body)
+        self.assertIn("temperatureHistoryRetentionWindow", retained_body)
         self.assertIn("suffix(maxTemperatureSamples)", retained_body)
         self.assertNotIn("readSSDTemperature()", finish_body)
         self.assertNotIn("readSSDTemperature()", setup_doctor_body)
@@ -569,7 +572,7 @@ class SignalConsoleUXTests(unittest.TestCase):
 
         self.assertIn("private var lastValidSSDTemperature: SSDTemperatureStatus?", source)
         self.assertIn("private var lastValidSSDTemperatureAt: Date?", source)
-        self.assertIn("private let ssdTemperatureDisplayGraceInterval: TimeInterval =", source)
+        self.assertIn("private let ssdTemperatureDisplayGraceInterval: TimeInterval = 10 * 60", source)
         self.assertIn("private func updateLastValidSSDTemperature", source)
         self.assertIn("private func ssdTemperatureForDisplay(now: Date = Date()) -> SSDTemperatureStatus?", source)
         self.assertIn("now.timeIntervalSince(lastValidSSDTemperatureAt) <= ssdTemperatureDisplayGraceInterval", source)
@@ -598,20 +601,23 @@ class SignalConsoleUXTests(unittest.TestCase):
             "temperatureHistory: [TemperatureSample]",
             "currentTemperatureText: String",
             "temperatureHistoryText: String",
-            "let retainedTemperatureHistory = retainedTemperatureSamples(temperatureSamples)",
+            "let retainedTemperatureHistory = temperatureGraphSamples(temperatureSamples)",
             "temperatureHistory: retainedTemperatureHistory",
             "currentTemperatureText(status: ssdTemperatureForDisplay(), samples: retainedTemperatureHistory)",
             "temperatureHistoryText: temperatureHistorySummaryText(retainedTemperatureHistory)",
             '"SSD temp"',
-            '"last 60s"',
+            '"last 10m"',
             '"SSD temp unavailable"',
             'return "collecting"',
             "valid.count == 1",
             "temperatureStatusTextWidth",
             "drawTemperatureCurve",
+            "drawTemperatureGraphGrid",
+            "drawTemperatureEndpoint",
             "smoothedTemperaturePoints",
             "temperatureCurveColor",
             "drawTemperatureUnavailableCurve",
+            "temperatureGraphSamples",
         ]:
             self.assertIn(token, source)
 
@@ -622,13 +628,15 @@ class SignalConsoleUXTests(unittest.TestCase):
 
         self.assertIn('return "SSD temp unavailable"', summary_body)
         self.assertIn('return "collecting"', summary_body)
-        self.assertIn('return "last 60s"', summary_body)
+        self.assertIn('return "last 10m"', summary_body)
         self.assertIn("valid.count == 1", summary_body)
         self.assertIn("let temperatureStatusTextWidth: CGFloat = 112", source)
         self.assertIn("width: temperatureStatusTextWidth", movement_body)
+        self.assertIn('drawText("10m"', movement_body)
+        self.assertIn('drawText("now"', movement_body)
         self.assertIn('if model.temperatureHistoryText == "SSD temp unavailable" || model.temperatureHistoryText == "collecting"', movement_body)
-        self.assertEqual(snapshot_branch.count("retainedTemperatureSamples(temperatureSamples)"), 1)
-        self.assertEqual(unavailable_branch.count("retainedTemperatureSamples(temperatureSamples)"), 1)
+        self.assertEqual(snapshot_branch.count("temperatureGraphSamples(temperatureSamples)"), 1)
+        self.assertEqual(unavailable_branch.count("temperatureGraphSamples(temperatureSamples)"), 1)
 
     def test_signal_console_previews_derive_health_summary_from_visible_checks(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()

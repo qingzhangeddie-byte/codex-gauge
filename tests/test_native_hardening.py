@@ -73,8 +73,10 @@ class NativeHardeningTests(unittest.TestCase):
 
         self.assertIn('temperatureHistoryFileName = "CodexGauge-temperature-history.json"', source)
         self.assertIn("temperatureHistoryPath", source)
-        self.assertIn("maxTemperatureSamples = 90", source)
-        self.assertIn("temperatureHistoryWindow: TimeInterval = 60", source)
+        self.assertIn("maxTemperatureSamples = 24 * 60 * 60", source)
+        self.assertIn("temperatureGraphWindow: TimeInterval = 10 * 60", source)
+        self.assertIn("temperatureHistoryRetentionWindow: TimeInterval = 24 * 60 * 60", source)
+        self.assertIn("temperaturePersistInterval: TimeInterval = 60", source)
         self.assertIn("ssdTemperatureReadTimeout", source)
         self.assertIn("Date().addingTimeInterval(ssdTemperatureReadTimeout)", source)
         self.assertIn("process.terminate()", source)
