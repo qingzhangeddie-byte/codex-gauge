@@ -42,6 +42,13 @@ private struct TemperatureSample: Codable {
     let ok: Bool
 }
 
+private struct SystemMetricSample: Codable {
+    let time: String
+    let cpuPercent: Int?
+    let ramPercent: Int?
+    let ok: Bool
+}
+
 private func temperatureHistorySummaryText(_ samples: [TemperatureSample]) -> String {
     let valid = samples.filter { $0.ok && $0.temperatureC != nil }
     if valid.isEmpty {
@@ -51,6 +58,13 @@ private func temperatureHistorySummaryText(_ samples: [TemperatureSample]) -> St
         return "collecting"
     }
     return "last 10m"
+}
+
+private func systemMetricPercentText(_ value: Int?) -> String {
+    guard let value else {
+        return "--"
+    }
+    return "\(max(0, min(100, value)))%"
 }
 
 private struct DoctorCheck {
@@ -481,6 +495,9 @@ private struct SignalConsoleModel {
     let temperatureHistory: [TemperatureSample]
     let currentTemperatureText: String
     let temperatureHistoryText: String
+    let systemMetricHistory: [SystemMetricSample]
+    let cpuUsageText: String
+    let ramUsageText: String
     let reportFiveHourMovement: String
     let reportSevenDayMovement: String
     let reportTodaySummary: String
@@ -718,6 +735,7 @@ private final class SignalConsolePanelView: NSView {
         drawTrendContext()
         drawTrendRow(label: "5h", text: model.fiveHourTrendText, values: model.fiveHourHistory, y: 326)
         drawTrendRow(label: "7d", text: model.sevenDayTrendText, values: model.sevenDayHistory, y: 348)
+        drawSystemMetricMovementRows(in: card)
         drawTemperatureMovementRow(in: card)
     }
 
@@ -729,8 +747,8 @@ private final class SignalConsolePanelView: NSView {
 
     private func drawTrendRow(label: String, text: String, values: [Int], y: CGFloat) {
         let signalText = "\(label) \(trendSignalText(values: values, fallback: text))"
-        drawText(signalText, x: 36, y: y - 2, width: 86, height: 16, size: 10, weight: .bold, color: trendSignalColor(values: values), mono: true)
-        drawTrendSparkline(values: values, rect: NSRect(x: 128, y: y - 4, width: 76, height: 18))
+        drawText(signalText, x: 36, y: y - 2, width: 56, height: 16, size: 9.5, weight: .bold, color: trendSignalColor(values: values), mono: true)
+        drawTrendSparkline(values: values, rect: NSRect(x: 94, y: y - 4, width: 52, height: 18))
         drawTrendDeltaText(values: values, y: y)
     }
 
@@ -738,15 +756,72 @@ private final class SignalConsolePanelView: NSView {
         let text = trendDeltaText(values)
         drawText(
             text,
-            x: 212,
+            x: 150,
             y: y,
-            width: 42,
+            width: 36,
             height: 16,
             size: text.count > 6 ? 7.8 : 9.5,
             weight: .semibold,
             color: trendDeltaTextColor(values: values),
             mono: true
         )
+    }
+
+    private func drawSystemMetricMovementRows(in card: NSRect) {
+        let cpuValues = model.systemMetricHistory.compactMap { $0.cpuPercent }
+        let ramValues = model.systemMetricHistory.compactMap { $0.ramPercent }
+        let cpuColor = systemMetricLineColor(label: "CPU")
+        let ramColor = systemMetricLineColor(label: "RAM")
+        drawSystemMetricMovementRow(label: "CPU", valueText: model.cpuUsageText, values: cpuValues, color: cpuColor, rect: NSRect(x: card.maxX - 76, y: card.minY + 47, width: 60, height: 17))
+        drawSystemMetricMovementRow(label: "RAM", valueText: model.ramUsageText, values: ramValues, color: ramColor, rect: NSRect(x: card.maxX - 76, y: card.minY + 68, width: 60, height: 17))
+    }
+
+    private func drawSystemMetricMovementRow(label: String, valueText: String, values: [Int], color: NSColor, rect: NSRect) {
+        drawText(label, x: rect.minX, y: rect.minY, width: 24, height: 10, size: 7.2, weight: .bold, color: color)
+        drawText(valueText, x: rect.maxX - 28, y: rect.minY, width: 28, height: 10, size: 7.2, weight: .bold, color: valueText == "--" ? textMuted : textPrimary, mono: true)
+        drawSystemMetricSparkline(values: values, rect: NSRect(x: rect.minX, y: rect.minY + 10, width: rect.width, height: 6), color: color)
+    }
+
+    private func drawSystemMetricSparkline(values: [Int], rect: NSRect, color: NSColor) {
+        let baseline = NSBezierPath()
+        baseline.move(to: NSPoint(x: rect.minX, y: rect.midY))
+        baseline.line(to: NSPoint(x: rect.maxX, y: rect.midY))
+        baseline.lineWidth = 0.8
+        baseline.setLineDash([2, 3], count: 2, phase: 0)
+        textMuted.withAlphaComponent(0.26).setStroke()
+        baseline.stroke()
+
+        guard values.count >= 2 else {
+            return
+        }
+        let shown = Array(values.suffix(28))
+        let path = NSBezierPath()
+        for (index, value) in shown.enumerated() {
+            let x = rect.minX + rect.width * CGFloat(index) / CGFloat(max(1, shown.count - 1))
+            let y = rect.maxY - rect.height * clampedSystemMetricFraction(value)
+            let point = NSPoint(x: x, y: y)
+            if index == 0 {
+                path.move(to: point)
+            } else {
+                path.line(to: point)
+            }
+        }
+        path.lineWidth = 1.15
+        path.lineCapStyle = .round
+        path.lineJoinStyle = .round
+        color.withAlphaComponent(0.86).setStroke()
+        path.stroke()
+    }
+
+    private func clampedSystemMetricFraction(_ value: Int) -> CGFloat {
+        CGFloat(max(0, min(100, value))) / 100.0
+    }
+
+    private func systemMetricLineColor(label: String) -> NSColor {
+        if theme.key == monoGraphiteThemeKey {
+            return textSecondary
+        }
+        return label == "CPU" ? theme.blueAccent : theme.mintAccent
     }
 
     private func drawTemperatureMovementRow(in card: NSRect) {
@@ -1570,6 +1645,7 @@ private func signalConsolePreviewModel(
     todaySummary: String
 ) -> SignalConsoleModel {
     let temperatureHistory = previewTemperatureSamples(unavailable: unavailable)
+    let systemMetricHistory = previewSystemMetricSamples(unavailable: unavailable)
     let doctorChecks = [
         DoctorCheck(title: "Codex process", state: unavailable ? "yellow" : "green", detail: unavailable ? "Closed" : "Open"),
         DoctorCheck(title: "Menu bar source", state: "green", detail: "OK"),
@@ -1599,6 +1675,9 @@ private func signalConsolePreviewModel(
         temperatureHistory: temperatureHistory,
         currentTemperatureText: unavailable ? "--" : "42°C",
         temperatureHistoryText: temperatureHistorySummaryText(temperatureHistory),
+        systemMetricHistory: systemMetricHistory,
+        cpuUsageText: systemMetricPercentText(systemMetricHistory.last?.cpuPercent),
+        ramUsageText: systemMetricPercentText(systemMetricHistory.last?.ramPercent),
         reportFiveHourMovement: reportFive,
         reportSevenDayMovement: reportSeven,
         reportTodaySummary: todaySummary,
@@ -1611,6 +1690,28 @@ private func signalConsolePreviewModel(
         isUnavailable: unavailable,
         isRefreshing: false
     )
+}
+
+private func previewSystemMetricSamples(unavailable: Bool = false) -> [SystemMetricSample] {
+    if unavailable {
+        return [
+            SystemMetricSample(time: "2026-06-16T21:12:00Z", cpuPercent: nil, ramPercent: nil, ok: false),
+        ]
+    }
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime]
+    let end = Date(timeIntervalSince1970: 1_781_600_000)
+    let cpuValues = [18, 22, 20, 28, 31, 26, 24, 33, 29, 25, 21, 19]
+    let ramValues = [58, 59, 61, 60, 62, 64, 63, 65, 64, 62, 61, 60]
+    return cpuValues.enumerated().map { index, cpu in
+        let offset = Double(index - cpuValues.count + 1) * 50
+        return SystemMetricSample(
+            time: formatter.string(from: end.addingTimeInterval(offset)),
+            cpuPercent: cpu,
+            ramPercent: ramValues[index],
+            ok: true
+        )
+    }
 }
 
 private func previewTemperatureSamples(unavailable: Bool = false) -> [TemperatureSample] {
@@ -1632,6 +1733,7 @@ private func previewTemperatureSamples(unavailable: Bool = false) -> [Temperatur
 private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let temperatureQueue = DispatchQueue(label: "app.codexgauge.temperature", qos: .utility)
+    private let systemMetricsQueue = DispatchQueue(label: "app.codexgauge.system-metrics", qos: .utility)
     private let menu = NSMenu()
     private var signalPopover: NSPopover?
     private var timer: Timer?
@@ -1651,9 +1753,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var lastValidSSDTemperature: SSDTemperatureStatus?
     private var lastValidSSDTemperatureAt: Date?
     private var temperatureTimer: Timer?
+    private var systemMetricsTimer: Timer?
     private var temperatureReadInFlight = false
     private var lastTemperaturePersistAt: Date?
     private var temperatureSamples: [TemperatureSample] = []
+    private var systemMetricSamples: [SystemMetricSample] = []
+    private var lastCPUTicks: [UInt64]?
     private var lastError: String?
     private var isRefreshing = false
     private var allowTermination = false
@@ -1677,11 +1782,16 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let temperatureHistoryRetentionWindow: TimeInterval = 24 * 60 * 60
     private let temperaturePersistInterval: TimeInterval = 60
     private let maxTemperatureSamples = 24 * 60 * 60
+    private let systemMetricSampleInterval: TimeInterval = 5
+    private let systemMetricGraphWindow: TimeInterval = 10 * 60
+    private let systemMetricRetentionWindow: TimeInterval = 24 * 60 * 60
+    private let maxSystemMetricSamples = 24 * 60 * 60 / 5
     private let ssdTemperatureReadTimeout: TimeInterval = 0.8
     private let ssdTemperatureDisplayGraceInterval: TimeInterval = 10 * 60
-    private let statusItemWidth: CGFloat = 174
-    private let statusImageSize = NSSize(width: 168, height: 22)
+    private let statusItemWidth: CGFloat = 206
+    private let statusImageSize = NSSize(width: 200, height: 22)
     private let menuBarTemperatureChipRect = NSRect(x: 82, y: 4.9, width: 27, height: 12.2)
+    private let menuBarSystemMetricStripRect = NSRect(x: 170, y: 2.4, width: 27, height: 17.0)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
     private let quotaRailWidth: CGFloat = 28
     private let resetRailWidth: CGFloat = 18
@@ -1700,6 +1810,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let runtimeLogFileName = "CodexGauge-runtime.log"
     private let historyFileName = "CodexGauge-history.json"
     private let temperatureHistoryFileName = "CodexGauge-temperature-history.json"
+    private let systemMetricsHistoryFileName = "CodexGauge-system-metrics-history.json"
     private let lastLiveCacheFileName = "last-live-status.json"
     private let legacyUsageReportFileName = "CodexGauge-usage-report.md"
     private let launchAgentLabel = "app.codexgauge.menubar"
@@ -1729,12 +1840,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private lazy var logPath = "\(supportDir)/\(runtimeLogFileName)"
     private lazy var historyPath = "\(supportDir)/\(historyFileName)"
     private lazy var temperatureHistoryPath = "\(supportDir)/\(temperatureHistoryFileName)"
+    private lazy var systemMetricsHistoryPath = "\(supportDir)/\(systemMetricsHistoryFileName)"
     private lazy var launchAgentPlistPath = NSHomeDirectory() + "/Library/LaunchAgents/" + launchAgentPlistName
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         registerDefaultPreferences()
         temperatureSamples = readTemperatureSamples()
+        systemMetricSamples = readSystemMetricSamples()
         statusItem.autosaveName = "CodexGaugeStatusItem"
         ProcessInfo.processInfo.disableAutomaticTermination("Codex Gauge menu bar status item")
         ProcessInfo.processInfo.disableSuddenTermination()
@@ -1755,6 +1868,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         setStatusImage(title: "Codex quota")
         rebuildMenu()
         startTemperatureSampler()
+        startSystemMetricsSampler()
         refresh()
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
             self?.showFirstRunSetupIfNeeded()
@@ -1764,9 +1878,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         timer?.invalidate()
         temperatureTimer?.invalidate()
+        systemMetricsTimer?.invalidate()
         animationTimer?.invalidate()
         popoverCountdownTimer?.invalidate()
         writeTemperatureSamples(temperatureSamples)
+        writeSystemMetricSamples(systemMetricSamples)
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -1878,6 +1994,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             let sevenDayHistory = quotaHistoryValues(sevenDaySamples, \.sevenDayLeft)
             let inlineReport = inlineUsageReportSummary(samples: lastDaySamples, status: status)
             let retainedTemperatureHistory = temperatureGraphSamples(temperatureSamples)
+            let retainedSystemMetricHistory = systemMetricGraphSamples(systemMetricSamples)
             return SignalConsoleModel(
                 planName: status.ok ? planTitle(status) : "Codex Gauge",
                 sourcePill: "Source: Menu Bar",
@@ -1899,6 +2016,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 temperatureHistory: retainedTemperatureHistory,
                 currentTemperatureText: currentTemperatureText(status: ssdTemperatureForDisplay(), samples: retainedTemperatureHistory),
                 temperatureHistoryText: temperatureHistorySummaryText(retainedTemperatureHistory),
+                systemMetricHistory: retainedSystemMetricHistory,
+                cpuUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.cpuPercent),
+                ramUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.ramPercent),
                 reportFiveHourMovement: inlineReport.fiveHourMovement,
                 reportSevenDayMovement: inlineReport.sevenDayMovement,
                 reportTodaySummary: inlineReport.todaySummary,
@@ -1922,6 +2042,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let sevenDayHistory = quotaHistoryValues(sevenDaySamples, \.sevenDayLeft)
         let inlineReport = inlineUsageReportSummary(samples: lastDaySamples, status: nil)
         let retainedTemperatureHistory = temperatureGraphSamples(temperatureSamples)
+        let retainedSystemMetricHistory = systemMetricGraphSamples(systemMetricSamples)
         return SignalConsoleModel(
             planName: "Codex Gauge",
             sourcePill: "Source: Menu Bar",
@@ -1943,6 +2064,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             temperatureHistory: retainedTemperatureHistory,
             currentTemperatureText: currentTemperatureText(status: ssdTemperatureForDisplay(), samples: retainedTemperatureHistory),
             temperatureHistoryText: temperatureHistorySummaryText(retainedTemperatureHistory),
+            systemMetricHistory: retainedSystemMetricHistory,
+            cpuUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.cpuPercent),
+            ramUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.ramPercent),
             reportFiveHourMovement: inlineReport.fiveHourMovement,
             reportSevenDayMovement: inlineReport.sevenDayMovement,
             reportTodaySummary: inlineReport.todaySummary,
@@ -2178,6 +2302,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
         previousFiveHourLeft = nil
         temperatureSamples = []
+        systemMetricSamples = []
+        clearSystemMetricHistoryAsync()
         clearTemperatureHistoryAsync()
         liveUnavailableSince = nil
         didNotifyLiveUnavailable = false
@@ -2201,10 +2327,20 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func clearSystemMetricHistoryAsync() {
+        systemMetricsQueue.async { [weak self] in
+            guard let self else {
+                return
+            }
+            try? FileManager.default.removeItem(atPath: self.systemMetricsHistoryPath)
+        }
+    }
+
     private func localDataPathsForClearing() -> [String] {
         [
             historyPath,
             temperatureHistoryPath,
+            systemMetricsHistoryPath,
             logPath,
             "\(logPath).1",
             "\(supportDir)/\(lastLiveCacheFileName)",
@@ -2759,6 +2895,137 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         RunLoop.main.add(nextTimer, forMode: .common)
     }
 
+    private func startSystemMetricsSampler() {
+        systemMetricsTimer?.invalidate()
+        sampleSystemMetrics()
+        let nextTimer = Timer(timeInterval: systemMetricSampleInterval, repeats: true) { [weak self] _ in
+            self?.sampleSystemMetrics()
+        }
+        systemMetricsTimer = nextTimer
+        RunLoop.main.add(nextTimer, forMode: .common)
+    }
+
+    private func sampleSystemMetrics() {
+        systemMetricsQueue.async { [weak self] in
+            guard let self else {
+                return
+            }
+            let metrics = self.readSystemMetrics()
+            DispatchQueue.main.async { [weak self] in
+                guard let self else {
+                    return
+                }
+                self.appendSystemMetricSample(cpuPercent: metrics.cpuPercent, ramPercent: metrics.ramPercent)
+                if let snapshot = self.snapshot {
+                    self.setStatusImage(title: self.statusTooltipTitle(snapshot), status: snapshot.codex)
+                } else {
+                    self.setStatusImage(title: "Codex quota")
+                }
+                self.refreshSignalPopoverIfNeeded()
+            }
+        }
+    }
+
+    private func readSystemMetrics() -> (cpuPercent: Int?, ramPercent: Int?) {
+        (readCPUUsagePercent(), readRAMUsagePercent())
+    }
+
+    private func readCPUUsagePercent() -> Int? {
+        var cpuInfo: processor_info_array_t?
+        var numCpuInfo = mach_msg_type_number_t(0)
+        var numCPUs = natural_t(0)
+        let result = host_processor_info(
+            mach_host_self(),
+            processor_flavor_t(PROCESSOR_CPU_LOAD_INFO),
+            &numCPUs,
+            &cpuInfo,
+            &numCpuInfo
+        )
+        guard result == KERN_SUCCESS, let cpuInfo else {
+            return nil
+        }
+        defer {
+            let byteCount = vm_size_t(Int(numCpuInfo) * MemoryLayout<integer_t>.stride)
+            vm_deallocate(mach_task_self_, vm_address_t(UInt(bitPattern: cpuInfo)), byteCount)
+        }
+
+        let stateCount = Int(CPU_STATE_MAX)
+        let idleIndex = Int(CPU_STATE_IDLE)
+        let totalCount = Int(numCPUs) * stateCount
+        guard totalCount > 0 else {
+            return nil
+        }
+
+        var ticks: [UInt64] = []
+        ticks.reserveCapacity(totalCount)
+        for index in 0..<totalCount {
+            let value = Int64(cpuInfo[index])
+            ticks.append(UInt64(max(Int64(0), value)))
+        }
+        defer {
+            lastCPUTicks = ticks
+        }
+
+        guard let previous = lastCPUTicks, previous.count == ticks.count else {
+            let total = ticks.reduce(UInt64(0), +)
+            let idle = stride(from: idleIndex, to: ticks.count, by: stateCount).reduce(UInt64(0)) { partial, index in
+                partial + ticks[index]
+            }
+            guard total > 0 else {
+                return nil
+            }
+            return percentage(used: total - idle, total: total)
+        }
+
+        var totalDelta = UInt64(0)
+        var idleDelta = UInt64(0)
+        for index in ticks.indices {
+            let delta = ticks[index] >= previous[index] ? ticks[index] - previous[index] : 0
+            totalDelta += delta
+            if index % stateCount == idleIndex {
+                idleDelta += delta
+            }
+        }
+        guard totalDelta > 0 else {
+            return nil
+        }
+        return percentage(used: totalDelta - idleDelta, total: totalDelta)
+    }
+
+    private func readRAMUsagePercent() -> Int? {
+        var stats = vm_statistics64_data_t()
+        var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64_data_t>.stride / MemoryLayout<integer_t>.stride)
+        let result = withUnsafeMutablePointer(to: &stats) { pointer in
+            pointer.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { rebound in
+                host_statistics64(mach_host_self(), HOST_VM_INFO64, rebound, &count)
+            }
+        }
+        guard result == KERN_SUCCESS else {
+            return nil
+        }
+
+        let active = UInt64(stats.active_count)
+        let inactive = UInt64(stats.inactive_count)
+        let wired = UInt64(stats.wire_count)
+        let free = UInt64(stats.free_count)
+        let speculative = UInt64(stats.speculative_count)
+        let compressed = UInt64(stats.compressor_page_count)
+        let total = active + inactive + wired + free + speculative + compressed
+        let used = active + wired + compressed
+        guard total > 0 else {
+            return nil
+        }
+        return percentage(used: used, total: total)
+    }
+
+    private func percentage(used: UInt64, total: UInt64) -> Int? {
+        guard total > 0 else {
+            return nil
+        }
+        let value = Int(round(Double(used) * 100.0 / Double(total)))
+        return max(0, min(100, value))
+    }
+
     private func sampleTemperature() {
         guard !temperatureReadInFlight else {
             return
@@ -3159,12 +3426,13 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 fiveHourReset: status.fiveHourReset,
                 sevenDayReset: status.sevenDayReset,
                 source: status.source,
-                ssdTemperature: ssdTemperatureForDisplay()
+                ssdTemperature: ssdTemperatureForDisplay(),
+                systemMetric: systemMetricSampleForDisplay()
             )
         } else if let status, status.ok {
-            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: status.source, ssdTemperature: ssdTemperatureForDisplay())
+            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: status.source, ssdTemperature: ssdTemperatureForDisplay(), systemMetric: systemMetricSampleForDisplay())
         } else {
-            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: nil, ssdTemperature: ssdTemperatureForDisplay())
+            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: nil, ssdTemperature: ssdTemperatureForDisplay(), systemMetric: systemMetricSampleForDisplay())
         }
         button.toolTip = menuBarTooltipTitle(title: title, status: status)
         button.setAccessibilityLabel("Codex Gauge \(menuBarAccessibilitySummary(status))")
@@ -3180,6 +3448,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         if temperature != "--°" {
             parts.append("SSD \(temperature)")
         }
+        if let metrics = systemMetricSampleForDisplay() {
+            parts.append("CPU \(systemMetricPercentText(metrics.cpuPercent))")
+            parts.append("RAM \(systemMetricPercentText(metrics.ramPercent))")
+        }
         return parts.joined(separator: " · ")
     }
 
@@ -3187,15 +3459,19 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let temperatureSummary = showSSDTemperatureInMenuBar()
             ? ", SSD \(ssdTemperatureDisplayText(ssdTemperatureForDisplay()))"
             : ""
+        let metrics = systemMetricSampleForDisplay()
+        let systemSummary = ", CPU \(systemMetricPercentText(metrics?.cpuPercent)), RAM \(systemMetricPercentText(metrics?.ramPercent))"
         guard let status, status.ok, !isUnavailableStatus(status) else {
-            return showSSDTemperatureInMenuBar() ? "SSD \(ssdTemperatureDisplayText(ssdTemperatureForDisplay()))" : "unavailable"
+            return showSSDTemperatureInMenuBar()
+                ? "SSD \(ssdTemperatureDisplayText(ssdTemperatureForDisplay()))\(systemSummary)"
+                : "unavailable\(systemSummary)"
         }
         let fiveHour = status.fiveHourLeft.map { "\($0)%" } ?? "--"
         let sevenDay = status.sevenDayLeft.map { "\($0)%" } ?? "--"
-        return "5h \(fiveHour), 7d \(sevenDay)\(temperatureSummary)"
+        return "5h \(fiveHour), 7d \(sevenDay)\(temperatureSummary)\(systemSummary)"
     }
 
-    private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?, ssdTemperature: SSDTemperatureStatus?) -> NSImage {
+    private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?, ssdTemperature: SSDTemperatureStatus?, systemMetric: SystemMetricSample?) -> NSImage {
         let image = NSImage(size: statusImageSize)
         image.lockFocus()
 
@@ -3225,6 +3501,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         if showSSDTemperatureInMenuBar() {
             drawMenuBarSSDTemperature(status: ssdTemperature, rect: menuBarTemperatureChipRect, palette: palette)
         }
+        drawMenuBarSystemMetricStrip(sample: systemMetric, rect: menuBarSystemMetricStripRect, palette: palette)
 
         image.unlockFocus()
         image.isTemplate = false
@@ -3388,6 +3665,48 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             .foregroundColor: textColor,
         ]
         (text as NSString).draw(at: NSPoint(x: rect.minX + 2.9, y: rect.minY + 2.45), withAttributes: attrs)
+    }
+
+    private func drawMenuBarSystemMetricStrip(sample: SystemMetricSample?, rect: NSRect, palette: GaugePalette) {
+        let background = NSBezierPath(roundedRect: rect, xRadius: 3.2, yRadius: 3.2)
+        palette.track.withAlphaComponent(isDarkMenuBar() ? 0.34 : 0.22).setFill()
+        background.fill()
+        palette.border.withAlphaComponent(0.18).setStroke()
+        background.lineWidth = 0.45
+        background.stroke()
+
+        let cpuText = systemMetricMenuBarText(prefix: "C", value: sample?.cpuPercent)
+        let ramText = systemMetricMenuBarText(prefix: "R", value: sample?.ramPercent)
+        drawMenuBarSystemMetricText(cpuText, rect: NSRect(x: rect.minX + 3.0, y: rect.minY + 8.3, width: rect.width - 5, height: 7), color: systemMetricMenuBarColor(label: "CPU", value: sample?.cpuPercent, palette: palette))
+        drawMenuBarSystemMetricText(ramText, rect: NSRect(x: rect.minX + 3.0, y: rect.minY + 1.1, width: rect.width - 5, height: 7), color: systemMetricMenuBarColor(label: "RAM", value: sample?.ramPercent, palette: palette))
+    }
+
+    private func drawMenuBarSystemMetricText(_ text: String, rect: NSRect, color: NSColor) {
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: text.count > 3 ? 5.1 : 5.6, weight: .bold),
+            .foregroundColor: color,
+        ]
+        (text as NSString).draw(at: NSPoint(x: rect.minX, y: rect.minY), withAttributes: attrs)
+    }
+
+    private func systemMetricMenuBarText(prefix: String, value: Int?) -> String {
+        guard let value else {
+            return "\(prefix)--"
+        }
+        return "\(prefix)\(max(0, min(100, value)))"
+    }
+
+    private func systemMetricMenuBarColor(label: String, value: Int?, palette: GaugePalette) -> NSColor {
+        guard value != nil else {
+            return palette.mutedText
+        }
+        if currentSignalConsoleThemeKey() == monoGraphiteThemeKey {
+            return palette.primaryText.withAlphaComponent(0.82)
+        }
+        let theme = currentSignalConsoleTheme()
+        return label == "CPU"
+            ? theme.blueAccent.withAlphaComponent(isDarkMenuBar() ? 0.95 : 0.82)
+            : theme.mintAccent.withAlphaComponent(isDarkMenuBar() ? 0.95 : 0.86)
     }
 
     private func ssdTemperatureDisplayText(_ status: SSDTemperatureStatus?) -> String {
@@ -3805,6 +4124,84 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return []
         }
         return retainedHistorySamples(samples)
+    }
+
+    private func appendSystemMetricSample(cpuPercent: Int?, ramPercent: Int?) {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        let sample = SystemMetricSample(
+            time: formatter.string(from: Date()),
+            cpuPercent: cpuPercent,
+            ramPercent: ramPercent,
+            ok: cpuPercent != nil || ramPercent != nil
+        )
+        systemMetricSamples.append(sample)
+        systemMetricSamples = retainedSystemMetricSamples(systemMetricSamples)
+        let samplesSnapshot = systemMetricSamples
+        persistSystemMetricSamplesAsync(samplesSnapshot)
+    }
+
+    private func persistSystemMetricSamplesAsync(_ samples: [SystemMetricSample]) {
+        systemMetricsQueue.async { [weak self] in
+            guard let self else {
+                return
+            }
+            self.writeSystemMetricSamples(samples)
+        }
+    }
+
+    private func writeSystemMetricSamples(_ samples: [SystemMetricSample]) {
+        let retained = retainedSystemMetricSamples(samples)
+        do {
+            let data = try JSONEncoder().encode(retained)
+            try FileManager.default.createDirectory(
+                atPath: (systemMetricsHistoryPath as NSString).deletingLastPathComponent,
+                withIntermediateDirectories: true
+            )
+            try data.write(to: URL(fileURLWithPath: systemMetricsHistoryPath), options: .atomic)
+        } catch {
+            appendLog("system metrics history write failed=\(error.localizedDescription)")
+        }
+    }
+
+    private func readSystemMetricSamples() -> [SystemMetricSample] {
+        guard
+            let data = try? Data(contentsOf: URL(fileURLWithPath: systemMetricsHistoryPath)),
+            let samples = try? JSONDecoder().decode([SystemMetricSample].self, from: data)
+        else {
+            return []
+        }
+        return retainedSystemMetricSamples(samples)
+    }
+
+    private func retainedSystemMetricSamples(_ samples: [SystemMetricSample], now: Date = Date()) -> [SystemMetricSample] {
+        let cutoff = now.addingTimeInterval(-systemMetricRetentionWindow)
+        let recent = samples.filter { sample in
+            guard let date = isoDate(sample.time) else {
+                return false
+            }
+            return date >= cutoff
+        }
+        return Array(recent.suffix(maxSystemMetricSamples))
+    }
+
+    private func systemMetricGraphSamples(_ samples: [SystemMetricSample], now: Date = Date()) -> [SystemMetricSample] {
+        let cutoff = now.addingTimeInterval(-systemMetricGraphWindow)
+        return samples.filter { sample in
+            guard let date = isoDate(sample.time) else {
+                return false
+            }
+            return date >= cutoff
+        }
+    }
+
+    private func systemMetricSampleForDisplay(now: Date = Date()) -> SystemMetricSample? {
+        systemMetricSamples.reversed().first { sample in
+            guard sample.ok, let date = isoDate(sample.time) else {
+                return false
+            }
+            return now.timeIntervalSince(date) <= systemMetricGraphWindow
+        }
     }
 
     private func appendTemperatureSample(_ status: SSDTemperatureStatus?) {

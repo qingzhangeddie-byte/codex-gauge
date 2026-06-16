@@ -472,8 +472,8 @@ class SignalConsoleUXTests(unittest.TestCase):
     def test_menu_bar_integrates_ssd_temperature_without_removing_current_quota_info(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("statusItemWidth: CGFloat = 174", source)
-        self.assertIn("statusImageSize = NSSize(width: 168", source)
+        self.assertIn("statusItemWidth: CGFloat = 206", source)
+        self.assertIn("statusImageSize = NSSize(width: 200", source)
         self.assertIn("private let quotaRailWidth: CGFloat = 28", source)
         self.assertIn("private let resetRailWidth: CGFloat = 18", source)
         self.assertIn("makeStatusImage(", source)
@@ -498,6 +498,35 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("drawResetMoodLane(value: resetProgress", source)
         self.assertIn("fiveHourResetCountdown(resetEpoch)", source)
         self.assertIn("sevenDayResetCountdown(resetEpoch)", source)
+
+    def test_menu_bar_and_signal_console_show_cpu_ram_signals(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "systemMetricHistory: [SystemMetricSample]",
+            "cpuUsageText: String",
+            "ramUsageText: String",
+            "let retainedSystemMetricHistory = systemMetricGraphSamples(systemMetricSamples)",
+            "systemMetricHistory: retainedSystemMetricHistory",
+            "cpuUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.cpuPercent)",
+            "ramUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.ramPercent)",
+            "systemMetric: systemMetricSampleForDisplay()",
+            "private let menuBarSystemMetricStripRect",
+            "drawMenuBarSystemMetricStrip(sample: systemMetric, rect: menuBarSystemMetricStripRect, palette: palette)",
+            "systemMetricMenuBarText(prefix: \"C\", value: sample?.cpuPercent)",
+            "systemMetricMenuBarText(prefix: \"R\", value: sample?.ramPercent)",
+            "drawSystemMetricMovementRows",
+            "drawSystemMetricMovementRow(label: \"CPU\"",
+            "drawSystemMetricMovementRow(label: \"RAM\"",
+            "drawSystemMetricSparkline",
+            "systemMetricLineColor(label: \"CPU\"",
+            "systemMetricLineColor(label: \"RAM\"",
+        ]:
+            self.assertIn(token, source)
+
+        movement_body = source.split("private func drawSystemMetricMovementRows", 1)[1].split("private func drawSystemMetricMovementRow", 1)[0]
+        self.assertIn("model.cpuUsageText", movement_body)
+        self.assertIn("model.ramUsageText", movement_body)
 
     def test_ssd_temperature_history_samples_every_second_and_is_bounded(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -566,6 +595,42 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertNotIn("readSSDTemperature()", finish_body)
         self.assertNotIn("readSSDTemperature()", setup_doctor_body)
         self.assertNotIn("readSSDTemperature()", diagnostics_body)
+
+    def test_system_metrics_sample_every_five_seconds_and_are_bounded(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("private struct SystemMetricSample: Codable", source)
+        self.assertIn("private var systemMetricsTimer: Timer?", source)
+        self.assertIn("private var systemMetricSamples: [SystemMetricSample] = []", source)
+        self.assertIn("private let systemMetricSampleInterval: TimeInterval = 5", source)
+        self.assertIn("private let systemMetricGraphWindow: TimeInterval = 10 * 60", source)
+        self.assertIn("private let systemMetricRetentionWindow: TimeInterval = 24 * 60 * 60", source)
+        self.assertIn("private let maxSystemMetricSamples = 24 * 60 * 60 / 5", source)
+        self.assertIn('systemMetricsHistoryFileName = "CodexGauge-system-metrics-history.json"', source)
+        self.assertIn("private lazy var systemMetricsHistoryPath", source)
+        self.assertIn("systemMetricSamples = readSystemMetricSamples()", source)
+        self.assertIn("startSystemMetricsSampler()", source)
+        self.assertIn("systemMetricsTimer?.invalidate()", source)
+        self.assertIn("writeSystemMetricSamples(systemMetricSamples)", source)
+        self.assertIn("sampleSystemMetrics()", source)
+        self.assertIn("Timer(timeInterval: systemMetricSampleInterval, repeats: true)", source)
+        self.assertIn("readSystemMetrics()", source)
+        self.assertIn("readCPUUsagePercent()", source)
+        self.assertIn("readRAMUsagePercent()", source)
+        self.assertIn("host_statistics", source)
+        self.assertIn("host_processor_info", source)
+        self.assertIn("appendSystemMetricSample", source)
+        self.assertIn("retainedSystemMetricSamples", source)
+        self.assertIn("systemMetricGraphSamples", source)
+        self.assertIn("writeSystemMetricSamples", source)
+        self.assertIn("readSystemMetricSamples", source)
+
+        clear_data_body = source.split("private func performClearLocalData()", 1)[1].split("private func clearTemperatureHistoryAsync", 1)[0]
+        retained_body = source.split("private func retainedSystemMetricSamples", 1)[1].split("private func retainedTemperatureSamples", 1)[0]
+        self.assertIn("systemMetricSamples = []", clear_data_body)
+        self.assertIn("systemMetricsHistoryPath,", source)
+        self.assertIn("systemMetricRetentionWindow", retained_body)
+        self.assertIn("suffix(maxSystemMetricSamples)", retained_body)
 
     def test_ssd_temperature_display_keeps_last_valid_read_briefly(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()

@@ -80,8 +80,8 @@ class NativeCodexOnlyTests(unittest.TestCase):
     def test_native_app_draws_plan_b_four_bar_status_image(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("statusItemWidth: CGFloat = 174", source)
-        self.assertIn("statusImageSize = NSSize(width: 168, height: 22)", source)
+        self.assertIn("statusItemWidth: CGFloat = 206", source)
+        self.assertIn("statusImageSize = NSSize(width: 200, height: 22)", source)
         self.assertIn("resetRailWidth: CGFloat = 18", source)
         self.assertIn("makeStatusImage", source)
         self.assertIn("fiveHourReset: status.fiveHourReset", source)
@@ -120,6 +120,8 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("button.imagePosition = .imageOnly", source)
         self.assertIn('button.title = ""', source)
         self.assertIn("button.image = makeStatusImage(", source)
+        self.assertIn("drawMenuBarSystemMetricStrip", source)
+        self.assertIn("systemMetricMenuBarText", source)
         self.assertIn("menuBarTooltipTitle(title: title, status: status)", source)
         self.assertNotIn("drawSevenDayResetCountdown", source)
         self.assertNotIn("drawWordmark", source)

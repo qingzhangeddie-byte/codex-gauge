@@ -10,10 +10,12 @@ The native menu bar app:
 - falls back to bounded recent Codex session `rate_limits` metadata when app-server is unavailable from a background LaunchAgent, and labels that data as Snapshot;
 - bundles its helper at `CodexGauge.app/Contents/Resources/codex_status.py`;
 - optionally reads local SSD/NAND temperature from macOS IOReport when the sensor is exposed, showing only the temperature/status and no disk serials or file contents;
+- samples CPU/RAM through macOS host statistics, storing only aggregated local CPU and RAM percentages with timestamps for the menu bar and 10-minute Signal Console movement view;
 - installs a per-user LaunchAgent at `~/Library/LaunchAgents/app.codexgauge.menubar.plist` so macOS keeps the menu bar process running;
 - writes locally rotated runtime logs to `~/Library/Application Support/CodexGauge`;
 - does not read browser cookies;
 - does not read `~/.codex/auth.json`;
+- does not store a process list, window titles, file paths, app names, or command lines for CPU/RAM display;
 - does not scan your source code, Documents folder, browser profile, or Keychain.
 
 The Codex app-server path can start or refresh the 5-hour Codex window because it talks to the same local Codex service that the Codex desktop app uses.
