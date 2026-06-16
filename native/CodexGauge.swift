@@ -36,6 +36,12 @@ private struct HistorySample: Codable {
     let sevenDayLeft: Int?
 }
 
+private struct TemperatureSample: Codable {
+    let time: String
+    let temperatureC: Int?
+    let ok: Bool
+}
+
 private struct DoctorCheck {
     let title: String
     let state: String
@@ -1469,6 +1475,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var showSSDTemperatureCheckbox: NSButton?
     private var snapshot: UsageSnapshot?
     private var ssdTemperature: SSDTemperatureStatus?
+    private var temperatureTimer: Timer?
+    private var temperatureSamples: [TemperatureSample] = []
     private var lastError: String?
     private var isRefreshing = false
     private var allowTermination = false
@@ -1487,6 +1495,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let maxRuntimeLogBytes: UInt64 = 512 * 1024
     private let maxHistorySamples = 720
     private let historyRetentionWindow: TimeInterval = 48 * 60 * 60
+    private let temperatureSampleInterval: TimeInterval = 1
+    private let temperatureHistoryWindow: TimeInterval = 60
+    private let maxTemperatureSamples = 90
     private let statusItemWidth: CGFloat = 196
     private let statusImageSize = NSSize(width: 190, height: 22)
     private let menuBarTemperatureChipRect = NSRect(x: 96, y: 4.9, width: 27, height: 12.2)
@@ -1507,6 +1518,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let sevenDayResetMenuLabel = "7d resets"
     private let runtimeLogFileName = "CodexGauge-runtime.log"
     private let historyFileName = "CodexGauge-history.json"
+    private let temperatureHistoryFileName = "CodexGauge-temperature-history.json"
     private let lastLiveCacheFileName = "last-live-status.json"
     private let legacyUsageReportFileName = "CodexGauge-usage-report.md"
     private let launchAgentLabel = "app.codexgauge.menubar"
@@ -1535,11 +1547,13 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         .path
     private lazy var logPath = "\(supportDir)/\(runtimeLogFileName)"
     private lazy var historyPath = "\(supportDir)/\(historyFileName)"
+    private lazy var temperatureHistoryPath = "\(supportDir)/\(temperatureHistoryFileName)"
     private lazy var launchAgentPlistPath = NSHomeDirectory() + "/Library/LaunchAgents/" + launchAgentPlistName
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         registerDefaultPreferences()
+        temperatureSamples = readTemperatureSamples()
         statusItem.autosaveName = "CodexGaugeStatusItem"
         ProcessInfo.processInfo.disableAutomaticTermination("Codex Gauge menu bar status item")
         ProcessInfo.processInfo.disableSuddenTermination()
@@ -1559,6 +1573,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
         setStatusImage(title: "Codex quota")
         rebuildMenu()
+        startTemperatureSampler()
         refresh()
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
             self?.showFirstRunSetupIfNeeded()
@@ -1567,6 +1582,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         timer?.invalidate()
+        temperatureTimer?.invalidate()
         animationTimer?.invalidate()
         popoverCountdownTimer?.invalidate()
     }
@@ -1926,7 +1942,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     @objc private func clearLocalData() {
         let alert = NSAlert()
-        alert.messageText = "Clear local Codex Gauge data?"
+        alert.messageText = "Clear local data?"
         alert.informativeText = "This clears local history, last-live cache, legacy report files, and logs. It does not touch Codex, browser cookies, Keychain, or auth files."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Clear Data")
@@ -1953,6 +1969,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             }
         }
         previousFiveHourLeft = nil
+        temperatureSamples = []
         liveUnavailableSince = nil
         didNotifyLiveUnavailable = false
         resetHighlightUntil = nil
@@ -1969,6 +1986,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func localDataPathsForClearing() -> [String] {
         [
             historyPath,
+            temperatureHistoryPath,
             logPath,
             "\(logPath).1",
             "\(supportDir)/\(lastLiveCacheFileName)",
@@ -2497,6 +2515,30 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         } catch {
             appendLog("ssd temperature parse failed=\(error.localizedDescription)")
             return SSDTemperatureStatus(ok: false, temperatureC: nil, source: "IOReport", error: "SSD sensor unavailable")
+        }
+    }
+
+    private func startTemperatureSampler() {
+        temperatureTimer?.invalidate()
+        sampleTemperature()
+        let nextTimer = Timer(timeInterval: temperatureSampleInterval, repeats: true) { [weak self] _ in
+            self?.sampleTemperature()
+        }
+        temperatureTimer = nextTimer
+        RunLoop.main.add(nextTimer, forMode: .common)
+    }
+
+    private func sampleTemperature() {
+        let status = readSSDTemperature()
+        ssdTemperature = status
+        appendTemperatureSample(status)
+        if let snapshot {
+            setStatusImage(title: statusTooltipTitle(snapshot), status: snapshot.codex)
+        } else {
+            setStatusImage(title: "Codex quota")
+        }
+        if signalPopover?.isShown == true {
+            refreshSignalPopoverIfNeeded()
         }
     }
 
@@ -3516,6 +3558,54 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return []
         }
         return retainedHistorySamples(samples)
+    }
+
+    private func appendTemperatureSample(_ status: SSDTemperatureStatus?) {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        let sample = TemperatureSample(
+            time: formatter.string(from: Date()),
+            temperatureC: status?.temperatureC,
+            ok: status?.ok ?? false
+        )
+        temperatureSamples.append(sample)
+        temperatureSamples = retainedTemperatureSamples(temperatureSamples)
+        writeTemperatureSamples(temperatureSamples)
+    }
+
+    private func writeTemperatureSamples(_ samples: [TemperatureSample]) {
+        let retained = retainedTemperatureSamples(samples)
+        do {
+            let data = try JSONEncoder().encode(retained)
+            try FileManager.default.createDirectory(
+                atPath: (temperatureHistoryPath as NSString).deletingLastPathComponent,
+                withIntermediateDirectories: true
+            )
+            try data.write(to: URL(fileURLWithPath: temperatureHistoryPath), options: .atomic)
+        } catch {
+            appendLog("temperature history write failed=\(error.localizedDescription)")
+        }
+    }
+
+    private func readTemperatureSamples() -> [TemperatureSample] {
+        guard
+            let data = try? Data(contentsOf: URL(fileURLWithPath: temperatureHistoryPath)),
+            let samples = try? JSONDecoder().decode([TemperatureSample].self, from: data)
+        else {
+            return []
+        }
+        return retainedTemperatureSamples(samples)
+    }
+
+    private func retainedTemperatureSamples(_ samples: [TemperatureSample], now: Date = Date()) -> [TemperatureSample] {
+        let cutoff = now.addingTimeInterval(-temperatureHistoryWindow)
+        let recent = samples.filter { sample in
+            guard let date = isoDate(sample.time) else {
+                return false
+            }
+            return date >= cutoff
+        }
+        return Array(recent.suffix(maxTemperatureSamples))
     }
 
     private func retainedHistorySamples(_ samples: [HistorySample], now: Date = Date()) -> [HistorySample] {

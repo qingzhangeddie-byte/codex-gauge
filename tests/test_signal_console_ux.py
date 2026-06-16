@@ -495,6 +495,23 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("drawQuotaRail(value: quotaLeft", source)
         self.assertIn("drawResetMoodLane(value: resetProgress", source)
 
+    def test_ssd_temperature_history_samples_every_second_and_is_bounded(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("private struct TemperatureSample: Codable", source)
+        self.assertIn("private var temperatureTimer: Timer?", source)
+        self.assertIn("private var temperatureSamples: [TemperatureSample] = []", source)
+        self.assertIn("private let temperatureSampleInterval: TimeInterval = 1", source)
+        self.assertIn("private let temperatureHistoryWindow: TimeInterval = 60", source)
+        self.assertIn("private let maxTemperatureSamples = 90", source)
+        self.assertIn("startTemperatureSampler()", source)
+        self.assertIn("sampleTemperature()", source)
+        self.assertIn("Timer(timeInterval: temperatureSampleInterval, repeats: true)", source)
+        self.assertIn("appendTemperatureSample(status)", source)
+        self.assertIn("retainedTemperatureSamples", source)
+        self.assertIn("writeTemperatureSamples", source)
+        self.assertIn("readTemperatureSamples", source)
+
     def test_signal_console_docs_are_public_safe(self):
         spec = pathlib.Path("docs/design/codex-gauge-signal-console-v0.6-design.md").read_text()
         image = pathlib.Path("docs/design/codex-gauge-signal-console-v0.6.png")

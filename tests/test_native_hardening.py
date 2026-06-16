@@ -68,6 +68,20 @@ class NativeHardeningTests(unittest.TestCase):
         ]:
             self.assertNotIn(blocked, source)
 
+    def test_temperature_history_is_local_bounded_and_clearable(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn('temperatureHistoryFileName = "CodexGauge-temperature-history.json"', source)
+        self.assertIn("temperatureHistoryPath", source)
+        self.assertIn("maxTemperatureSamples = 90", source)
+        self.assertIn("temperatureHistoryWindow: TimeInterval = 60", source)
+        self.assertIn("retainedTemperatureSamples", source)
+        self.assertIn("temperatureHistoryPath,", source)
+        self.assertIn("Clear local data", source)
+
+        history_storage = source.split("private func appendTemperatureSample", 1)[1].split("private func readTemperatureSamples", 1)[0]
+        self.assertNotIn("Keychain", history_storage)
+
     def test_build_script_stamps_public_version_metadata(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()
 
