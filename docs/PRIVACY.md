@@ -9,6 +9,7 @@ The native menu bar app:
 - reads live Codex quota through the local Codex app-server;
 - falls back to bounded recent Codex session `rate_limits` metadata when app-server is unavailable from a background LaunchAgent, and labels that data as Snapshot;
 - bundles its helper at `CodexGauge.app/Contents/Resources/codex_status.py`;
+- optionally reads local SSD/NAND temperature from macOS IOReport when the sensor is exposed, showing only the temperature/status and no disk serials or file contents;
 - installs a per-user LaunchAgent at `~/Library/LaunchAgents/app.codexgauge.menubar.plist` so macOS keeps the menu bar process running;
 - writes locally rotated runtime logs to `~/Library/Application Support/CodexGauge`;
 - does not read browser cookies;

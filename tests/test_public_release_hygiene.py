@@ -94,6 +94,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("codesign --verify --deep --strict", script)
         self.assertIn("CFBundleShortVersionString", script)
         self.assertIn("CodexGaugeReleaseURL", script)
+        self.assertIn('Contents/Resources/ssd_temperature', script)
         self.assertIn("git ls-files", script)
         self.assertIn("git grep -n -I -E", script)
         self.assertNotIn("grep -R -I -n -E", script)

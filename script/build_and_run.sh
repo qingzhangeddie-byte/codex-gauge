@@ -12,6 +12,7 @@ RELEASE_URL="https://github.com/qingzhangeddie-byte/codex-gauge/releases"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_FILE="$ROOT_DIR/native/CodexGauge.swift"
+SSD_TEMPERATURE_SOURCE="$ROOT_DIR/native/ssd_temperature.m"
 DIST_DIR="$ROOT_DIR/native/dist"
 BUILD_DIR="$ROOT_DIR/native/build"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
@@ -92,6 +93,7 @@ build_bundle() {
   local stage_binary
   local stage_launcher
   local stage_info_plist
+  local SSD_TEMPERATURE_HELPER
 
   rm -rf "$APP_BUNDLE"
   stage_parent="$(mktemp -d "${TMPDIR:-/tmp}/codex-gauge-build.XXXXXX")"
@@ -102,6 +104,7 @@ build_bundle() {
   stage_binary="$stage_macos/$APP_BINARY_NAME"
   stage_launcher="$stage_macos/$APP_NAME"
   stage_info_plist="$stage_contents/Info.plist"
+  SSD_TEMPERATURE_HELPER="$stage_resources/ssd_temperature"
   mkdir -p "$stage_macos" "$stage_resources" "$SWIFT_MODULE_CACHE" "$CLANG_MODULE_CACHE"
 
   SWIFT_MODULE_CACHE_PATH="$SWIFT_MODULE_CACHE" \
@@ -115,6 +118,8 @@ APP_DIR="\${0:A:h}"
 LAUNCHER
   chmod +x "$stage_binary" "$stage_launcher"
   cp "$ROOT_DIR/native/codex_status.py" "$stage_resources/codex_status.py"
+  clang "$SSD_TEMPERATURE_SOURCE" -o "$SSD_TEMPERATURE_HELPER" -fobjc-arc -fblocks -framework Foundation -lIOReport
+  chmod +x "$SSD_TEMPERATURE_HELPER"
 
   cat >"$stage_info_plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

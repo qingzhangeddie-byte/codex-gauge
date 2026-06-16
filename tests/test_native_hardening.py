@@ -28,6 +28,46 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertNotIn("<string>$ROOT_DIR/usage.py</string>", script)
         self.assertNotIn("<string>$VENV_PYTHON</string>", script)
 
+    def test_build_script_bundles_ssd_temperature_helper_without_privileged_tools(self):
+        script = pathlib.Path("script/build_and_run.sh").read_text()
+
+        self.assertIn('SSD_TEMPERATURE_SOURCE="$ROOT_DIR/native/ssd_temperature.m"', script)
+        self.assertIn('SSD_TEMPERATURE_HELPER="$stage_resources/ssd_temperature"', script)
+        self.assertIn('clang "$SSD_TEMPERATURE_SOURCE"', script)
+        self.assertIn("-framework Foundation", script)
+        self.assertIn("-lIOReport", script)
+        self.assertIn('chmod +x "$SSD_TEMPERATURE_HELPER"', script)
+        for blocked in ["sudo", "powermetrics", "smartctl", "browser-cookie3", ".codex/auth.json"]:
+            self.assertNotIn(blocked, script)
+
+    def test_ssd_temperature_helper_reads_local_ioreport_without_private_user_data(self):
+        helper = pathlib.Path("native/ssd_temperature.m")
+        self.assertTrue(helper.exists())
+        source = helper.read_text()
+
+        for phrase in [
+            "IOReportCopyChannelsInGroup",
+            "IOReportCreateSamples",
+            "IOReportSimpleGetIntegerValue",
+            '"ANS2"',
+            '"MSP0"',
+            '"MSP1"',
+            '"Temperature(0)"',
+            '"temperature_c"',
+            '"ok"',
+        ]:
+            self.assertIn(phrase, source)
+        for blocked in [
+            "sudo",
+            "powermetrics",
+            "smartctl",
+            "browser-cookie3",
+            ".codex/auth.json",
+            "Session file contents",
+            "/Users/",
+        ]:
+            self.assertNotIn(blocked, source)
+
     def test_build_script_stamps_public_version_metadata(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()
 

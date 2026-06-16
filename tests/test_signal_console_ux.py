@@ -70,6 +70,7 @@ class SignalConsoleUXTests(unittest.TestCase):
             "docs/design/app-rendered-signal-console",
         ]:
             self.assertIn(token, source)
+        self.assertIn('DoctorCheck(title: "SSD temp", state: unavailable ? "grey" : "green"', source)
 
     def test_signal_console_popover_matches_selected_sections(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -433,6 +434,66 @@ class SignalConsoleUXTests(unittest.TestCase):
             "Runtime logs",
         ]:
             self.assertIn(blocked, source)
+
+    def test_signal_console_surfaces_optional_ssd_temperature(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("SSDTemperatureStatus", source)
+        self.assertIn("ssdTemperaturePath", source)
+        self.assertIn("readSSDTemperature", source)
+        self.assertIn('"ssd_temperature"', source)
+        self.assertIn('"SSD temp"', source)
+        self.assertIn('"SSD"', source)
+        self.assertIn('"SSD sensor unavailable"', source)
+        self.assertIn("SSD temperature", source)
+        self.assertIn("ssdTemperatureStatusLabel", source)
+        self.assertIn('"Normal"', source)
+        self.assertIn('"Warm"', source)
+        self.assertIn('"Hot"', source)
+        self.assertIn('return "\\(temperature)°C · \\(ssdTemperatureStatusLabel(status))"', source)
+        self.assertIn("healthShortLabel", source)
+        self.assertIn("prefix(6)", source)
+        self.assertIn("safeDiagnosticsText", source)
+
+    def test_menu_bar_ssd_temperature_can_be_hidden_without_disabling_sensor(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn('showSSDTemperatureInMenuBarKey = "showSSDTemperatureInMenuBar"', source)
+        self.assertIn("showSSDTemperatureCheckbox", source)
+        self.assertIn("defaults.set(true, forKey: showSSDTemperatureInMenuBarKey)", source)
+        self.assertIn('"Show SSD temperature in menu bar"', source)
+        self.assertIn("#selector(showSSDTemperaturePreferenceChanged)", source)
+        self.assertIn("showSSDTemperatureCheckbox?.state = showSSDTemperatureInMenuBar() ? .on : .off", source)
+        self.assertIn("private func showSSDTemperatureInMenuBar() -> Bool", source)
+        self.assertIn("UserDefaults.standard.bool(forKey: showSSDTemperatureInMenuBarKey)", source)
+        self.assertIn("if showSSDTemperatureInMenuBar() {", source)
+        self.assertIn("ssdTemperatureDoctorCheck(ssdTemperature)", source)
+
+    def test_menu_bar_integrates_ssd_temperature_without_removing_current_quota_info(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("statusItemWidth: CGFloat = 196", source)
+        self.assertIn("statusImageSize = NSSize(width: 190", source)
+        self.assertIn("makeStatusImage(", source)
+        self.assertIn("ssdTemperature: ssdTemperature", source)
+        self.assertIn("menuBarAccessibilitySummary", source)
+        self.assertIn("ssdTemperatureDisplayText(ssdTemperature)", source)
+        self.assertIn("menuBarTooltipTitle(title: title, status: status)", source)
+        self.assertIn('parts.append("SSD \\(temperature)")', source)
+        self.assertIn("button.imagePosition = .imageOnly", source)
+        self.assertIn("drawMenuBarSSDTemperature(status: ssdTemperature, rect: menuBarTemperatureChipRect, palette: palette)", source)
+        self.assertIn("private let menuBarTemperatureChipRect = NSRect(x: 96", source)
+        self.assertIn("width: 27, height: 12.2", source)
+        self.assertIn("let fontSize: CGFloat = text.count > 3 ? 6.6 : 7.2", source)
+        self.assertIn("NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .bold)", source)
+        self.assertIn("ssdTemperatureFillAlpha(status)", source)
+        self.assertIn("private func drawMenuBarSSDTemperature", source)
+        self.assertIn("private func ssdTemperatureColor", source)
+        self.assertIn("drawPlanBGauge(", source)
+        self.assertIn("drawPlanBRow(window: \"5h\"", source)
+        self.assertIn("drawPlanBRow(window: \"7d\"", source)
+        self.assertIn("drawQuotaRail(value: quotaLeft", source)
+        self.assertIn("drawResetMoodLane(value: resetProgress", source)
 
     def test_signal_console_docs_are_public_safe(self):
         spec = pathlib.Path("docs/design/codex-gauge-signal-console-v0.6-design.md").read_text()

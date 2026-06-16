@@ -22,6 +22,13 @@ private struct ServiceStatus: Decodable {
     let error: String?
 }
 
+private struct SSDTemperatureStatus: Decodable {
+    let ok: Bool
+    let temperatureC: Int?
+    let source: String?
+    let error: String?
+}
+
 private struct HistorySample: Codable {
     let time: String
     let source: String
@@ -322,22 +329,22 @@ private func paperConsoleTheme() -> SignalConsoleTheme {
         quotaHighEnd: NSColor(calibratedRed: 0.62, green: 0.78, blue: 0.36, alpha: 0.96),
         resetMidAccent: NSColor(calibratedRed: 0.94, green: 0.50, blue: 0.22, alpha: 0.96),
         menuDarkPalette: GaugePalette(
-            background: NSColor(calibratedRed: 0.91, green: 0.89, blue: 0.82, alpha: 0.92),
-            border: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.22),
-            track: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.18),
-            resetTrack: NSColor(calibratedRed: 0.95, green: 0.68, blue: 0.25, alpha: 0.24),
-            primaryText: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.92),
-            secondaryText: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.64),
-            mutedText: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.38)
+            background: NSColor(calibratedRed: 0.05, green: 0.12, blue: 0.14, alpha: 0.88),
+            border: NSColor(calibratedRed: 0.60, green: 0.86, blue: 0.80, alpha: 0.52),
+            track: NSColor.white.withAlphaComponent(0.18),
+            resetTrack: NSColor(calibratedRed: 0.95, green: 0.68, blue: 0.25, alpha: 0.28),
+            primaryText: NSColor.white.withAlphaComponent(0.95),
+            secondaryText: NSColor.white.withAlphaComponent(0.70),
+            mutedText: NSColor.white.withAlphaComponent(0.42)
         ),
         menuLightPalette: GaugePalette(
-            background: NSColor(calibratedRed: 0.96, green: 0.94, blue: 0.88, alpha: 0.92),
-            border: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.20),
-            track: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.15),
-            resetTrack: NSColor(calibratedRed: 0.95, green: 0.68, blue: 0.25, alpha: 0.22),
-            primaryText: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.88),
-            secondaryText: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.58),
-            mutedText: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.34)
+            background: NSColor(calibratedRed: 0.06, green: 0.15, blue: 0.17, alpha: 0.82),
+            border: NSColor(calibratedRed: 0.48, green: 0.78, blue: 0.72, alpha: 0.50),
+            track: NSColor.white.withAlphaComponent(0.20),
+            resetTrack: NSColor(calibratedRed: 0.95, green: 0.68, blue: 0.25, alpha: 0.30),
+            primaryText: NSColor.white.withAlphaComponent(0.96),
+            secondaryText: NSColor.white.withAlphaComponent(0.72),
+            mutedText: NSColor.white.withAlphaComponent(0.44)
         )
     )
 }
@@ -743,12 +750,12 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawHealthStatusGrid(in rect: NSRect) {
-        let checks = Array(model.doctorChecks.prefix(5))
+        let checks = Array(model.doctorChecks.prefix(6))
         for (index, check) in checks.enumerated() {
-            let itemRect = NSRect(x: rect.minX + CGFloat(index) * 60, y: rect.minY, width: 54, height: rect.height)
+            let itemRect = NSRect(x: rect.minX + CGFloat(index) * 50, y: rect.minY, width: 45, height: rect.height)
             drawRoundedRect(itemRect, radius: 9, fill: theme.commandButtonBackground, stroke: panelBorder.withAlphaComponent(0.20))
             drawCircle(center: NSPoint(x: itemRect.minX + 12, y: itemRect.midY), radius: 3.4, color: doctorColor(check.state), stroke: nil)
-            drawText(healthShortLabel(check.title), x: itemRect.minX + 21, y: itemRect.minY + 8, width: 30, height: 14, size: 8.5, weight: .regular, color: textSecondary)
+            drawText(healthShortLabel(check.title), x: itemRect.minX + 21, y: itemRect.minY + 8, width: 22, height: 14, size: 8.0, weight: .regular, color: textSecondary)
         }
     }
 
@@ -1161,6 +1168,8 @@ private final class SignalConsolePanelView: NSView {
             return "Login"
         case "Notifications permission":
             return "Alerts"
+        case "SSD temp":
+            return "SSD"
         default:
             return title
         }
@@ -1431,6 +1440,7 @@ private func signalConsolePreviewModel(
             DoctorCheck(title: "Cache age", state: source == "last_live" ? "blue" : "green", detail: source == "last_live" ? "Cached" : "Fresh"),
             DoctorCheck(title: "LaunchAgent", state: "green", detail: "Loaded"),
             DoctorCheck(title: "Last fetch", state: unavailable ? "grey" : "green", detail: unavailable ? "--" : "OK"),
+            DoctorCheck(title: "SSD temp", state: unavailable ? "grey" : "green", detail: unavailable ? "Unavailable" : "42°C · Normal"),
         ],
         lastRefreshText: unavailable ? "none" : "21:12",
         liveAgeText: unavailable ? "unknown" : "2m ago",
@@ -1456,7 +1466,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var themePopup: NSPopUpButton?
     private var notificationsCheckbox: NSButton?
     private var launchAtLoginCheckbox: NSButton?
+    private var showSSDTemperatureCheckbox: NSButton?
     private var snapshot: UsageSnapshot?
+    private var ssdTemperature: SSDTemperatureStatus?
     private var lastError: String?
     private var isRefreshing = false
     private var allowTermination = false
@@ -1477,9 +1489,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let historyRetentionWindow: TimeInterval = 48 * 60 * 60
     private let statusItemWidth: CGFloat = 196
     private let statusImageSize = NSSize(width: 190, height: 22)
+    private let menuBarTemperatureChipRect = NSRect(x: 96, y: 4.9, width: 27, height: 12.2)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
-    private let quotaRailWidth: CGFloat = 51
-    private let resetRailWidth: CGFloat = 34
+    private let quotaRailWidth: CGFloat = 50
+    private let resetRailWidth: CGFloat = 28
     private let signalRailSegments = 10
     private let codexCliBundlePath = "/Applications/Codex.app/Contents/Resources/codex"
     private let normalQuotaColor = NSColor(calibratedRed: 0.58, green: 1.00, blue: 0.89, alpha: 0.95)
@@ -1501,6 +1514,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let refreshModeKey = "refreshMode"
     private let notificationsEnabledKey = "notificationsEnabled"
     private let launchAtLoginKey = "launchAtLogin"
+    private let showSSDTemperatureInMenuBarKey = "showSSDTemperatureInMenuBar"
     private let firstRunSetupSeenKey = "firstRunSetupSeen"
     private let adaptiveRefreshMode = "adaptive"
     private let fiveMinuteRefreshMode = "5m"
@@ -1516,6 +1530,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.8.0")
     private lazy var releaseURL = infoString("CodexGaugeReleaseURL", fallback: "https://github.com/qingzhangeddie-byte/codex-gauge/releases")
     private lazy var usagePath = resolveUsagePath()
+    private lazy var ssdTemperaturePath = URL(fileURLWithPath: resourcesDir, isDirectory: true)
+        .appendingPathComponent("ssd_temperature")
+        .path
     private lazy var logPath = "\(supportDir)/\(runtimeLogFileName)"
     private lazy var historyPath = "\(supportDir)/\(historyFileName)"
     private lazy var launchAgentPlistPath = NSHomeDirectory() + "/Library/LaunchAgents/" + launchAgentPlistName
@@ -1523,6 +1540,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         registerDefaultPreferences()
+        statusItem.autosaveName = "CodexGaugeStatusItem"
         ProcessInfo.processInfo.disableAutomaticTermination("Codex Gauge menu bar status item")
         ProcessInfo.processInfo.disableSuddenTermination()
         activity = ProcessInfo.processInfo.beginActivity(
@@ -1534,6 +1552,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             button.imagePosition = .imageOnly
             button.imageScaling = .scaleNone
             button.toolTip = "Codex quota"
+            button.setAccessibilityLabel("Codex Gauge")
             button.target = self
             button.action = #selector(toggleSignalConsole(_:))
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -2017,6 +2036,18 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
     }
 
+    @objc private func showSSDTemperaturePreferenceChanged(_ sender: Any?) {
+        guard let checkbox = sender as? NSButton else {
+            return
+        }
+        UserDefaults.standard.set(checkbox.state == .on, forKey: showSSDTemperatureInMenuBarKey)
+        if let snapshot {
+            setStatusImage(title: statusTooltipTitle(snapshot), status: snapshot.codex)
+        } else {
+            setStatusImage(title: "Codex quota")
+        }
+    }
+
     @objc private func launchAtLoginPreferenceChanged(_ sender: Any?) {
         guard let checkbox = sender as? NSButton else {
             return
@@ -2147,6 +2178,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         if defaults.object(forKey: notificationsEnabledKey) == nil {
             defaults.set(false, forKey: notificationsEnabledKey)
         }
+        if defaults.object(forKey: showSSDTemperatureInMenuBarKey) == nil {
+            defaults.set(true, forKey: showSSDTemperatureInMenuBarKey)
+        }
         defaults.set(isLaunchAgentConfigured(), forKey: launchAtLoginKey)
     }
 
@@ -2257,7 +2291,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func makePreferencesWindow() -> NSWindow {
         let theme = currentSignalConsoleTheme()
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 340),
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 380),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -2266,14 +2300,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         window.appearance = NSAppearance(named: theme.appearance)
         window.isReleasedWhenClosed = false
 
-        let content = makeThemedUtilityContentView(size: NSSize(width: 420, height: 340))
+        let content = makeThemedUtilityContentView(size: NSSize(width: 420, height: 380))
         window.contentView = content
 
-        content.addSubview(utilityLabel("Codex Gauge", frame: NSRect(x: 24, y: 294, width: 220, height: 24), size: 16, weight: .semibold, color: theme.textPrimary))
+        content.addSubview(utilityLabel("Codex Gauge", frame: NSRect(x: 24, y: 334, width: 220, height: 24), size: 16, weight: .semibold, color: theme.textPrimary))
 
-        content.addSubview(utilityLabel("Theme", frame: NSRect(x: 24, y: 252, width: 96, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
+        content.addSubview(utilityLabel("Theme", frame: NSRect(x: 24, y: 292, width: 96, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
 
-        let themeSelect = NSPopUpButton(frame: NSRect(x: 132, y: 250, width: 180, height: 26), pullsDown: false)
+        let themeSelect = NSPopUpButton(frame: NSRect(x: 132, y: 290, width: 180, height: 26), pullsDown: false)
         themeSelect.addItems(withTitles: ["Paper Console", "Signal Dark", "Mono Graphite"])
         themeSelect.item(withTitle: "Paper Console")?.representedObject = paperConsoleThemeKey
         themeSelect.item(withTitle: "Signal Dark")?.representedObject = signalDarkThemeKey
@@ -2283,9 +2317,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         content.addSubview(themeSelect)
         themePopup = themeSelect
 
-        content.addSubview(utilityLabel("Refresh", frame: NSRect(x: 24, y: 212, width: 96, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
+        content.addSubview(utilityLabel("Refresh", frame: NSRect(x: 24, y: 252, width: 96, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
 
-        let popup = NSPopUpButton(frame: NSRect(x: 132, y: 210, width: 180, height: 26), pullsDown: false)
+        let popup = NSPopUpButton(frame: NSRect(x: 132, y: 250, width: 180, height: 26), pullsDown: false)
         popup.addItems(withTitles: ["Adaptive", "5 minutes", "10 minutes"])
         popup.item(withTitle: "Adaptive")?.representedObject = adaptiveRefreshMode
         popup.item(withTitle: "5 minutes")?.representedObject = fiveMinuteRefreshMode
@@ -2294,6 +2328,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         popup.action = #selector(refreshPreferenceChanged)
         content.addSubview(popup)
         refreshPopup = popup
+
+        content.addSubview(utilityLabel("Menu bar", frame: NSRect(x: 24, y: 208, width: 110, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
+
+        let showSSD = NSButton(checkboxWithTitle: "Show SSD temperature in menu bar", target: self, action: #selector(showSSDTemperaturePreferenceChanged))
+        showSSD.frame = NSRect(x: 132, y: 206, width: 250, height: 24)
+        showSSD.contentTintColor = theme.textSecondary
+        content.addSubview(showSSD)
+        showSSDTemperatureCheckbox = showSSD
 
         content.addSubview(utilityLabel("Notifications", frame: NSRect(x: 24, y: 168, width: 110, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
 
@@ -2338,6 +2380,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         refreshPopup?.selectItem(withTitle: refreshTitle(for: mode))
         themePopup?.selectItem(withTitle: currentSignalConsoleTheme().name)
         notificationsCheckbox?.state = notificationsEnabled() ? .on : .off
+        showSSDTemperatureCheckbox?.state = showSSDTemperatureInMenuBar() ? .on : .off
         let launchEnabled = isLaunchAgentConfigured()
         UserDefaults.standard.set(launchEnabled, forKey: launchAtLoginKey)
         launchAtLoginCheckbox?.state = launchEnabled ? .on : .off
@@ -2419,8 +2462,47 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         return helperEnv
     }
 
+    private func readSSDTemperature() -> SSDTemperatureStatus? {
+        guard FileManager.default.isExecutableFile(atPath: ssdTemperaturePath) else {
+            return nil
+        }
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: ssdTemperaturePath)
+        process.currentDirectoryURL = URL(fileURLWithPath: supportDir, isDirectory: true)
+        let stdout = Pipe()
+        let stderr = Pipe()
+        process.standardOutput = stdout
+        process.standardError = stderr
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+        } catch {
+            appendLog("ssd temperature helper failed=\(error.localizedDescription)")
+            return SSDTemperatureStatus(ok: false, temperatureC: nil, source: "IOReport", error: "SSD sensor unavailable")
+        }
+
+        let output = stdout.fileHandleForReading.readDataToEndOfFile()
+        let errorOutput = stderr.fileHandleForReading.readDataToEndOfFile()
+        guard process.terminationStatus == 0 else {
+            let errorText = String(data: errorOutput, encoding: .utf8) ?? "SSD sensor unavailable"
+            return SSDTemperatureStatus(ok: false, temperatureC: nil, source: "IOReport", error: clipped(errorText, limit: 120))
+        }
+
+        do {
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            return try decoder.decode(SSDTemperatureStatus.self, from: output)
+        } catch {
+            appendLog("ssd temperature parse failed=\(error.localizedDescription)")
+            return SSDTemperatureStatus(ok: false, temperatureC: nil, source: "IOReport", error: "SSD sensor unavailable")
+        }
+    }
+
     private func finishRefresh(status: Int32, output: String, errorOutput: String) {
         isRefreshing = false
+        ssdTemperature = readSSDTemperature()
         appendLog("refresh finished status=\(status) stdout=\(clipped(output, limit: 600)) stderr=\(clipped(errorOutput, limit: 600))")
         if status == 0 {
             do {
@@ -2455,6 +2537,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func notificationsEnabled() -> Bool {
         UserDefaults.standard.bool(forKey: notificationsEnabledKey)
+    }
+
+    private func showSSDTemperatureInMenuBar() -> Bool {
+        UserDefaults.standard.bool(forKey: showSSDTemperatureInMenuBarKey)
     }
 
     private func requestNotificationAuthorization() {
@@ -2592,6 +2678,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let liveAvailable = snapshot?.codex.ok == true && snapshot?.codex.source == "live"
         let launchAgentRunning = isLaunchAgentConfigured()
         let notificationsAllowed = notificationsEnabled()
+        let ssdTemperature = self.ssdTemperature ?? readSSDTemperature()
         return [
             DoctorCheck(
                 title: "Codex app found",
@@ -2618,7 +2705,23 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 state: notificationsAllowed ? "green" : "grey",
                 detail: notificationsAllowed ? "Quota alerts enabled" : "Optional, off by default"
             ),
+            ssdTemperatureDoctorCheck(ssdTemperature),
         ]
+    }
+
+    private func ssdTemperatureDoctorCheck(_ status: SSDTemperatureStatus?) -> DoctorCheck {
+        guard let status, status.ok, let temperature = status.temperatureC else {
+            return DoctorCheck(title: "SSD temp", state: "grey", detail: "SSD sensor unavailable")
+        }
+        let detail = ssdTemperatureStatusText(status)
+        switch temperature {
+        case 70...:
+            return DoctorCheck(title: "SSD temp", state: "red", detail: detail)
+        case 55..<70:
+            return DoctorCheck(title: "SSD temp", state: "amber", detail: detail)
+        default:
+            return DoctorCheck(title: "SSD temp", state: "green", detail: detail)
+        }
     }
 
     private func doctorStatusColor(_ state: String) -> NSColor {
@@ -2730,6 +2833,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             addDisabled("\(sevenDayMenuLabel)     \(percent(status.sevenDayLeft))  \(barString(status.sevenDayLeft))", monospaced: true)
             addDisabled("\(fiveHourResetMenuLabel) \(resetCountdown(status.fiveHourReset))")
             addDisabled("\(sevenDayResetMenuLabel) \(resetCountdown(status.sevenDayReset))")
+            addDisabled("SSD temperature \(ssdTemperatureStatusText(ssdTemperature))")
             if let resetHighlightUntil, resetHighlightUntil > Date() {
                 addDisabled("5h refreshed")
             }
@@ -2765,17 +2869,44 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 sevenDayLeft: status.sevenDayLeft,
                 fiveHourReset: status.fiveHourReset,
                 sevenDayReset: status.sevenDayReset,
-                source: status.source
+                source: status.source,
+                ssdTemperature: ssdTemperature
             )
         } else if let status, status.ok {
-            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: status.source)
+            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: status.source, ssdTemperature: ssdTemperature)
         } else {
-            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: nil)
+            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: nil, ssdTemperature: ssdTemperature)
         }
-        button.toolTip = title
+        button.toolTip = menuBarTooltipTitle(title: title, status: status)
+        button.setAccessibilityLabel("Codex Gauge \(menuBarAccessibilitySummary(status))")
     }
 
-    private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?) -> NSImage {
+    private func menuBarTooltipTitle(title: String, status: ServiceStatus?) -> String {
+        var parts = [title]
+        if let status, status.ok, !isUnavailableStatus(status) {
+            parts.append("5h resets \(fiveHourResetCountdown(status.fiveHourReset))")
+            parts.append("7d resets \(sevenDayResetCountdown(status.sevenDayReset))")
+        }
+        let temperature = ssdTemperatureDisplayText(ssdTemperature)
+        if temperature != "--°" {
+            parts.append("SSD \(temperature)")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private func menuBarAccessibilitySummary(_ status: ServiceStatus?) -> String {
+        let temperatureSummary = showSSDTemperatureInMenuBar()
+            ? ", SSD \(ssdTemperatureDisplayText(ssdTemperature))"
+            : ""
+        guard let status, status.ok, !isUnavailableStatus(status) else {
+            return showSSDTemperatureInMenuBar() ? "SSD \(ssdTemperatureDisplayText(ssdTemperature))" : "unavailable"
+        }
+        let fiveHour = status.fiveHourLeft.map { "\($0)%" } ?? "--"
+        let sevenDay = status.sevenDayLeft.map { "\($0)%" } ?? "--"
+        return "5h \(fiveHour), 7d \(sevenDay)\(temperatureSummary)"
+    }
+
+    private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?, ssdTemperature: SSDTemperatureStatus?) -> NSImage {
         let image = NSImage(size: statusImageSize)
         image.lockFocus()
 
@@ -2801,6 +2932,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 sevenDayReset: sevenDayReset,
                 palette: palette
             )
+        }
+        if showSSDTemperatureInMenuBar() {
+            drawMenuBarSSDTemperature(status: ssdTemperature, rect: menuBarTemperatureChipRect, palette: palette)
         }
 
         image.unlockFocus()
@@ -2894,24 +3028,24 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             .font: NSFont.monospacedDigitSystemFont(ofSize: 7.4, weight: .bold),
             .foregroundColor: palette.primaryText,
         ]
-        ("5h" as NSString).draw(at: NSPoint(x: 6, y: 10.5), withAttributes: labelAttrs)
-        ("7d" as NSString).draw(at: NSPoint(x: 6, y: 2.0), withAttributes: labelAttrs)
+        ("5h" as NSString).draw(at: NSPoint(x: 4, y: 10.5), withAttributes: labelAttrs)
+        ("7d" as NSString).draw(at: NSPoint(x: 4, y: 2.0), withAttributes: labelAttrs)
 
-        drawGaugeRail(value: nil, rect: NSRect(x: 27, y: 13, width: quotaRailWidth, height: 3), palette: palette, fillColor: palette.mutedText)
-        drawGaugeRail(value: nil, rect: NSRect(x: 27, y: 4, width: quotaRailWidth, height: 3), palette: palette, fillColor: palette.mutedText)
+        drawGaugeRail(value: nil, rect: NSRect(x: 24, y: 13, width: quotaRailWidth, height: 3), palette: palette, fillColor: palette.mutedText)
+        drawGaugeRail(value: nil, rect: NSRect(x: 24, y: 4, width: quotaRailWidth, height: 3), palette: palette, fillColor: palette.mutedText)
 
         let dashAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 7.4, weight: .semibold),
             .foregroundColor: palette.mutedText,
         ]
-        ("--" as NSString).draw(at: NSPoint(x: 83, y: 9.9), withAttributes: dashAttrs)
-        ("--" as NSString).draw(at: NSPoint(x: 83, y: 1.0), withAttributes: dashAttrs)
+        ("--" as NSString).draw(at: NSPoint(x: 78, y: 9.9), withAttributes: dashAttrs)
+        ("--" as NSString).draw(at: NSPoint(x: 78, y: 1.0), withAttributes: dashAttrs)
 
         let actionAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 7.2, weight: .semibold),
             .foregroundColor: unavailableSourceColor(),
         ]
-        ("Open Codex" as NSString).draw(at: NSPoint(x: 122, y: 6.4), withAttributes: actionAttrs)
+        ("Open Codex" as NSString).draw(at: NSPoint(x: 126, y: 6.4), withAttributes: actionAttrs)
     }
 
     private func drawPlanBGauge(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, palette: GaugePalette) {
@@ -2921,29 +3055,110 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func drawPlanBRow(window: String, quotaLeft: Int?, resetEpoch: Double?, windowHours: Double, y: CGFloat, palette: GaugePalette) {
         let windowAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 7.4, weight: .bold),
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 7.2, weight: .bold),
             .foregroundColor: palette.primaryText,
         ]
-        (window as NSString).draw(at: NSPoint(x: 6, y: y - 2.5), withAttributes: windowAttrs)
+        (window as NSString).draw(at: NSPoint(x: 4, y: y - 2.5), withAttributes: windowAttrs)
 
-        drawQuotaRail(value: quotaLeft, rect: NSRect(x: 27, y: y, width: quotaRailWidth, height: 3), palette: palette)
+        drawQuotaRail(value: quotaLeft, rect: NSRect(x: 24, y: y, width: quotaRailWidth, height: 3), palette: palette)
 
         let percentText = quotaLeft.map { "\($0)%" } ?? "--"
         let valueAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 7.4, weight: .semibold),
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 6.8, weight: .semibold),
             .foregroundColor: quotaLeft == nil ? palette.mutedText : palette.primaryText,
         ]
-        (percentText as NSString).draw(at: NSPoint(x: 83, y: y - 3.1), withAttributes: valueAttrs)
+        (percentText as NSString).draw(at: NSPoint(x: 78, y: y - 3.1), withAttributes: valueAttrs)
 
         let resetProgress = resetProgressPercent(epoch: resetEpoch, windowHours: windowHours)
-        drawResetMoodLane(value: resetProgress, rect: NSRect(x: 122, y: y, width: resetRailWidth + 4, height: 3), palette: palette)
+        drawResetMoodLane(value: resetProgress, rect: NSRect(x: 130, y: y, width: resetRailWidth + 4, height: 3), palette: palette)
 
         let resetText = window == "5h" ? fiveHourResetCountdown(resetEpoch) : sevenDayResetCountdown(resetEpoch)
         let resetAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 6.8, weight: .semibold),
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 5.8, weight: .semibold),
             .foregroundColor: resetEpoch == nil ? palette.mutedText : palette.secondaryText,
         ]
-        (resetText as NSString).draw(at: NSPoint(x: 164, y: y - 3.2), withAttributes: resetAttrs)
+        (resetText as NSString).draw(at: NSPoint(x: 164, y: y - 2.9), withAttributes: resetAttrs)
+    }
+
+    private func drawMenuBarSSDTemperature(status: SSDTemperatureStatus?, rect: NSRect, palette: GaugePalette) {
+        let color = ssdTemperatureColor(status)
+        let path = NSBezierPath(roundedRect: rect, xRadius: 4.0, yRadius: 4.0)
+        color.withAlphaComponent(ssdTemperatureFillAlpha(status)).setFill()
+        path.fill()
+        color.withAlphaComponent(0.64).setStroke()
+        path.lineWidth = 0.55
+        path.stroke()
+
+        let text = ssdTemperatureDisplayText(status)
+        let fontSize: CGFloat = text.count > 3 ? 6.6 : 7.2
+        let textColor = status?.ok == true
+            ? NSColor.black.withAlphaComponent(0.82)
+            : palette.mutedText
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .bold),
+            .foregroundColor: textColor,
+        ]
+        (text as NSString).draw(at: NSPoint(x: rect.minX + 2.9, y: rect.minY + 2.45), withAttributes: attrs)
+    }
+
+    private func ssdTemperatureDisplayText(_ status: SSDTemperatureStatus?) -> String {
+        guard let status, status.ok, let temperature = status.temperatureC else {
+            return "--°"
+        }
+        return "\(temperature)°"
+    }
+
+    private func ssdTemperatureStatusText(_ status: SSDTemperatureStatus?) -> String {
+        guard let status, status.ok, let temperature = status.temperatureC else {
+            return "unavailable"
+        }
+        return "\(temperature)°C · \(ssdTemperatureStatusLabel(status))"
+    }
+
+    private func ssdTemperatureStatusLabel(_ status: SSDTemperatureStatus?) -> String {
+        guard let status, status.ok, let temperature = status.temperatureC else {
+            return "Unavailable"
+        }
+        switch temperature {
+        case 70...:
+            return "Hot"
+        case 55..<70:
+            return "Warm"
+        default:
+            return "Normal"
+        }
+    }
+
+    private func ssdTemperatureFillAlpha(_ status: SSDTemperatureStatus?) -> CGFloat {
+        guard let status, status.ok, let temperature = status.temperatureC else {
+            return 0.20
+        }
+        return temperature >= 70 ? 0.92 : 0.74
+    }
+
+    private func ssdTemperatureColor(_ status: SSDTemperatureStatus?) -> NSColor {
+        guard let status, status.ok, let temperature = status.temperatureC else {
+            return gaugePalette().mutedText
+        }
+        if currentSignalConsoleThemeKey() == monoGraphiteThemeKey {
+            switch temperature {
+            case 70...:
+                return monoAccent(isDarkMenuBar() ? 0.58 : 0.30, alpha: 0.96)
+            case 55..<70:
+                return monoAccent(isDarkMenuBar() ? 0.74 : 0.42, alpha: 0.96)
+            default:
+                return monoAccent(isDarkMenuBar() ? 0.88 : 0.22, alpha: 0.96)
+            }
+        }
+        let theme = currentSignalConsoleTheme()
+        switch temperature {
+        case 70...:
+            return theme.coralAccent
+        case 55..<70:
+            return theme.amberAccent
+        default:
+            return theme.mintAccent
+        }
     }
 
     private func drawQuotaRail(value: Int?, rect: NSRect, palette: GaugePalette) {
@@ -3798,6 +4013,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         return url.path
     }
 
+    private func ssdTemperatureDiagnosticsText() -> String {
+        ssdTemperatureStatusText(ssdTemperature ?? readSSDTemperature())
+    }
+
     private func safeDiagnosticsText() -> String {
         let status = snapshot?.codex
         let source = status?.source ?? "unavailable"
@@ -3815,6 +4034,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             "Last error summary: \(error)",
             "LaunchAgent state: \(launchState)",
             "Notifications permission: \(notificationState)",
+            "SSD temperature: \(ssdTemperatureDiagnosticsText())",
             "Refresh mode: \(currentRefreshMode())",
             "Excludes: browser cookies, ~/.codex/auth.json, Session file contents, Runtime logs, prompts, responses",
         ].joined(separator: "\n")

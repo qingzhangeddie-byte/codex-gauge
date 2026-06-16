@@ -5,6 +5,7 @@
 - Added a first-run setup surface that explains the local-only model and links to Codex and Setup Doctor.
 - Restyled Preferences and Setup Doctor with the selected Signal Console theme.
 - Added explicit Cache, Snapshot, and Open state badges to non-live menu bar states.
+- Added an optional local SSD temperature readout in the menu bar and Setup Doctor when macOS exposes the IOReport sensor.
 
 ## v0.8.0 - 2026-06-13
 

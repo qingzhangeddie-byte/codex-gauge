@@ -52,8 +52,12 @@ Search phrases this project is designed to answer naturally: **check Codex usage
 
 - Compact menu bar gauge for Codex 5-hour and 7-day quota  
   菜单栏紧凑显示 Codex 5 小时额度和 7 天额度
-- Segmented live signal rails make quota health readable in the menu bar without widening the app
-  分段信号条让菜单栏里的额度健康状态更直观，同时不增加占用宽度
+- Segmented live signal rails make quota health readable in the menu bar without turning it into a large widget
+  分段信号条让菜单栏里的额度健康状态更直观，同时不会变成很占位置的大组件
+- Optional SSD temperature suffix shows a local hardware signal when macOS exposes the sensor
+  可选 SSD 温度后缀会在 macOS 暴露传感器时显示本机硬盘温度；SSD 温度显示可以在 Preferences 里关闭
+- SSD temperature is explained as Normal, Warm, or Hot in the dropdown, diagnostics, and Setup Doctor
+  SSD 温度会在下拉菜单、诊断和 Setup Doctor 里标注为 Normal、Warm 或 Hot
 - Custom Signal Console popover with status, quota, reset timing, trend, doctor checks, diagnostics, and actions
   自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口；下拉菜单显示额度重置时间和上次刷新时间
 - Signal Console shows the actual next-refresh countdown, not a static refresh label
@@ -165,6 +169,7 @@ The generated zip includes `CodexGauge.app`, `Install Codex Gauge.command`, and 
 | Signal quality | Shows both 5-hour and 7-day quota instead of one vague number |
 | Refresh behavior | Adaptive refresh instead of constant polling: 5 minutes normally, 3 minutes when low, 2 minutes when critical, with quick retry after transient errors |
 | Preferences | Built-in refresh cadence, notifications, and launch-at-login controls |
+| Optional SSD temperature | Menu bar SSD chip can be hidden; diagnostics still label the sensor as Normal, Warm, or Hot |
 | Notifications | Opt-in alerts for the moments users actually care about |
 | Signal Console | Explains whether data is live, cached, snapshot-based, or unavailable |
 | Setup Doctor | Local checks for Codex app, helper, live data, LaunchAgent, and notifications |
