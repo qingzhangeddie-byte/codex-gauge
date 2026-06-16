@@ -59,6 +59,19 @@ private struct DoctorCheck {
     let detail: String
 }
 
+private func healthSummaryText(_ checks: [DoctorCheck]) -> String {
+    let okCount = checks.filter { $0.state == "green" }.count
+    let optionalCount = checks.filter { $0.state == "grey" }.count
+    let issueCount = checks.count - okCount - optionalCount
+    if issueCount > 0 {
+        return "\(okCount) OK · \(issueCount) check"
+    }
+    if optionalCount > 0 {
+        return "\(okCount) OK · \(optionalCount) optional"
+    }
+    return "\(okCount) OK"
+}
+
 private struct TrendContext {
     let sampleCount: Int
     let liveSampleCount: Int
@@ -1454,8 +1467,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             unavailable: false,
             reportFive: "-8%",
             reportSeven: "-3%",
-            todaySummary: "Today 12 · 5h -8% · 7d -3%",
-            health: "5 OK"
+            todaySummary: "Today 12 · 5h -8% · 7d -3%"
         )),
         ("codex-closed", signalConsolePreviewModel(
             title: "Codex closed",
@@ -1472,8 +1484,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             unavailable: true,
             reportFive: "collecting",
             reportSeven: "collecting",
-            todaySummary: "Today collecting · need 2 samples",
-            health: "3 OK · 1 check"
+            todaySummary: "Today collecting · need 2 samples"
         )),
         ("last-live", signalConsolePreviewModel(
             title: "Last live",
@@ -1490,8 +1501,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             unavailable: false,
             reportFive: "-21%",
             reportSeven: "-6%",
-            todaySummary: "Today 10 · 5h -21% · 7d -6%",
-            health: "4 OK · 1 optional"
+            todaySummary: "Today 10 · 5h -21% · 7d -6%"
         )),
         ("low-quota", signalConsolePreviewModel(
             title: "Live",
@@ -1508,8 +1518,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             unavailable: false,
             reportFive: "-81%",
             reportSeven: "-18%",
-            todaySummary: "Today 18 · 5h -81% · 7d -18%",
-            health: "5 OK"
+            todaySummary: "Today 18 · 5h -81% · 7d -18%"
         )),
     ]
 
@@ -1535,10 +1544,17 @@ private func signalConsolePreviewModel(
     unavailable: Bool,
     reportFive: String,
     reportSeven: String,
-    todaySummary: String,
-    health: String
+    todaySummary: String
 ) -> SignalConsoleModel {
     let temperatureHistory = previewTemperatureSamples(unavailable: unavailable)
+    let doctorChecks = [
+        DoctorCheck(title: "Codex process", state: unavailable ? "yellow" : "green", detail: unavailable ? "Closed" : "Open"),
+        DoctorCheck(title: "Menu bar source", state: "green", detail: "OK"),
+        DoctorCheck(title: "Cache age", state: source == "last_live" ? "blue" : "green", detail: source == "last_live" ? "Cached" : "Fresh"),
+        DoctorCheck(title: "LaunchAgent", state: "green", detail: "Loaded"),
+        DoctorCheck(title: "Last fetch", state: unavailable ? "grey" : "green", detail: unavailable ? "--" : "OK"),
+        DoctorCheck(title: "SSD temp", state: unavailable ? "grey" : "green", detail: unavailable ? "Unavailable" : "42°C · Normal"),
+    ]
     return SignalConsoleModel(
         planName: unavailable ? "Codex Gauge" : "Codex Pro",
         sourcePill: "Source: Menu Bar",
@@ -1563,15 +1579,8 @@ private func signalConsolePreviewModel(
         reportFiveHourMovement: reportFive,
         reportSevenDayMovement: reportSeven,
         reportTodaySummary: todaySummary,
-        healthSummaryText: health,
-        doctorChecks: [
-            DoctorCheck(title: "Codex process", state: unavailable ? "yellow" : "green", detail: unavailable ? "Closed" : "Open"),
-            DoctorCheck(title: "Menu bar source", state: "green", detail: "OK"),
-            DoctorCheck(title: "Cache age", state: source == "last_live" ? "blue" : "green", detail: source == "last_live" ? "Cached" : "Fresh"),
-            DoctorCheck(title: "LaunchAgent", state: "green", detail: "Loaded"),
-            DoctorCheck(title: "Last fetch", state: unavailable ? "grey" : "green", detail: unavailable ? "--" : "OK"),
-            DoctorCheck(title: "SSD temp", state: unavailable ? "grey" : "green", detail: unavailable ? "Unavailable" : "42°C · Normal"),
-        ],
+        healthSummaryText: healthSummaryText(doctorChecks),
+        doctorChecks: doctorChecks,
         lastRefreshText: unavailable ? "none" : "21:12",
         liveAgeText: unavailable ? "unknown" : "2m ago",
         nextRefreshText: unavailable ? "1:00" : "4:58",
@@ -1612,6 +1621,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var showSSDTemperatureCheckbox: NSButton?
     private var snapshot: UsageSnapshot?
     private var ssdTemperature: SSDTemperatureStatus?
+    private var lastValidSSDTemperature: SSDTemperatureStatus?
+    private var lastValidSSDTemperatureAt: Date?
     private var temperatureTimer: Timer?
     private var temperatureReadInFlight = false
     private var temperatureSamples: [TemperatureSample] = []
@@ -1637,6 +1648,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let temperatureHistoryWindow: TimeInterval = 60
     private let maxTemperatureSamples = 90
     private let ssdTemperatureReadTimeout: TimeInterval = 0.8
+    private let ssdTemperatureDisplayGraceInterval: TimeInterval = 10
     private let statusItemWidth: CGFloat = 174
     private let statusImageSize = NSSize(width: 168, height: 22)
     private let menuBarTemperatureChipRect = NSRect(x: 82, y: 4.9, width: 27, height: 12.2)
@@ -1854,7 +1866,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 sevenDayTrendText: trendText(values: sevenDayHistory, suffix: "in 24h"),
                 trendContextText: trendContextText(samples: lastDaySamples, latestSource: status.source),
                 temperatureHistory: retainedTemperatureHistory,
-                currentTemperatureText: currentTemperatureText(status: ssdTemperature, samples: retainedTemperatureHistory),
+                currentTemperatureText: currentTemperatureText(status: ssdTemperatureForDisplay(), samples: retainedTemperatureHistory),
                 temperatureHistoryText: temperatureHistorySummaryText(retainedTemperatureHistory),
                 reportFiveHourMovement: inlineReport.fiveHourMovement,
                 reportSevenDayMovement: inlineReport.sevenDayMovement,
@@ -1898,7 +1910,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             sevenDayTrendText: trendText(values: sevenDayHistory, suffix: "in 24h"),
             trendContextText: trendContextText(samples: lastDaySamples, latestSource: nil),
             temperatureHistory: retainedTemperatureHistory,
-            currentTemperatureText: currentTemperatureText(status: ssdTemperature, samples: retainedTemperatureHistory),
+            currentTemperatureText: currentTemperatureText(status: ssdTemperatureForDisplay(), samples: retainedTemperatureHistory),
             temperatureHistoryText: temperatureHistorySummaryText(retainedTemperatureHistory),
             reportFiveHourMovement: inlineReport.fiveHourMovement,
             reportSevenDayMovement: inlineReport.sevenDayMovement,
@@ -1958,28 +1970,35 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         return "\(prefix) \(usable.count) \(sampleKind) from \(shortTime(first.time)) to \(shortTime(latest.time))"
     }
 
-    private func currentTemperatureText(status: SSDTemperatureStatus?, samples: [TemperatureSample]) -> String {
+    private func currentTemperatureText(status: SSDTemperatureStatus?, samples: [TemperatureSample], now: Date = Date()) -> String {
         if let status, status.ok, let temperature = status.temperatureC {
             return "\(temperature)°C"
         }
         if let latest = samples.reversed().first(where: { $0.ok && $0.temperatureC != nil }),
+           let latestDate = isoDate(latest.time),
+           now.timeIntervalSince(latestDate) <= ssdTemperatureDisplayGraceInterval,
            let temperature = latest.temperatureC {
             return "\(temperature)°C"
         }
         return "--"
     }
 
-    private func healthSummaryText(_ checks: [DoctorCheck]) -> String {
-        let okCount = checks.filter { $0.state == "green" }.count
-        let optionalCount = checks.filter { $0.state == "grey" }.count
-        let issueCount = checks.count - okCount - optionalCount
-        if issueCount > 0 {
-            return "\(okCount) OK · \(issueCount) check"
+    private func updateLastValidSSDTemperature(_ status: SSDTemperatureStatus?, at date: Date = Date()) {
+        guard let status, status.ok, status.temperatureC != nil else {
+            return
         }
-        if optionalCount > 0 {
-            return "\(okCount) OK · \(optionalCount) optional"
+        lastValidSSDTemperature = status
+        lastValidSSDTemperatureAt = date
+    }
+
+    private func ssdTemperatureForDisplay(now: Date = Date()) -> SSDTemperatureStatus? {
+        guard let lastValidSSDTemperature, let lastValidSSDTemperatureAt else {
+            return nil
         }
-        return "\(okCount) OK"
+        guard now.timeIntervalSince(lastValidSSDTemperatureAt) <= ssdTemperatureDisplayGraceInterval else {
+            return nil
+        }
+        return lastValidSSDTemperature
     }
 
     @objc private func refreshNow() {
@@ -2725,6 +2744,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 }
                 self.temperatureReadInFlight = false
                 self.ssdTemperature = status
+                self.updateLastValidSSDTemperature(status)
                 self.appendTemperatureSample(status)
                 if let snapshot = self.snapshot {
                     self.setStatusImage(title: self.statusTooltipTitle(snapshot), status: snapshot.codex)
@@ -3108,12 +3128,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 fiveHourReset: status.fiveHourReset,
                 sevenDayReset: status.sevenDayReset,
                 source: status.source,
-                ssdTemperature: ssdTemperature
+                ssdTemperature: ssdTemperatureForDisplay()
             )
         } else if let status, status.ok {
-            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: status.source, ssdTemperature: ssdTemperature)
+            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: status.source, ssdTemperature: ssdTemperatureForDisplay())
         } else {
-            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: nil, ssdTemperature: ssdTemperature)
+            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: nil, ssdTemperature: ssdTemperatureForDisplay())
         }
         button.toolTip = menuBarTooltipTitle(title: title, status: status)
         button.setAccessibilityLabel("Codex Gauge \(menuBarAccessibilitySummary(status))")
@@ -3125,7 +3145,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             parts.append("5h resets \(fiveHourResetCountdown(status.fiveHourReset))")
             parts.append("7d resets \(sevenDayResetCountdown(status.sevenDayReset))")
         }
-        let temperature = ssdTemperatureDisplayText(ssdTemperature)
+        let temperature = ssdTemperatureDisplayText(ssdTemperatureForDisplay())
         if temperature != "--°" {
             parts.append("SSD \(temperature)")
         }
@@ -3134,10 +3154,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func menuBarAccessibilitySummary(_ status: ServiceStatus?) -> String {
         let temperatureSummary = showSSDTemperatureInMenuBar()
-            ? ", SSD \(ssdTemperatureDisplayText(ssdTemperature))"
+            ? ", SSD \(ssdTemperatureDisplayText(ssdTemperatureForDisplay()))"
             : ""
         guard let status, status.ok, !isUnavailableStatus(status) else {
-            return showSSDTemperatureInMenuBar() ? "SSD \(ssdTemperatureDisplayText(ssdTemperature))" : "unavailable"
+            return showSSDTemperatureInMenuBar() ? "SSD \(ssdTemperatureDisplayText(ssdTemperatureForDisplay()))" : "unavailable"
         }
         let fiveHour = status.fiveHourLeft.map { "\($0)%" } ?? "--"
         let sevenDay = status.sevenDayLeft.map { "\($0)%" } ?? "--"

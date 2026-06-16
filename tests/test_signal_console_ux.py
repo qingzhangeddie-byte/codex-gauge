@@ -477,9 +477,9 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("private let quotaRailWidth: CGFloat = 28", source)
         self.assertIn("private let resetRailWidth: CGFloat = 18", source)
         self.assertIn("makeStatusImage(", source)
-        self.assertIn("ssdTemperature: ssdTemperature", source)
+        self.assertIn("ssdTemperature: ssdTemperatureForDisplay()", source)
         self.assertIn("menuBarAccessibilitySummary", source)
-        self.assertIn("ssdTemperatureDisplayText(ssdTemperature)", source)
+        self.assertIn("ssdTemperatureDisplayText(ssdTemperatureForDisplay())", source)
         self.assertIn("menuBarTooltipTitle(title: title, status: status)", source)
         self.assertIn('parts.append("SSD \\(temperature)")', source)
         self.assertIn("button.imagePosition = .imageOnly", source)
@@ -564,6 +564,33 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertNotIn("readSSDTemperature()", setup_doctor_body)
         self.assertNotIn("readSSDTemperature()", diagnostics_body)
 
+    def test_ssd_temperature_display_keeps_last_valid_read_briefly(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("private var lastValidSSDTemperature: SSDTemperatureStatus?", source)
+        self.assertIn("private var lastValidSSDTemperatureAt: Date?", source)
+        self.assertIn("private let ssdTemperatureDisplayGraceInterval: TimeInterval =", source)
+        self.assertIn("private func updateLastValidSSDTemperature", source)
+        self.assertIn("private func ssdTemperatureForDisplay(now: Date = Date()) -> SSDTemperatureStatus?", source)
+        self.assertIn("now.timeIntervalSince(lastValidSSDTemperatureAt) <= ssdTemperatureDisplayGraceInterval", source)
+        self.assertIn("lastValidSSDTemperature = status", source)
+        self.assertIn("lastValidSSDTemperatureAt = date", source)
+        self.assertIn("makeStatusImage(", source)
+        self.assertIn("ssdTemperature: ssdTemperatureForDisplay()", source)
+        self.assertIn("ssdTemperatureDisplayText(ssdTemperatureForDisplay())", source)
+        self.assertIn("currentTemperatureText(status: ssdTemperatureForDisplay(), samples: retainedTemperatureHistory)", source)
+
+        sample_body = source.split("private func sampleTemperature()", 1)[1].split("private func finishRefresh", 1)[0]
+        self.assertIn("let status = self.readSSDTemperature()", sample_body)
+        self.assertIn("self.ssdTemperature = status", sample_body)
+        self.assertIn("self.updateLastValidSSDTemperature(status)", sample_body)
+        self.assertIn("self.appendTemperatureSample(status)", sample_body)
+        self.assertLess(
+            sample_body.index("self.updateLastValidSSDTemperature(status)"),
+            sample_body.index("self.appendTemperatureSample(status)"),
+        )
+        self.assertNotIn("self.lastValidSSDTemperature = status", sample_body)
+
     def test_signal_console_movement_shows_smooth_temperature_curve(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
@@ -573,7 +600,7 @@ class SignalConsoleUXTests(unittest.TestCase):
             "temperatureHistoryText: String",
             "let retainedTemperatureHistory = retainedTemperatureSamples(temperatureSamples)",
             "temperatureHistory: retainedTemperatureHistory",
-            "currentTemperatureText(status: ssdTemperature, samples: retainedTemperatureHistory)",
+            "currentTemperatureText(status: ssdTemperatureForDisplay(), samples: retainedTemperatureHistory)",
             "temperatureHistoryText: temperatureHistorySummaryText(retainedTemperatureHistory)",
             '"SSD temp"',
             '"last 60s"',
@@ -602,6 +629,19 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn('if model.temperatureHistoryText == "SSD temp unavailable" || model.temperatureHistoryText == "collecting"', movement_body)
         self.assertEqual(snapshot_branch.count("retainedTemperatureSamples(temperatureSamples)"), 1)
         self.assertEqual(unavailable_branch.count("retainedTemperatureSamples(temperatureSamples)"), 1)
+
+    def test_signal_console_previews_derive_health_summary_from_visible_checks(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        preview_cases_body = source.split("private func signalConsolePreviewCases()", 1)[1].split("private func signalConsolePreviewModel", 1)[0]
+        preview_model_body = source.split("private func signalConsolePreviewModel", 1)[1].split("private func previewTemperatureSamples", 1)[0]
+
+        self.assertNotIn('health: "5 OK"', preview_cases_body)
+        self.assertNotIn('health: "4 OK · 1 optional"', preview_cases_body)
+        self.assertNotIn('health: "3 OK · 1 check"', preview_cases_body)
+        self.assertIn("let doctorChecks = [", preview_model_body)
+        self.assertIn("healthSummaryText: healthSummaryText(doctorChecks)", preview_model_body)
+        self.assertIn('DoctorCheck(title: "SSD temp", state: unavailable ? "grey" : "green"', preview_model_body)
 
     def test_signal_console_docs_are_public_safe(self):
         spec = pathlib.Path("docs/design/codex-gauge-signal-console-v0.6-design.md").read_text()
