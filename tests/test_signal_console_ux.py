@@ -499,7 +499,9 @@ class SignalConsoleUXTests(unittest.TestCase):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         self.assertIn("private struct TemperatureSample: Codable", source)
+        self.assertIn('private let temperatureQueue = DispatchQueue(label: "app.codexgauge.temperature", qos: .utility)', source)
         self.assertIn("private var temperatureTimer: Timer?", source)
+        self.assertIn("private var temperatureReadInFlight = false", source)
         self.assertIn("private var temperatureSamples: [TemperatureSample] = []", source)
         self.assertIn("private let temperatureSampleInterval: TimeInterval = 1", source)
         self.assertIn("private let temperatureHistoryWindow: TimeInterval = 60", source)
@@ -507,10 +509,19 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("startTemperatureSampler()", source)
         self.assertIn("sampleTemperature()", source)
         self.assertIn("Timer(timeInterval: temperatureSampleInterval, repeats: true)", source)
+        self.assertIn("temperatureQueue.async", source)
+        self.assertIn("DispatchQueue.main.async", source)
+        self.assertIn("temperatureReadInFlight = true", source)
+        self.assertIn("temperatureReadInFlight = false", source)
         self.assertIn("appendTemperatureSample(status)", source)
+        self.assertIn("temperatureC: status?.ok == true ? status?.temperatureC : nil", source)
+        self.assertIn("ok: status?.ok == true && status?.temperatureC != nil", source)
         self.assertIn("retainedTemperatureSamples", source)
         self.assertIn("writeTemperatureSamples", source)
         self.assertIn("readTemperatureSamples", source)
+
+        sample_body = source.split("private func sampleTemperature()", 1)[1].split("private func finishRefresh", 1)[0]
+        self.assertNotIn("refreshSignalPopoverIfNeeded()", sample_body)
 
     def test_signal_console_docs_are_public_safe(self):
         spec = pathlib.Path("docs/design/codex-gauge-signal-console-v0.6-design.md").read_text()

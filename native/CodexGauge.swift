@@ -1459,6 +1459,7 @@ private func signalConsolePreviewModel(
 
 private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    private let temperatureQueue = DispatchQueue(label: "app.codexgauge.temperature", qos: .utility)
     private let menu = NSMenu()
     private var signalPopover: NSPopover?
     private var timer: Timer?
@@ -1476,6 +1477,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var snapshot: UsageSnapshot?
     private var ssdTemperature: SSDTemperatureStatus?
     private var temperatureTimer: Timer?
+    private var temperatureReadInFlight = false
     private var temperatureSamples: [TemperatureSample] = []
     private var lastError: String?
     private var isRefreshing = false
@@ -1498,6 +1500,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let temperatureSampleInterval: TimeInterval = 1
     private let temperatureHistoryWindow: TimeInterval = 60
     private let maxTemperatureSamples = 90
+    private let ssdTemperatureReadTimeout: TimeInterval = 0.8
     private let statusItemWidth: CGFloat = 196
     private let statusImageSize = NSSize(width: 190, height: 22)
     private let menuBarTemperatureChipRect = NSRect(x: 96, y: 4.9, width: 27, height: 12.2)
@@ -2495,10 +2498,20 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
         do {
             try process.run()
-            process.waitUntilExit()
         } catch {
             appendLog("ssd temperature helper failed=\(error.localizedDescription)")
             return SSDTemperatureStatus(ok: false, temperatureC: nil, source: "IOReport", error: "SSD sensor unavailable")
+        }
+
+        let deadline = Date().addingTimeInterval(ssdTemperatureReadTimeout)
+        while process.isRunning && Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.02)
+        }
+        if process.isRunning {
+            process.terminate()
+            process.waitUntilExit()
+            appendLog("ssd temperature helper timed out")
+            return SSDTemperatureStatus(ok: false, temperatureC: nil, source: "IOReport", error: "SSD sensor timed out")
         }
 
         let output = stdout.fileHandleForReading.readDataToEndOfFile()
@@ -2520,6 +2533,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func startTemperatureSampler() {
         temperatureTimer?.invalidate()
+        _ = ssdTemperaturePath
+        _ = supportDir
+        _ = logPath
         sampleTemperature()
         let nextTimer = Timer(timeInterval: temperatureSampleInterval, repeats: true) { [weak self] _ in
             self?.sampleTemperature()
@@ -2529,16 +2545,28 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func sampleTemperature() {
-        let status = readSSDTemperature()
-        ssdTemperature = status
-        appendTemperatureSample(status)
-        if let snapshot {
-            setStatusImage(title: statusTooltipTitle(snapshot), status: snapshot.codex)
-        } else {
-            setStatusImage(title: "Codex quota")
+        guard !temperatureReadInFlight else {
+            return
         }
-        if signalPopover?.isShown == true {
-            refreshSignalPopoverIfNeeded()
+        temperatureReadInFlight = true
+        temperatureQueue.async { [weak self] in
+            guard let self else {
+                return
+            }
+            let status = self.readSSDTemperature()
+            DispatchQueue.main.async { [weak self] in
+                guard let self else {
+                    return
+                }
+                self.temperatureReadInFlight = false
+                self.ssdTemperature = status
+                self.appendTemperatureSample(status)
+                if let snapshot = self.snapshot {
+                    self.setStatusImage(title: self.statusTooltipTitle(snapshot), status: snapshot.codex)
+                } else {
+                    self.setStatusImage(title: "Codex quota")
+                }
+            }
         }
     }
 
@@ -3565,8 +3593,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         formatter.formatOptions = [.withInternetDateTime]
         let sample = TemperatureSample(
             time: formatter.string(from: Date()),
-            temperatureC: status?.temperatureC,
-            ok: status?.ok ?? false
+            temperatureC: status?.ok == true ? status?.temperatureC : nil,
+            ok: status?.ok == true && status?.temperatureC != nil
         )
         temperatureSamples.append(sample)
         temperatureSamples = retainedTemperatureSamples(temperatureSamples)
