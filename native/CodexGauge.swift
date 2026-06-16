@@ -2572,7 +2572,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func finishRefresh(status: Int32, output: String, errorOutput: String) {
         isRefreshing = false
-        ssdTemperature = readSSDTemperature()
+        sampleTemperature()
         appendLog("refresh finished status=\(status) stdout=\(clipped(output, limit: 600)) stderr=\(clipped(errorOutput, limit: 600))")
         if status == 0 {
             do {
@@ -2748,7 +2748,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let liveAvailable = snapshot?.codex.ok == true && snapshot?.codex.source == "live"
         let launchAgentRunning = isLaunchAgentConfigured()
         let notificationsAllowed = notificationsEnabled()
-        let ssdTemperature = self.ssdTemperature ?? readSSDTemperature()
+        if ssdTemperature == nil {
+            sampleTemperature()
+        }
+        let ssdTemperature = self.ssdTemperature
         return [
             DoctorCheck(
                 title: "Codex app found",
@@ -4132,7 +4135,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func ssdTemperatureDiagnosticsText() -> String {
-        ssdTemperatureStatusText(ssdTemperature ?? readSSDTemperature())
+        ssdTemperatureStatusText(ssdTemperature)
     }
 
     private func safeDiagnosticsText() -> String {

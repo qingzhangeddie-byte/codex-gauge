@@ -521,7 +521,18 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("readTemperatureSamples", source)
 
         sample_body = source.split("private func sampleTemperature()", 1)[1].split("private func finishRefresh", 1)[0]
+        finish_body = source.split("private func finishRefresh", 1)[1].split("private func refreshModeTitle", 1)[0]
+        setup_doctor_body = source.split("private func runSetupDoctorChecks()", 1)[1].split("private func doctorCheck", 1)[0]
+        diagnostics_body = source.split("private func ssdTemperatureDiagnosticsText()", 1)[1].split("private func safeDiagnosticsText", 1)[0]
+
+        self.assertEqual(source.count("temperatureQueue.async"), 1)
+        self.assertEqual(source.count("readSSDTemperature()"), 2)
+        self.assertIn("temperatureQueue.async", sample_body)
+        self.assertIn("let status = self.readSSDTemperature()", sample_body)
         self.assertNotIn("refreshSignalPopoverIfNeeded()", sample_body)
+        self.assertNotIn("readSSDTemperature()", finish_body)
+        self.assertNotIn("readSSDTemperature()", setup_doctor_body)
+        self.assertNotIn("readSSDTemperature()", diagnostics_body)
 
     def test_signal_console_docs_are_public_safe(self):
         spec = pathlib.Path("docs/design/codex-gauge-signal-console-v0.6-design.md").read_text()
