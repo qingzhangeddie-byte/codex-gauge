@@ -95,6 +95,8 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertIn("systemMetricSampleInterval: TimeInterval = 5", source)
         self.assertIn("systemMetricGraphWindow: TimeInterval = 10 * 60", source)
         self.assertIn("systemMetricRetentionWindow: TimeInterval = 24 * 60 * 60", source)
+        self.assertIn("systemMetricPersistInterval: TimeInterval = 60", source)
+        self.assertIn("lastSystemMetricPersistAt", source)
         self.assertIn("maxSystemMetricSamples = 24 * 60 * 60 / 5", source)
         self.assertIn("systemMetricsHistoryPath,", source)
         self.assertIn("Clear local data", source)
@@ -102,14 +104,17 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertIn("aggregated local CPU and RAM percentages", pathlib.Path("docs/PRIVACY.md").read_text(encoding="utf-8"))
 
         metric_storage = source.split("private func appendSystemMetricSample", 1)[1].split("private func readSystemMetricSamples", 1)[0]
+        self.assertIn("shouldPersistSystemMetricSamples(now: now)", metric_storage)
         self.assertNotIn("Keychain", metric_storage)
         self.assertNotIn("browser", metric_storage.lower())
         self.assertNotIn("auth.json", metric_storage)
 
+        self.assertIn("private func shouldPersistSystemMetricSamples(now: Date = Date()) -> Bool", source)
+
     def test_build_script_stamps_public_version_metadata(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()
 
-        self.assertIn('APP_VERSION="0.8.0"', script)
+        self.assertIn('APP_VERSION="0.9.0"', script)
         self.assertIn('APP_BUILD="1"', script)
         self.assertIn('CFBundleShortVersionString</key>', script)
         self.assertIn('CFBundleVersion</key>', script)

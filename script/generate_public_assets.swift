@@ -128,7 +128,7 @@ try writePNG(consoleOutputPath) {
     ])?.draw(in: NSBezierPath(rect: NSRect(origin: .zero, size: canvasSize)), angle: 25)
 
     drawText("Actual app-rendered Signal Console", in: NSRect(x: 72, y: 72, width: 440, height: 92), size: 37, weight: .bold, color: NSColor(calibratedRed: 0.08, green: 0.13, blue: 0.12, alpha: 1.0))
-    drawText("The same native view used by the menu bar popover. Public screenshot uses sample quota values, never personal data.", in: NSRect(x: 74, y: 176, width: 430, height: 70), size: 18, weight: .regular, color: NSColor(calibratedRed: 0.26, green: 0.32, blue: 0.30, alpha: 0.92))
+    drawText("The same native view used by the menu bar popover. Public screenshot uses sample quota values, plus sample reset, SSD, CPU, and RAM signals.", in: NSRect(x: 74, y: 176, width: 430, height: 74), size: 18, weight: .regular, color: NSColor(calibratedRed: 0.26, green: 0.32, blue: 0.30, alpha: 0.92))
 
     drawPill("Live source", rect: NSRect(x: 74, y: 280, width: 132, height: 38), fill: NSColor(calibratedRed: 0.12, green: 0.68, blue: 0.49, alpha: 0.13), stroke: NSColor(calibratedRed: 0.12, green: 0.68, blue: 0.49, alpha: 0.30), text: NSColor(calibratedRed: 0.08, green: 0.24, blue: 0.19, alpha: 1.0), dot: NSColor(calibratedRed: 0.12, green: 0.68, blue: 0.49, alpha: 1.0))
     drawPill("5h + 7d", rect: NSRect(x: 220, y: 280, width: 118, height: 38), fill: NSColor(calibratedRed: 0.95, green: 0.69, blue: 0.30, alpha: 0.15), stroke: NSColor(calibratedRed: 0.95, green: 0.69, blue: 0.30, alpha: 0.34), text: NSColor(calibratedRed: 0.25, green: 0.20, blue: 0.10, alpha: 1.0))
@@ -158,12 +158,12 @@ try writePNG(socialOutputPath) {
 
     drawText("Codex Gauge", in: NSRect(x: 74, y: 74, width: 430, height: 58), size: 48, weight: .bold, color: NSColor.white.withAlphaComponent(0.96))
     drawText("Beautiful local quota visibility for Codex", in: NSRect(x: 78, y: 142, width: 460, height: 36), size: 24, weight: .semibold, color: NSColor(calibratedRed: 0.74, green: 0.88, blue: 0.86, alpha: 0.95))
-    drawText("5-hour and 7-day usage, reset countdowns, trends, safe diagnostics, and local-only reports from the macOS menu bar.", in: NSRect(x: 78, y: 202, width: 450, height: 96), size: 19, weight: .regular, color: NSColor.white.withAlphaComponent(0.72))
+    drawText("5-hour and 7-day usage, reset countdowns, SSD temperature, CPU/RAM context, safe diagnostics, and local-only reports from the macOS menu bar.", in: NSRect(x: 78, y: 202, width: 450, height: 116), size: 19, weight: .regular, color: NSColor.white.withAlphaComponent(0.72))
 
     drawPill("No browser cookies", rect: NSRect(x: 78, y: 328, width: 174, height: 40), fill: NSColor.white.withAlphaComponent(0.08), stroke: NSColor.white.withAlphaComponent(0.17), text: NSColor.white.withAlphaComponent(0.88))
     drawPill("No auth-file reads", rect: NSRect(x: 266, y: 328, width: 174, height: 40), fill: NSColor.white.withAlphaComponent(0.08), stroke: NSColor.white.withAlphaComponent(0.17), text: NSColor.white.withAlphaComponent(0.88))
     drawPill("Native menu bar", rect: NSRect(x: 78, y: 382, width: 174, height: 40), fill: NSColor(calibratedRed: 0.31, green: 0.94, blue: 0.68, alpha: 0.14), stroke: NSColor(calibratedRed: 0.31, green: 0.94, blue: 0.68, alpha: 0.34), text: NSColor(calibratedRed: 0.74, green: 1.00, blue: 0.88, alpha: 1.0), dot: NSColor(calibratedRed: 0.31, green: 0.94, blue: 0.68, alpha: 1.0))
-    drawPill("sample quota values", rect: NSRect(x: 266, y: 382, width: 188, height: 40), fill: NSColor(calibratedRed: 1.00, green: 0.78, blue: 0.35, alpha: 0.13), stroke: NSColor(calibratedRed: 1.00, green: 0.78, blue: 0.35, alpha: 0.28), text: NSColor(calibratedRed: 1.00, green: 0.88, blue: 0.62, alpha: 1.0))
+    drawPill("sample app data", rect: NSRect(x: 266, y: 382, width: 164, height: 40), fill: NSColor(calibratedRed: 1.00, green: 0.78, blue: 0.35, alpha: 0.13), stroke: NSColor(calibratedRed: 1.00, green: 0.78, blue: 0.35, alpha: 0.28), text: NSColor(calibratedRed: 1.00, green: 0.88, blue: 0.62, alpha: 1.0))
 
     drawText("Actual app-rendered Signal Console", in: NSRect(x: 80, y: 520, width: 440, height: 24), size: 16, weight: .medium, color: NSColor.white.withAlphaComponent(0.56))
 

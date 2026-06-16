@@ -1756,6 +1756,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var systemMetricsTimer: Timer?
     private var temperatureReadInFlight = false
     private var lastTemperaturePersistAt: Date?
+    private var lastSystemMetricPersistAt: Date?
     private var temperatureSamples: [TemperatureSample] = []
     private var systemMetricSamples: [SystemMetricSample] = []
     private var lastCPUTicks: [UInt64]?
@@ -1785,6 +1786,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let systemMetricSampleInterval: TimeInterval = 5
     private let systemMetricGraphWindow: TimeInterval = 10 * 60
     private let systemMetricRetentionWindow: TimeInterval = 24 * 60 * 60
+    private let systemMetricPersistInterval: TimeInterval = 60
     private let maxSystemMetricSamples = 24 * 60 * 60 / 5
     private let ssdTemperatureReadTimeout: TimeInterval = 0.8
     private let ssdTemperatureDisplayGraceInterval: TimeInterval = 10 * 60
@@ -1831,7 +1833,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private lazy var resourcesDir = Bundle.main.resourcePath ?? FileManager.default.currentDirectoryPath
     private lazy var supportDir = applicationSupportDirectory()
     private lazy var pythonPath = infoString("CodexGaugePythonPath", fallback: "/usr/bin/python3")
-    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.8.0")
+    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.9.0")
     private lazy var releaseURL = infoString("CodexGaugeReleaseURL", fallback: "https://github.com/qingzhangeddie-byte/codex-gauge/releases")
     private lazy var usagePath = resolveUsagePath()
     private lazy var ssdTemperaturePath = URL(fileURLWithPath: resourcesDir, isDirectory: true)
@@ -2303,6 +2305,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         previousFiveHourLeft = nil
         temperatureSamples = []
         systemMetricSamples = []
+        lastSystemMetricPersistAt = nil
         clearSystemMetricHistoryAsync()
         clearTemperatureHistoryAsync()
         liveUnavailableSince = nil
@@ -4140,18 +4143,34 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func appendSystemMetricSample(cpuPercent: Int?, ramPercent: Int?) {
+        let now = Date()
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
         let sample = SystemMetricSample(
-            time: formatter.string(from: Date()),
+            time: formatter.string(from: now),
             cpuPercent: cpuPercent,
             ramPercent: ramPercent,
             ok: cpuPercent != nil || ramPercent != nil
         )
         systemMetricSamples.append(sample)
         systemMetricSamples = retainedSystemMetricSamples(systemMetricSamples)
+        guard shouldPersistSystemMetricSamples(now: now) else {
+            return
+        }
         let samplesSnapshot = systemMetricSamples
         persistSystemMetricSamplesAsync(samplesSnapshot)
+    }
+
+    private func shouldPersistSystemMetricSamples(now: Date = Date()) -> Bool {
+        guard let lastSystemMetricPersistAt else {
+            self.lastSystemMetricPersistAt = now
+            return true
+        }
+        guard now.timeIntervalSince(lastSystemMetricPersistAt) >= systemMetricPersistInterval else {
+            return false
+        }
+        self.lastSystemMetricPersistAt = now
+        return true
     }
 
     private func persistSystemMetricSamplesAsync(_ samples: [SystemMetricSample]) {

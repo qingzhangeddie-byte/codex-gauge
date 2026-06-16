@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/github/license/qingzhangeddie-byte/codex-gauge)](LICENSE)
 ![macOS 13+](https://img.shields.io/badge/macOS-13%2B-0f766e)
 
-![Codex Gauge live menu bar](docs/assets/codex-gauge-menubar-live.png)
+![Codex Gauge live menu bar with quota, reset, SSD temperature, CPU, and RAM](docs/assets/codex-gauge-menubar-live.png)
 
 **A simple, safe macOS menu bar app to check Codex usage, track the Codex 5-hour limit, and watch your Codex 7-day quota at a glance.**
 
@@ -62,8 +62,8 @@ Search phrases this project is designed to answer naturally: **check Codex usage
   1 秒本地 SSD 温度历史会在 Movement 区域显示为平滑的 10 分钟温度曲线，并进行 24 小时本地保留
 - Local CPU and RAM percentages appear as a tiny CPU/RAM system strip in the menu bar and as pulse lines in Signal Console
   本地 CPU 和 RAM 百分比会以很小的 CPU/RAM 系统条显示在菜单栏里，并在 Signal Console 中显示为趋势脉冲线
-- 5-second local CPU/RAM samples keep a 10-minute movement view and 24-hour local CPU/RAM history
-  每 5 秒采样一次本地 CPU/RAM，只保留 10 分钟趋势视图和 24 小时本地 CPU/RAM 历史
+- 5-second local CPU/RAM samples keep a 10-minute movement view and 24-hour local CPU/RAM history, while disk writes are throttled to once per minute
+  每 5 秒采样一次本地 CPU/RAM，保留 10 分钟趋势视图和 24 小时本地 CPU/RAM 历史；写入本地历史文件最多每分钟一次
 - Custom Signal Console popover with status, quota, reset timing, trend, doctor checks, diagnostics, and actions
   自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口；下拉菜单显示额度重置时间和上次刷新时间
 - Signal Console shows the actual next-refresh countdown, not a static refresh label
@@ -107,9 +107,9 @@ Search phrases this project is designed to answer naturally: **check Codex usage
 
 ![Codex Gauge Signal Console](docs/assets/codex-gauge-signal-console.png)
 
-This is an actual app-rendered Signal Console screenshot generated from the native macOS view. It uses sample quota values for the README; the installed app shows your local live quota values.
+This is an actual app-rendered Signal Console screenshot generated from the native macOS view. It uses sample quota values for the README; the installed app shows your local live quota, reset countdowns, optional SSD temperature, and aggregate CPU/RAM percentages.
 
-上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 示例额度数值；安装后的 App 会显示你本机的实时额度。
+上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 示例额度数值；安装后的 App 会显示你本机的实时额度、重置倒计时、可选 SSD 温度，以及本地 CPU/RAM 汇总百分比。
 
 ## Four-signal menu bar
 
@@ -180,7 +180,7 @@ The generated zip includes `CodexGauge.app`, `Install Codex Gauge.command`, and 
 | Refresh behavior | Adaptive refresh instead of constant polling: 5 minutes normally, 3 minutes when low, 2 minutes when critical, with quick retry after transient errors |
 | Preferences | Built-in refresh cadence, notifications, and launch-at-login controls |
 | Optional SSD temperature | Menu bar SSD chip can be hidden; diagnostics still label the sensor as Normal, Warm, or Hot, and the Signal Console can draw a local 10-minute curve with 24-hour local retention |
-| Local CPU/RAM context | Tiny menu-bar CPU/RAM system strip plus Signal Console movement pulses, stored only as 24-hour local percentage history |
+| Local CPU/RAM context | Tiny menu-bar CPU/RAM system strip plus Signal Console movement pulses, stored only as 24-hour local percentage history and persisted at most once per minute |
 | Notifications | Opt-in alerts for the moments users actually care about |
 | Signal Console | Explains whether data is live, cached, snapshot-based, or unavailable |
 | Setup Doctor | Local checks for Codex app, helper, live data, LaunchAgent, and notifications |
@@ -214,7 +214,7 @@ For live Codex quota, it first talks to the local Codex app-server. Each success
 
 It does **not** read browser cookies, does **not** read `~/.codex/auth.json`, and does **not** scan unrelated project folders, browser profiles, or Keychain.
 
-The CPU/RAM display is local CPU and RAM percentages only. Codex Gauge stores no process list, app names, command lines, or file paths for that system strip.
+The CPU/RAM display is local CPU and RAM percentages only. Codex Gauge samples it every 5 seconds for the live strip, persists the bounded history at most once per minute, and stores no process list, app names, command lines, or file paths.
 
 Important limitation: the Codex app-server path can start or refresh the Codex 5-hour window because it talks to the same local Codex service used by the Codex desktop app.
 
@@ -266,7 +266,7 @@ The plist should reference `codex_status.py`, not your source checkout.
 |---|---|
 | Codex live quota | Local Codex app-server |
 | Codex fallback quota | Recent `~/.codex/sessions` `rate_limits` metadata, recursively discovered, bounded by file count and tail size, labeled Snapshot |
-| CPU/RAM usage | Aggregated local macOS CPU and RAM percentages only, retained for 24 hours in Application Support |
+| CPU/RAM usage | Aggregated local macOS CPU and RAM percentages only, retained for 24 hours in Application Support, persisted at most once per minute |
 | Menu bar persistence | `~/Library/LaunchAgents/app.codexgauge.menubar.plist` |
 | Runtime logs | `~/Library/Application Support/CodexGauge`, rotated at 512 KB |
 

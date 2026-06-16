@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Nothing yet.
+
+## v0.9.0 - 2026-06-17
+
 - Added a first-run setup surface that explains the local-only model and links to Codex and Setup Doctor.
 - Restyled Preferences and Setup Doctor with the selected Signal Console theme.
 - Added explicit Cache, Snapshot, and Open state badges to non-live menu bar states.
@@ -9,6 +13,7 @@
 - Added local CPU/RAM percentages to the menu bar and Signal Console, with bounded 24-hour local metric history.
 - Enlarged the menu bar CPU/RAM pod so the system metrics are readable at real menu-bar size.
 - Changed reset countdown labels to use progressive units: minutes under an hour, hours under a day, and days plus hours for longer resets.
+- Reduced CPU/RAM history disk churn: live samples still update every 5 seconds, but JSON persistence is throttled to once per minute and flushed on quit.
 
 ## v0.8.0 - 2026-06-13
 
