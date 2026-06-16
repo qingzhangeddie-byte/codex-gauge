@@ -1501,12 +1501,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let temperatureHistoryWindow: TimeInterval = 60
     private let maxTemperatureSamples = 90
     private let ssdTemperatureReadTimeout: TimeInterval = 0.8
-    private let statusItemWidth: CGFloat = 196
-    private let statusImageSize = NSSize(width: 190, height: 22)
-    private let menuBarTemperatureChipRect = NSRect(x: 96, y: 4.9, width: 27, height: 12.2)
+    private let statusItemWidth: CGFloat = 174
+    private let statusImageSize = NSSize(width: 168, height: 22)
+    private let menuBarTemperatureChipRect = NSRect(x: 82, y: 4.9, width: 27, height: 12.2)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
-    private let quotaRailWidth: CGFloat = 50
-    private let resetRailWidth: CGFloat = 28
+    private let quotaRailWidth: CGFloat = 28
+    private let resetRailWidth: CGFloat = 18
     private let signalRailSegments = 10
     private let codexCliBundlePath = "/Applications/Codex.app/Contents/Resources/codex"
     private let normalQuotaColor = NSColor(calibratedRed: 0.58, green: 1.00, blue: 0.89, alpha: 0.95)
@@ -3121,14 +3121,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             .font: NSFont.monospacedDigitSystemFont(ofSize: 7.4, weight: .semibold),
             .foregroundColor: palette.mutedText,
         ]
-        ("--" as NSString).draw(at: NSPoint(x: 78, y: 9.9), withAttributes: dashAttrs)
-        ("--" as NSString).draw(at: NSPoint(x: 78, y: 1.0), withAttributes: dashAttrs)
+        ("--" as NSString).draw(at: NSPoint(x: 55, y: 9.9), withAttributes: dashAttrs)
+        ("--" as NSString).draw(at: NSPoint(x: 55, y: 1.0), withAttributes: dashAttrs)
 
         let actionAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 7.2, weight: .semibold),
+            .font: NSFont.systemFont(ofSize: 7.0, weight: .semibold),
             .foregroundColor: unavailableSourceColor(),
         ]
-        ("Open Codex" as NSString).draw(at: NSPoint(x: 126, y: 6.4), withAttributes: actionAttrs)
+        ("Open Codex" as NSString).draw(at: NSPoint(x: 116, y: 6.4), withAttributes: actionAttrs)
     }
 
     private func drawPlanBGauge(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, palette: GaugePalette) {
@@ -3147,20 +3147,20 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
         let percentText = quotaLeft.map { "\($0)%" } ?? "--"
         let valueAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 6.8, weight: .semibold),
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 6.7, weight: .semibold),
             .foregroundColor: quotaLeft == nil ? palette.mutedText : palette.primaryText,
         ]
-        (percentText as NSString).draw(at: NSPoint(x: 78, y: y - 3.1), withAttributes: valueAttrs)
+        (percentText as NSString).draw(at: NSPoint(x: 55, y: y - 3.1), withAttributes: valueAttrs)
 
         let resetProgress = resetProgressPercent(epoch: resetEpoch, windowHours: windowHours)
-        drawResetMoodLane(value: resetProgress, rect: NSRect(x: 130, y: y, width: resetRailWidth + 4, height: 3), palette: palette)
+        drawResetMoodLane(value: resetProgress, rect: NSRect(x: 116, y: y, width: resetRailWidth + 6, height: 3), palette: palette)
 
         let resetText = window == "5h" ? fiveHourResetCountdown(resetEpoch) : sevenDayResetCountdown(resetEpoch)
         let resetAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 5.8, weight: .semibold),
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 5.7, weight: .semibold),
             .foregroundColor: resetEpoch == nil ? palette.mutedText : palette.secondaryText,
         ]
-        (resetText as NSString).draw(at: NSPoint(x: 164, y: y - 2.9), withAttributes: resetAttrs)
+        (resetText as NSString).draw(at: NSPoint(x: 143, y: y - 2.9), withAttributes: resetAttrs)
     }
 
     private func drawMenuBarSSDTemperature(status: SSDTemperatureStatus?, rect: NSRect, palette: GaugePalette) {

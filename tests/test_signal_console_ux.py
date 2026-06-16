@@ -472,8 +472,10 @@ class SignalConsoleUXTests(unittest.TestCase):
     def test_menu_bar_integrates_ssd_temperature_without_removing_current_quota_info(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("statusItemWidth: CGFloat = 196", source)
-        self.assertIn("statusImageSize = NSSize(width: 190", source)
+        self.assertIn("statusItemWidth: CGFloat = 174", source)
+        self.assertIn("statusImageSize = NSSize(width: 168", source)
+        self.assertIn("private let quotaRailWidth: CGFloat = 28", source)
+        self.assertIn("private let resetRailWidth: CGFloat = 18", source)
         self.assertIn("makeStatusImage(", source)
         self.assertIn("ssdTemperature: ssdTemperature", source)
         self.assertIn("menuBarAccessibilitySummary", source)
@@ -482,7 +484,7 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn('parts.append("SSD \\(temperature)")', source)
         self.assertIn("button.imagePosition = .imageOnly", source)
         self.assertIn("drawMenuBarSSDTemperature(status: ssdTemperature, rect: menuBarTemperatureChipRect, palette: palette)", source)
-        self.assertIn("private let menuBarTemperatureChipRect = NSRect(x: 96", source)
+        self.assertIn("private let menuBarTemperatureChipRect = NSRect(x: 82", source)
         self.assertIn("width: 27, height: 12.2", source)
         self.assertIn("let fontSize: CGFloat = text.count > 3 ? 6.6 : 7.2", source)
         self.assertIn("NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .bold)", source)
@@ -494,6 +496,8 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("drawPlanBRow(window: \"7d\"", source)
         self.assertIn("drawQuotaRail(value: quotaLeft", source)
         self.assertIn("drawResetMoodLane(value: resetProgress", source)
+        self.assertIn("fiveHourResetCountdown(resetEpoch)", source)
+        self.assertIn("sevenDayResetCountdown(resetEpoch)", source)
 
     def test_ssd_temperature_history_samples_every_second_and_is_bounded(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
