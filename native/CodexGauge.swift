@@ -42,6 +42,11 @@ private struct TemperatureSample: Codable {
     let ok: Bool
 }
 
+private func temperatureHistorySummaryText(_ samples: [TemperatureSample]) -> String {
+    let valid = samples.filter { $0.ok && $0.temperatureC != nil }
+    return valid.count >= 2 ? "last 60s" : "SSD temp unavailable"
+}
+
 private struct DoctorCheck {
     let title: String
     let state: String
@@ -454,6 +459,9 @@ private struct SignalConsoleModel {
     let fiveHourTrendText: String
     let sevenDayTrendText: String
     let trendContextText: String
+    let temperatureHistory: [TemperatureSample]
+    let currentTemperatureText: String
+    let temperatureHistoryText: String
     let reportFiveHourMovement: String
     let reportSevenDayMovement: String
     let reportTodaySummary: String
@@ -684,21 +692,25 @@ private final class SignalConsolePanelView: NSView {
         let layout = SignalConsoleLayout(bounds: bounds)
         let card = layout.trendCardRect
         drawRoundedRect(card, radius: 15, fill: panelSoftBackground, stroke: panelBorder.withAlphaComponent(0.50))
-        drawText("Quota movement", x: card.minX + 16, y: card.minY + 14, width: 126, height: 18, size: 12, weight: .bold, color: textPrimary)
+        drawText("Movement", x: card.minX + 16, y: card.minY + 14, width: 86, height: 18, size: 12, weight: .bold, color: textPrimary)
         drawText("last 24h", x: card.maxX - 62, y: card.minY + 14, width: 46, height: 18, size: 10, weight: .regular, color: textMuted)
-        drawTrendRow(label: "5h", text: model.fiveHourTrendText, values: model.fiveHourHistory, y: 324)
-        drawTrendRow(label: "7d", text: model.sevenDayTrendText, values: model.sevenDayHistory, y: 358)
+        drawText("Quota movement", x: card.minX + 16, y: card.minY + 33, width: 78, height: 12, size: 8.2, weight: .bold, color: textMuted)
         drawTrendContext()
+        drawTrendRow(label: "5h", text: model.fiveHourTrendText, values: model.fiveHourHistory, y: 326)
+        drawTrendRow(label: "7d", text: model.sevenDayTrendText, values: model.sevenDayHistory, y: 348)
+        drawTemperatureMovementRow(in: card)
     }
 
     private func drawTrendContext() {
-        drawText(model.trendContextText, x: 36, y: 378, width: 212, height: 14, size: 9, weight: .regular, color: textMuted)
+        let layout = SignalConsoleLayout(bounds: bounds)
+        let card = layout.trendCardRect
+        drawText(model.trendContextText, x: card.minX + 96, y: card.minY + 33, width: card.width - 112, height: 12, size: 7.2, weight: .regular, color: textMuted)
     }
 
     private func drawTrendRow(label: String, text: String, values: [Int], y: CGFloat) {
         let signalText = "\(label) \(trendSignalText(values: values, fallback: text))"
-        drawText(signalText, x: 36, y: y - 2, width: 96, height: 18, size: 11, weight: .bold, color: trendSignalColor(values: values), mono: true)
-        drawTrendSparkline(values: values, rect: NSRect(x: 136, y: y - 8, width: 84, height: 28))
+        drawText(signalText, x: 36, y: y - 2, width: 86, height: 16, size: 10, weight: .bold, color: trendSignalColor(values: values), mono: true)
+        drawTrendSparkline(values: values, rect: NSRect(x: 128, y: y - 4, width: 76, height: 18))
         drawTrendDeltaText(values: values, y: y)
     }
 
@@ -706,7 +718,7 @@ private final class SignalConsolePanelView: NSView {
         let text = trendDeltaText(values)
         drawText(
             text,
-            x: 222,
+            x: 212,
             y: y,
             width: 42,
             height: 16,
@@ -715,6 +727,107 @@ private final class SignalConsolePanelView: NSView {
             color: trendDeltaTextColor(values: values),
             mono: true
         )
+    }
+
+    private func drawTemperatureMovementRow(in card: NSRect) {
+        let row = NSRect(x: card.minX + 16, y: card.maxY - 35, width: card.width - 32, height: 25)
+        let curveRect = NSRect(x: row.minX + 72, y: row.minY + 4, width: 90, height: 19)
+        let color = temperatureCurveColor(samples: model.temperatureHistory)
+        drawText("SSD temp", x: row.minX, y: row.minY + 1, width: 58, height: 12, size: 8.6, weight: .bold, color: color)
+        drawText(model.temperatureHistoryText, x: row.minX, y: row.minY + 14, width: 70, height: 10, size: 7.5, weight: .regular, color: textMuted)
+        drawText(model.currentTemperatureText, x: row.maxX - 43, y: row.minY + 3, width: 43, height: 14, size: 9.2, weight: .bold, color: color, mono: true)
+        if model.temperatureHistoryText == "SSD temp unavailable" {
+            drawTemperatureUnavailableCurve(rect: curveRect)
+        } else {
+            drawTemperatureCurve(samples: model.temperatureHistory, rect: curveRect)
+        }
+    }
+
+    private func drawTemperatureCurve(samples: [TemperatureSample], rect: NSRect) {
+        let points = smoothedTemperaturePoints(samples: samples, rect: rect)
+        guard points.count >= 2 else {
+            drawTemperatureUnavailableCurve(rect: rect)
+            return
+        }
+        let color = temperatureCurveColor(samples: samples)
+        let line = NSBezierPath()
+        line.move(to: points[0])
+        for index in 1..<points.count {
+            let previous = points[index - 1]
+            let point = points[index]
+            let controlX = (previous.x + point.x) / 2
+            line.curve(
+                to: point,
+                controlPoint1: NSPoint(x: controlX, y: previous.y),
+                controlPoint2: NSPoint(x: controlX, y: point.y)
+            )
+        }
+        let fill = line.copy() as! NSBezierPath
+        fill.line(to: NSPoint(x: points.last?.x ?? rect.maxX, y: rect.maxY))
+        fill.line(to: NSPoint(x: points.first?.x ?? rect.minX, y: rect.maxY))
+        fill.close()
+        color.withAlphaComponent(0.12).setFill()
+        fill.fill()
+        line.lineWidth = 1.7
+        line.lineJoinStyle = .round
+        line.lineCapStyle = .round
+        color.withAlphaComponent(0.92).setStroke()
+        line.stroke()
+    }
+
+    private func drawTemperatureUnavailableCurve(rect: NSRect) {
+        let baseline = NSBezierPath()
+        baseline.move(to: NSPoint(x: rect.minX, y: rect.midY))
+        baseline.curve(
+            to: NSPoint(x: rect.maxX, y: rect.midY),
+            controlPoint1: NSPoint(x: rect.minX + rect.width * 0.33, y: rect.midY - 2),
+            controlPoint2: NSPoint(x: rect.minX + rect.width * 0.66, y: rect.midY + 2)
+        )
+        baseline.lineWidth = 1.2
+        baseline.lineCapStyle = .round
+        baseline.setLineDash([3, 4], count: 2, phase: 0)
+        textMuted.withAlphaComponent(0.48).setStroke()
+        baseline.stroke()
+    }
+
+    private func smoothedTemperaturePoints(samples: [TemperatureSample], rect: NSRect) -> [NSPoint] {
+        let values = samples.compactMap { sample -> Int? in
+            guard sample.ok, let temperature = sample.temperatureC else {
+                return nil
+            }
+            return temperature
+        }
+        guard values.count >= 2 else {
+            return []
+        }
+        let shown = Array(values.suffix(60))
+        let minimum = CGFloat(shown.min() ?? 0)
+        let maximum = CGFloat(shown.max() ?? 1)
+        let range = max(4, maximum - minimum)
+        return shown.enumerated().map { index, value in
+            let previous = shown[max(0, index - 1)]
+            let next = shown[min(shown.count - 1, index + 1)]
+            let smoothed = CGFloat(previous + value + next) / 3
+            let x = rect.minX + rect.width * CGFloat(index) / CGFloat(max(1, shown.count - 1))
+            let normalized = (smoothed - minimum) / range
+            let y = rect.maxY - 3 - (rect.height - 6) * max(0, min(1, normalized))
+            return NSPoint(x: x, y: y)
+        }
+    }
+
+    private func temperatureCurveColor(samples: [TemperatureSample]) -> NSColor {
+        guard let latest = samples.reversed().first(where: { $0.ok && $0.temperatureC != nil }),
+              let temperature = latest.temperatureC else {
+            return textMuted
+        }
+        switch temperature {
+        case 70...:
+            return coralAccent
+        case 55..<70:
+            return amberAccent
+        default:
+            return mintAccent
+        }
     }
 
     private func drawReportSection() {
@@ -1418,7 +1531,8 @@ private func signalConsolePreviewModel(
     todaySummary: String,
     health: String
 ) -> SignalConsoleModel {
-    SignalConsoleModel(
+    let temperatureHistory = previewTemperatureSamples(unavailable: unavailable)
+    return SignalConsoleModel(
         planName: unavailable ? "Codex Gauge" : "Codex Pro",
         sourcePill: "Source: Menu Bar",
         stateTitle: title,
@@ -1436,6 +1550,9 @@ private func signalConsolePreviewModel(
         fiveHourTrendText: unavailable ? "collecting" : reportFive,
         sevenDayTrendText: unavailable ? "collecting" : reportSeven,
         trendContextText: unavailable ? "Open Codex to start collecting live samples" : "Based on 12 live samples from 09:12 to 21:12",
+        temperatureHistory: temperatureHistory,
+        currentTemperatureText: unavailable ? "--" : "42°C",
+        temperatureHistoryText: temperatureHistorySummaryText(temperatureHistory),
         reportFiveHourMovement: reportFive,
         reportSevenDayMovement: reportSeven,
         reportTodaySummary: todaySummary,
@@ -1455,6 +1572,18 @@ private func signalConsolePreviewModel(
         isUnavailable: unavailable,
         isRefreshing: false
     )
+}
+
+private func previewTemperatureSamples(unavailable: Bool = false) -> [TemperatureSample] {
+    if unavailable {
+        return [
+            TemperatureSample(time: "2026-06-16T21:12:00Z", temperatureC: nil, ok: false),
+        ]
+    }
+    let values = [41, 42, 42, 43, 42, 44, 43, 45, 44, 44, 43, 42]
+    return values.enumerated().map { index, value in
+        TemperatureSample(time: String(format: "2026-06-16T21:11:%02dZ", index * 5), temperatureC: value, ok: true)
+    }
 }
 
 private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
@@ -1716,6 +1845,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 fiveHourTrendText: trendText(values: fiveHourHistory, suffix: "this window"),
                 sevenDayTrendText: trendText(values: sevenDayHistory, suffix: "in 24h"),
                 trendContextText: trendContextText(samples: lastDaySamples, latestSource: status.source),
+                temperatureHistory: retainedTemperatureSamples(temperatureSamples),
+                currentTemperatureText: currentTemperatureText(status: ssdTemperature, samples: retainedTemperatureSamples(temperatureSamples)),
+                temperatureHistoryText: temperatureHistorySummaryText(retainedTemperatureSamples(temperatureSamples)),
                 reportFiveHourMovement: inlineReport.fiveHourMovement,
                 reportSevenDayMovement: inlineReport.sevenDayMovement,
                 reportTodaySummary: inlineReport.todaySummary,
@@ -1756,6 +1888,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             fiveHourTrendText: trendText(values: fiveHourHistory, suffix: "this window"),
             sevenDayTrendText: trendText(values: sevenDayHistory, suffix: "in 24h"),
             trendContextText: trendContextText(samples: lastDaySamples, latestSource: nil),
+            temperatureHistory: retainedTemperatureSamples(temperatureSamples),
+            currentTemperatureText: currentTemperatureText(status: ssdTemperature, samples: retainedTemperatureSamples(temperatureSamples)),
+            temperatureHistoryText: temperatureHistorySummaryText(retainedTemperatureSamples(temperatureSamples)),
             reportFiveHourMovement: inlineReport.fiveHourMovement,
             reportSevenDayMovement: inlineReport.sevenDayMovement,
             reportTodaySummary: inlineReport.todaySummary,
@@ -1812,6 +1947,17 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let liveCount = usable.filter { $0.source == "live" }.count
         let sampleKind = liveCount == usable.count ? "live samples" : "samples"
         return "\(prefix) \(usable.count) \(sampleKind) from \(shortTime(first.time)) to \(shortTime(latest.time))"
+    }
+
+    private func currentTemperatureText(status: SSDTemperatureStatus?, samples: [TemperatureSample]) -> String {
+        if let status, status.ok, let temperature = status.temperatureC {
+            return "\(temperature)°C"
+        }
+        if let latest = samples.reversed().first(where: { $0.ok && $0.temperatureC != nil }),
+           let temperature = latest.temperatureC {
+            return "\(temperature)°C"
+        }
+        return "--"
     }
 
     private func healthSummaryText(_ checks: [DoctorCheck]) -> String {

@@ -564,6 +564,24 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertNotIn("readSSDTemperature()", setup_doctor_body)
         self.assertNotIn("readSSDTemperature()", diagnostics_body)
 
+    def test_signal_console_movement_shows_smooth_temperature_curve(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "temperatureHistory: [TemperatureSample]",
+            "currentTemperatureText: String",
+            "temperatureHistoryText: String",
+            "temperatureHistory: retainedTemperatureSamples(temperatureSamples)",
+            '"SSD temp"',
+            '"last 60s"',
+            '"SSD temp unavailable"',
+            "drawTemperatureCurve",
+            "smoothedTemperaturePoints",
+            "temperatureCurveColor",
+            "drawTemperatureUnavailableCurve",
+        ]:
+            self.assertIn(token, source)
+
     def test_signal_console_docs_are_public_safe(self):
         spec = pathlib.Path("docs/design/codex-gauge-signal-console-v0.6-design.md").read_text()
         image = pathlib.Path("docs/design/codex-gauge-signal-console-v0.6.png")
