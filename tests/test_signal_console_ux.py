@@ -514,6 +514,8 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("temperatureReadInFlight = true", source)
         self.assertIn("temperatureReadInFlight = false", source)
         self.assertIn("appendTemperatureSample(status)", source)
+        self.assertIn("persistTemperatureSamplesAsync", source)
+        self.assertIn("clearTemperatureHistoryAsync()", source)
         self.assertIn("temperatureC: status?.ok == true ? status?.temperatureC : nil", source)
         self.assertIn("ok: status?.ok == true && status?.temperatureC != nil", source)
         self.assertIn("retainedTemperatureSamples", source)
@@ -522,14 +524,38 @@ class SignalConsoleUXTests(unittest.TestCase):
 
         sample_body = source.split("private func sampleTemperature()", 1)[1].split("private func finishRefresh", 1)[0]
         finish_body = source.split("private func finishRefresh", 1)[1].split("private func refreshModeTitle", 1)[0]
+        clear_data_body = source.split("private func performClearLocalData()", 1)[1].split("private func clearTemperatureHistoryAsync", 1)[0]
+        clear_temperature_body = source.split("private func clearTemperatureHistoryAsync()", 1)[1].split("private func localDataPathsForClearing", 1)[0]
         setup_doctor_body = source.split("private func runSetupDoctorChecks()", 1)[1].split("private func doctorCheck", 1)[0]
+        append_body = source.split("private func appendTemperatureSample", 1)[1].split("private func persistTemperatureSamplesAsync", 1)[0]
+        persist_body = source.split("private func persistTemperatureSamplesAsync", 1)[1].split("private func writeTemperatureSamples", 1)[0]
+        retained_body = source.split("private func retainedTemperatureSamples", 1)[1].split("private func retainedHistorySamples", 1)[0]
         diagnostics_body = source.split("private func ssdTemperatureDiagnosticsText()", 1)[1].split("private func safeDiagnosticsText", 1)[0]
+        main_update_body = sample_body.split("DispatchQueue.main.async", 1)[1]
 
-        self.assertEqual(source.count("temperatureQueue.async"), 1)
+        self.assertEqual(source.count("temperatureQueue.async"), 3)
         self.assertEqual(source.count("readSSDTemperature()"), 2)
         self.assertIn("temperatureQueue.async", sample_body)
         self.assertIn("let status = self.readSSDTemperature()", sample_body)
         self.assertNotIn("refreshSignalPopoverIfNeeded()", sample_body)
+        self.assertNotIn("writeTemperatureSamples", sample_body)
+        self.assertNotIn("writeTemperatureSamples", main_update_body)
+        self.assertIn("temperatureSamples = []", clear_data_body)
+        self.assertIn("clearTemperatureHistoryAsync()", clear_data_body)
+        self.assertIn("temperatureQueue.async", clear_temperature_body)
+        self.assertIn("try? FileManager.default.removeItem(atPath: self.temperatureHistoryPath)", clear_temperature_body)
+        self.assertIn("temperatureSamples.append(sample)", append_body)
+        self.assertIn("temperatureSamples = retainedTemperatureSamples(temperatureSamples)", append_body)
+        self.assertIn("let samplesSnapshot = temperatureSamples", append_body)
+        self.assertIn("persistTemperatureSamplesAsync(samplesSnapshot)", append_body)
+        self.assertIn("temperatureC: status?.ok == true ? status?.temperatureC : nil", append_body)
+        self.assertIn("ok: status?.ok == true && status?.temperatureC != nil", append_body)
+        self.assertNotIn("writeTemperatureSamples", append_body)
+        self.assertIn("temperatureQueue.async", persist_body)
+        self.assertIn("self.writeTemperatureSamples(samples)", persist_body)
+        self.assertIn("isoDate(sample.time)", retained_body)
+        self.assertIn("temperatureHistoryWindow", retained_body)
+        self.assertIn("suffix(maxTemperatureSamples)", retained_body)
         self.assertNotIn("readSSDTemperature()", finish_body)
         self.assertNotIn("readSSDTemperature()", setup_doctor_body)
         self.assertNotIn("readSSDTemperature()", diagnostics_body)

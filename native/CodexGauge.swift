@@ -1973,6 +1973,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
         previousFiveHourLeft = nil
         temperatureSamples = []
+        clearTemperatureHistoryAsync()
         liveUnavailableSince = nil
         didNotifyLiveUnavailable = false
         resetHighlightUntil = nil
@@ -1984,6 +1985,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             setStatusImage(title: "Codex quota")
         }
         showReportAlert(title: "Local data cleared", detail: removed == 0 ? "No local history, cache, or log files were present." : "Cleared \(removed) local Codex Gauge file(s).")
+    }
+
+    private func clearTemperatureHistoryAsync() {
+        temperatureQueue.async { [weak self] in
+            guard let self else {
+                return
+            }
+            try? FileManager.default.removeItem(atPath: self.temperatureHistoryPath)
+        }
     }
 
     private func localDataPathsForClearing() -> [String] {
@@ -3601,7 +3611,17 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         )
         temperatureSamples.append(sample)
         temperatureSamples = retainedTemperatureSamples(temperatureSamples)
-        writeTemperatureSamples(temperatureSamples)
+        let samplesSnapshot = temperatureSamples
+        persistTemperatureSamplesAsync(samplesSnapshot)
+    }
+
+    private func persistTemperatureSamplesAsync(_ samples: [TemperatureSample]) {
+        temperatureQueue.async { [weak self] in
+            guard let self else {
+                return
+            }
+            self.writeTemperatureSamples(samples)
+        }
     }
 
     private func writeTemperatureSamples(_ samples: [TemperatureSample]) {
