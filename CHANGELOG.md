@@ -8,6 +8,7 @@
 - Added an optional local SSD temperature readout in the menu bar and Setup Doctor when macOS exposes the IOReport sensor.
 - Added local CPU/RAM percentages to the menu bar and Signal Console, with bounded 24-hour local metric history.
 - Enlarged the menu bar CPU/RAM pod so the system metrics are readable at real menu-bar size.
+- Changed reset countdown labels to use progressive units: minutes under an hour, hours under a day, and days plus hours for longer resets.
 
 ## v0.8.0 - 2026-06-13
 

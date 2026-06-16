@@ -4010,8 +4010,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         if remaining <= 0 {
             return "now"
         }
-        let hours = max(1, Int(ceil(remaining / 3600)))
-        if includeDays {
+        let minutes = max(1, Int(ceil(remaining / 60)))
+        if minutes < 60 {
+            return "\(minutes)m"
+        }
+        let hours = Int(ceil(Double(minutes) / 60.0))
+        if includeDays, minutes >= 24 * 60 {
             let days = hours / 24
             let remainingHours = hours % 24
             if days > 0 {
@@ -4752,8 +4756,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         guard let epoch else {
             return "--"
         }
-        let target = Date(timeIntervalSince1970: epoch)
-        let remaining = target.timeIntervalSinceNow
+        let remaining = Date(timeIntervalSince1970: epoch).timeIntervalSinceNow
         if remaining <= 0 {
             return "now"
         }
@@ -4762,11 +4765,13 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return "in \(minutes)m"
         }
         if minutes < 24 * 60 {
-            return "in \(minutes / 60)h \(minutes % 60)m"
+            let hours = minutes / 60
+            let remainingMinutes = minutes % 60
+            return remainingMinutes > 0 ? "in \(hours)h \(remainingMinutes)m" : "in \(hours)h"
         }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE HH:mm"
-        return formatter.string(from: target)
+        let days = minutes / (24 * 60)
+        let remainingHours = (minutes % (24 * 60)) / 60
+        return remainingHours > 0 ? "in \(days)d \(remainingHours)h" : "in \(days)d"
     }
 
     private func infoString(_ key: String, fallback: String) -> String {

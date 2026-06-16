@@ -499,6 +499,25 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("fiveHourResetCountdown(resetEpoch)", source)
         self.assertIn("sevenDayResetCountdown(resetEpoch)", source)
 
+    def test_reset_countdowns_use_progressive_units(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        compact_body = source.split("private func compactResetCountdown", 1)[1].split("private func clampedFraction", 1)[0]
+        dropdown_body = source.split("private func resetCountdown(_ epoch: Double?)", 1)[1].split("private func infoString", 1)[0]
+
+        self.assertIn("let minutes = max(1, Int(ceil(remaining / 60)))", compact_body)
+        self.assertIn("if minutes < 60", compact_body)
+        self.assertIn('return "\\(minutes)m"', compact_body)
+        self.assertIn("let hours = Int(ceil(Double(minutes) / 60.0))", compact_body)
+        self.assertIn("if includeDays, minutes >= 24 * 60", compact_body)
+        self.assertIn('return "\\(hours)h"', compact_body)
+        self.assertIn('return "\\(days)d\\(remainingHours)h"', compact_body)
+
+        self.assertIn("let days = minutes / (24 * 60)", dropdown_body)
+        self.assertIn("let remainingHours = (minutes % (24 * 60)) / 60", dropdown_body)
+        self.assertIn('return remainingHours > 0 ? "in \\(days)d \\(remainingHours)h" : "in \\(days)d"', dropdown_body)
+        self.assertNotIn('formatter.dateFormat = "EEE HH:mm"', dropdown_body)
+
     def test_menu_bar_and_signal_console_show_cpu_ram_signals(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
