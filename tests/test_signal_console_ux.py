@@ -571,16 +571,37 @@ class SignalConsoleUXTests(unittest.TestCase):
             "temperatureHistory: [TemperatureSample]",
             "currentTemperatureText: String",
             "temperatureHistoryText: String",
-            "temperatureHistory: retainedTemperatureSamples(temperatureSamples)",
+            "let retainedTemperatureHistory = retainedTemperatureSamples(temperatureSamples)",
+            "temperatureHistory: retainedTemperatureHistory",
+            "currentTemperatureText(status: ssdTemperature, samples: retainedTemperatureHistory)",
+            "temperatureHistoryText: temperatureHistorySummaryText(retainedTemperatureHistory)",
             '"SSD temp"',
             '"last 60s"',
             '"SSD temp unavailable"',
+            'return "collecting"',
+            "valid.count == 1",
+            "temperatureStatusTextWidth",
             "drawTemperatureCurve",
             "smoothedTemperaturePoints",
             "temperatureCurveColor",
             "drawTemperatureUnavailableCurve",
         ]:
             self.assertIn(token, source)
+
+        summary_body = source.split("private func temperatureHistorySummaryText", 1)[1].split("private struct DoctorCheck", 1)[0]
+        movement_body = source.split("private func drawTemperatureMovementRow", 1)[1].split("private func drawTemperatureCurve", 1)[0]
+        snapshot_branch = source.split("if let snapshot {", 1)[1].split("let detail = lastError", 1)[0]
+        unavailable_branch = source.split("let detail = lastError", 1)[1].split("private func signalStateTitle", 1)[0]
+
+        self.assertIn('return "SSD temp unavailable"', summary_body)
+        self.assertIn('return "collecting"', summary_body)
+        self.assertIn('return "last 60s"', summary_body)
+        self.assertIn("valid.count == 1", summary_body)
+        self.assertIn("let temperatureStatusTextWidth: CGFloat = 112", source)
+        self.assertIn("width: temperatureStatusTextWidth", movement_body)
+        self.assertIn('if model.temperatureHistoryText == "SSD temp unavailable" || model.temperatureHistoryText == "collecting"', movement_body)
+        self.assertEqual(snapshot_branch.count("retainedTemperatureSamples(temperatureSamples)"), 1)
+        self.assertEqual(unavailable_branch.count("retainedTemperatureSamples(temperatureSamples)"), 1)
 
     def test_signal_console_docs_are_public_safe(self):
         spec = pathlib.Path("docs/design/codex-gauge-signal-console-v0.6-design.md").read_text()

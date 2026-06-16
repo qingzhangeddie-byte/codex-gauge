@@ -80,9 +80,9 @@ class NativeCodexOnlyTests(unittest.TestCase):
     def test_native_app_draws_plan_b_four_bar_status_image(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("statusItemWidth: CGFloat = 196", source)
-        self.assertIn("statusImageSize = NSSize(width: 190, height: 22)", source)
-        self.assertIn("resetRailWidth: CGFloat = 28", source)
+        self.assertIn("statusItemWidth: CGFloat = 174", source)
+        self.assertIn("statusImageSize = NSSize(width: 168, height: 22)", source)
+        self.assertIn("resetRailWidth: CGFloat = 18", source)
         self.assertIn("makeStatusImage", source)
         self.assertIn("fiveHourReset: status.fiveHourReset", source)
         self.assertIn("sevenDayReset: status.sevenDayReset", source)
@@ -94,8 +94,8 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("drawResetMoodFace", source)
         self.assertIn("NSBezierPath(ovalIn: faceRect)", source)
         self.assertIn("mouth.curve(", source)
-        self.assertIn("NSRect(x: 130, y: y, width: resetRailWidth + 4, height: 3)", source)
-        self.assertIn("NSPoint(x: 164, y: y - 2.9)", source)
+        self.assertIn("NSRect(x: 116, y: y, width: resetRailWidth + 6, height: 3)", source)
+        self.assertIn("NSPoint(x: 143, y: y - 2.9)", source)
         self.assertNotIn("private func resetMoodFace", source)
         for emoji in ["😡", "😟", "🙁", "😐", "🙂", "😊", "😄"]:
             self.assertNotIn(emoji, source)

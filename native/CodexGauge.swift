@@ -44,7 +44,13 @@ private struct TemperatureSample: Codable {
 
 private func temperatureHistorySummaryText(_ samples: [TemperatureSample]) -> String {
     let valid = samples.filter { $0.ok && $0.temperatureC != nil }
-    return valid.count >= 2 ? "last 60s" : "SSD temp unavailable"
+    if valid.isEmpty {
+        return "SSD temp unavailable"
+    }
+    if valid.count == 1 {
+        return "collecting"
+    }
+    return "last 60s"
 }
 
 private struct DoctorCheck {
@@ -478,6 +484,7 @@ private struct SignalConsoleModel {
 private final class SignalConsolePanelView: NSView {
     private let model: SignalConsoleModel
     private let theme: SignalConsoleTheme
+    private let temperatureStatusTextWidth: CGFloat = 112
     private weak var target: AnyObject?
     private let runCheckAction: Selector
     private let generateReportAction: Selector
@@ -731,12 +738,12 @@ private final class SignalConsolePanelView: NSView {
 
     private func drawTemperatureMovementRow(in card: NSRect) {
         let row = NSRect(x: card.minX + 16, y: card.maxY - 35, width: card.width - 32, height: 25)
-        let curveRect = NSRect(x: row.minX + 72, y: row.minY + 4, width: 90, height: 19)
+        let curveRect = NSRect(x: row.minX + 116, y: row.minY + 4, width: 52, height: 19)
         let color = temperatureCurveColor(samples: model.temperatureHistory)
         drawText("SSD temp", x: row.minX, y: row.minY + 1, width: 58, height: 12, size: 8.6, weight: .bold, color: color)
-        drawText(model.temperatureHistoryText, x: row.minX, y: row.minY + 14, width: 70, height: 10, size: 7.5, weight: .regular, color: textMuted)
+        drawText(model.temperatureHistoryText, x: row.minX, y: row.minY + 14, width: temperatureStatusTextWidth, height: 10, size: 7.5, weight: .regular, color: textMuted)
         drawText(model.currentTemperatureText, x: row.maxX - 43, y: row.minY + 3, width: 43, height: 14, size: 9.2, weight: .bold, color: color, mono: true)
-        if model.temperatureHistoryText == "SSD temp unavailable" {
+        if model.temperatureHistoryText == "SSD temp unavailable" || model.temperatureHistoryText == "collecting" {
             drawTemperatureUnavailableCurve(rect: curveRect)
         } else {
             drawTemperatureCurve(samples: model.temperatureHistory, rect: curveRect)
@@ -1827,6 +1834,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             let fiveHourHistory = quotaHistoryValues(fiveHourSamples, \.fiveHourLeft)
             let sevenDayHistory = quotaHistoryValues(sevenDaySamples, \.sevenDayLeft)
             let inlineReport = inlineUsageReportSummary(samples: lastDaySamples, status: status)
+            let retainedTemperatureHistory = retainedTemperatureSamples(temperatureSamples)
             return SignalConsoleModel(
                 planName: status.ok ? planTitle(status) : "Codex Gauge",
                 sourcePill: "Source: Menu Bar",
@@ -1845,9 +1853,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 fiveHourTrendText: trendText(values: fiveHourHistory, suffix: "this window"),
                 sevenDayTrendText: trendText(values: sevenDayHistory, suffix: "in 24h"),
                 trendContextText: trendContextText(samples: lastDaySamples, latestSource: status.source),
-                temperatureHistory: retainedTemperatureSamples(temperatureSamples),
-                currentTemperatureText: currentTemperatureText(status: ssdTemperature, samples: retainedTemperatureSamples(temperatureSamples)),
-                temperatureHistoryText: temperatureHistorySummaryText(retainedTemperatureSamples(temperatureSamples)),
+                temperatureHistory: retainedTemperatureHistory,
+                currentTemperatureText: currentTemperatureText(status: ssdTemperature, samples: retainedTemperatureHistory),
+                temperatureHistoryText: temperatureHistorySummaryText(retainedTemperatureHistory),
                 reportFiveHourMovement: inlineReport.fiveHourMovement,
                 reportSevenDayMovement: inlineReport.sevenDayMovement,
                 reportTodaySummary: inlineReport.todaySummary,
@@ -1870,6 +1878,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let fiveHourHistory = quotaHistoryValues(fiveHourSamples, \.fiveHourLeft)
         let sevenDayHistory = quotaHistoryValues(sevenDaySamples, \.sevenDayLeft)
         let inlineReport = inlineUsageReportSummary(samples: lastDaySamples, status: nil)
+        let retainedTemperatureHistory = retainedTemperatureSamples(temperatureSamples)
         return SignalConsoleModel(
             planName: "Codex Gauge",
             sourcePill: "Source: Menu Bar",
@@ -1888,9 +1897,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             fiveHourTrendText: trendText(values: fiveHourHistory, suffix: "this window"),
             sevenDayTrendText: trendText(values: sevenDayHistory, suffix: "in 24h"),
             trendContextText: trendContextText(samples: lastDaySamples, latestSource: nil),
-            temperatureHistory: retainedTemperatureSamples(temperatureSamples),
-            currentTemperatureText: currentTemperatureText(status: ssdTemperature, samples: retainedTemperatureSamples(temperatureSamples)),
-            temperatureHistoryText: temperatureHistorySummaryText(retainedTemperatureSamples(temperatureSamples)),
+            temperatureHistory: retainedTemperatureHistory,
+            currentTemperatureText: currentTemperatureText(status: ssdTemperature, samples: retainedTemperatureHistory),
+            temperatureHistoryText: temperatureHistorySummaryText(retainedTemperatureHistory),
             reportFiveHourMovement: inlineReport.fiveHourMovement,
             reportSevenDayMovement: inlineReport.sevenDayMovement,
             reportTodaySummary: inlineReport.todaySummary,
