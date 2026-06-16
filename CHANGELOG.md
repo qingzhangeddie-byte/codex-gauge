@@ -7,6 +7,7 @@
 - Added explicit Cache, Snapshot, and Open state badges to non-live menu bar states.
 - Added an optional local SSD temperature readout in the menu bar and Setup Doctor when macOS exposes the IOReport sensor.
 - Added local CPU/RAM percentages to the menu bar and Signal Console, with bounded 24-hour local metric history.
+- Enlarged the menu bar CPU/RAM pod so the system metrics are readable at real menu-bar size.
 
 ## v0.8.0 - 2026-06-13
 

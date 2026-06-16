@@ -1788,10 +1788,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let maxSystemMetricSamples = 24 * 60 * 60 / 5
     private let ssdTemperatureReadTimeout: TimeInterval = 0.8
     private let ssdTemperatureDisplayGraceInterval: TimeInterval = 10 * 60
-    private let statusItemWidth: CGFloat = 206
-    private let statusImageSize = NSSize(width: 200, height: 22)
+    private let statusItemWidth: CGFloat = 232
+    private let statusImageSize = NSSize(width: 226, height: 22)
     private let menuBarTemperatureChipRect = NSRect(x: 82, y: 4.9, width: 27, height: 12.2)
-    private let menuBarSystemMetricStripRect = NSRect(x: 170, y: 2.4, width: 27, height: 17.0)
+    private let menuBarSystemMetricStripRect = NSRect(x: 170, y: 1.8, width: 52, height: 18.4)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
     private let quotaRailWidth: CGFloat = 28
     private let resetRailWidth: CGFloat = 18
@@ -3669,7 +3669,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func drawMenuBarSystemMetricStrip(sample: SystemMetricSample?, rect: NSRect, palette: GaugePalette) {
         let background = NSBezierPath(roundedRect: rect, xRadius: 3.2, yRadius: 3.2)
-        palette.track.withAlphaComponent(isDarkMenuBar() ? 0.34 : 0.22).setFill()
+        palette.track.withAlphaComponent(isDarkMenuBar() ? 0.48 : 0.30).setFill()
         background.fill()
         palette.border.withAlphaComponent(0.18).setStroke()
         background.lineWidth = 0.45
@@ -3677,13 +3677,22 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
         let cpuText = systemMetricMenuBarText(prefix: "C", value: sample?.cpuPercent)
         let ramText = systemMetricMenuBarText(prefix: "R", value: sample?.ramPercent)
-        drawMenuBarSystemMetricText(cpuText, rect: NSRect(x: rect.minX + 3.0, y: rect.minY + 8.3, width: rect.width - 5, height: 7), color: systemMetricMenuBarColor(label: "CPU", value: sample?.cpuPercent, palette: palette))
-        drawMenuBarSystemMetricText(ramText, rect: NSRect(x: rect.minX + 3.0, y: rect.minY + 1.1, width: rect.width - 5, height: 7), color: systemMetricMenuBarColor(label: "RAM", value: sample?.ramPercent, palette: palette))
+        drawMenuBarSystemMetricAccent(rect: NSRect(x: rect.minX + 4, y: rect.minY + 12.2, width: 2.3, height: 4.2), color: systemMetricMenuBarColor(label: "CPU", value: sample?.cpuPercent, palette: palette))
+        drawMenuBarSystemMetricAccent(rect: NSRect(x: rect.minX + 4, y: rect.minY + 4.0, width: 2.3, height: 4.2), color: systemMetricMenuBarColor(label: "RAM", value: sample?.ramPercent, palette: palette))
+        drawMenuBarSystemMetricText(cpuText, rect: NSRect(x: rect.minX + 8.2, y: rect.minY + 9.5, width: rect.width - 10, height: 8), color: palette.primaryText)
+        drawMenuBarSystemMetricText(ramText, rect: NSRect(x: rect.minX + 8.2, y: rect.minY + 1.3, width: rect.width - 10, height: 8), color: palette.primaryText)
+    }
+
+    private func drawMenuBarSystemMetricAccent(rect: NSRect, color: NSColor) {
+        let accent = NSBezierPath(roundedRect: rect, xRadius: 1.2, yRadius: 1.2)
+        color.withAlphaComponent(0.92).setFill()
+        accent.fill()
     }
 
     private func drawMenuBarSystemMetricText(_ text: String, rect: NSRect, color: NSColor) {
+        let fontSize: CGFloat = 7.2
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: text.count > 3 ? 5.1 : 5.6, weight: .bold),
+            .font: NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .bold),
             .foregroundColor: color,
         ]
         (text as NSString).draw(at: NSPoint(x: rect.minX, y: rect.minY), withAttributes: attrs)
@@ -3693,7 +3702,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         guard let value else {
             return "\(prefix)--"
         }
-        return "\(prefix)\(max(0, min(100, value)))"
+        return "\(prefix)\(max(0, min(100, value)))%"
     }
 
     private func systemMetricMenuBarColor(label: String, value: Int?, palette: GaugePalette) -> NSColor {

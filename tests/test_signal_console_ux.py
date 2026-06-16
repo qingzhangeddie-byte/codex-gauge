@@ -472,8 +472,8 @@ class SignalConsoleUXTests(unittest.TestCase):
     def test_menu_bar_integrates_ssd_temperature_without_removing_current_quota_info(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("statusItemWidth: CGFloat = 206", source)
-        self.assertIn("statusImageSize = NSSize(width: 200", source)
+        self.assertIn("statusItemWidth: CGFloat = 232", source)
+        self.assertIn("statusImageSize = NSSize(width: 226", source)
         self.assertIn("private let quotaRailWidth: CGFloat = 28", source)
         self.assertIn("private let resetRailWidth: CGFloat = 18", source)
         self.assertIn("makeStatusImage(", source)
@@ -523,6 +523,12 @@ class SignalConsoleUXTests(unittest.TestCase):
             "systemMetricLineColor(label: \"RAM\"",
         ]:
             self.assertIn(token, source)
+
+        self.assertIn("statusItemWidth: CGFloat = 232", source)
+        self.assertIn("statusImageSize = NSSize(width: 226", source)
+        self.assertIn("private let menuBarSystemMetricStripRect = NSRect(x: 170, y: 1.8, width: 52, height: 18.4)", source)
+        self.assertIn("let fontSize: CGFloat = 7.2", source)
+        self.assertNotIn("text.count > 3 ? 5.1 : 5.6", source)
 
         movement_body = source.split("private func drawSystemMetricMovementRows", 1)[1].split("private func drawSystemMetricMovementRow", 1)[0]
         self.assertIn("model.cpuUsageText", movement_body)
