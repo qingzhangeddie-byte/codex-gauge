@@ -43,7 +43,7 @@ sips -g pixelWidth -g pixelHeight docs/assets/codex-gauge-menubar-live.png | gre
 sips -g pixelWidth -g pixelHeight docs/assets/codex-gauge-menubar-live.png | grep -q "pixelHeight: 96"
 for fixture in docs/design/app-rendered-signal-console/*.png; do
   sips -g pixelWidth -g pixelHeight "$fixture" | grep -q "pixelWidth: 1120"
-  sips -g pixelWidth -g pixelHeight "$fixture" | grep -q "pixelHeight: 1120"
+  sips -g pixelWidth -g pixelHeight "$fixture" | grep -q "pixelHeight: 1040"
 done
 
 printf "Codex Gauge release check passed.\n"

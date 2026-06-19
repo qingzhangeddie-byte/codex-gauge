@@ -46,6 +46,20 @@ let themes = [
         blue: NSColor(calibratedRed: 0.23, green: 0.45, blue: 0.72, alpha: 0.96)
     ),
     PreviewTheme(
+        name: "Clay Console",
+        background: NSColor(calibratedRed: 0.31, green: 0.24, blue: 0.19, alpha: 1.0),
+        panel: NSColor(calibratedRed: 0.45, green: 0.35, blue: 0.27, alpha: 1.0),
+        panelSoft: NSColor(calibratedRed: 0.26, green: 0.20, blue: 0.16, alpha: 1.0),
+        border: NSColor(calibratedRed: 0.86, green: 0.70, blue: 0.48, alpha: 0.30),
+        text: NSColor(calibratedRed: 0.98, green: 0.94, blue: 0.86, alpha: 0.96),
+        secondary: NSColor(calibratedRed: 0.75, green: 0.68, blue: 0.59, alpha: 0.96),
+        muted: NSColor(calibratedRed: 0.60, green: 0.53, blue: 0.45, alpha: 0.92),
+        mint: NSColor(calibratedRed: 0.56, green: 0.81, blue: 0.65, alpha: 0.96),
+        amber: NSColor(calibratedRed: 0.96, green: 0.74, blue: 0.35, alpha: 0.96),
+        coral: NSColor(calibratedRed: 0.89, green: 0.41, blue: 0.33, alpha: 0.96),
+        blue: NSColor(calibratedRed: 0.93, green: 0.88, blue: 0.77, alpha: 0.96)
+    ),
+    PreviewTheme(
         name: "Signal Dark",
         background: NSColor(calibratedRed: 0.02, green: 0.05, blue: 0.08, alpha: 1.0),
         panel: NSColor(calibratedRed: 0.07, green: 0.13, blue: 0.18, alpha: 1.0),
@@ -186,13 +200,13 @@ NSColor(calibratedRed: 0.08, green: 0.09, blue: 0.10, alpha: 1.0).setFill()
 NSRect(origin: .zero, size: canvasSize).fill()
 
 text("Codex Gauge theme-state visual QA", NSRect(x: 44, y: 32, width: 520, height: 30), size: 24, weight: .bold, color: NSColor.white.withAlphaComponent(0.95))
-text("Three themes across, four important runtime states down. Generated from script/generate_theme_state_previews.swift.", NSRect(x: 44, y: 66, width: 780, height: 18), size: 12, weight: .regular, color: NSColor.white.withAlphaComponent(0.62))
+text("Four themes across, four important runtime states down. Generated from script/generate_theme_state_previews.swift.", NSRect(x: 44, y: 66, width: 780, height: 18), size: 12, weight: .regular, color: NSColor.white.withAlphaComponent(0.62))
 
 let startX: CGFloat = 44
 let startY: CGFloat = 110
-let gapX: CGFloat = 24
+let gapX: CGFloat = 16
 let gapY: CGFloat = 18
-let cardWidth: CGFloat = (canvasSize.width - startX * 2 - gapX * 2) / 3
+let cardWidth: CGFloat = (canvasSize.width - startX * 2 - gapX * CGFloat(themes.count - 1)) / CGFloat(themes.count)
 let cardHeight: CGFloat = 190
 
 for (rowIndex, state) in states.enumerated() {

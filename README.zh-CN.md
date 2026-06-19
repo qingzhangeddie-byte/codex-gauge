@@ -35,12 +35,13 @@ bash install.sh
 - 分段信号条让菜单栏里的额度健康状态更直观，同时不会变成很占位置的大组件
 - 可选 SSD 温度后缀会在 macOS 暴露传感器时显示本机硬盘温度，也可以在 Preferences 里关闭
 - 下拉菜单、诊断和 Setup Doctor 会把 SSD 温度标注为 Normal、Warm 或 Hot
-- 1 秒本地 SSD 温度历史会在 Movement 区域显示为平滑的 10 分钟温度曲线，并进行 24 小时本地保留
+- 每 30 秒采样一次本地 SSD 温度，并在 Movement 区域显示为平滑的 10 分钟温度曲线，同时进行 24 小时本地保留
 - 本地 CPU 和 RAM 百分比会以很小的 CPU/RAM 系统条显示在菜单栏里，并在 Signal Console 中显示为趋势脉冲线
-- 每 5 秒采样一次本地 CPU/RAM，保留 10 分钟趋势视图和 24 小时本地 CPU/RAM 历史；写入本地历史文件最多每分钟一次
+- 每 15 秒采样一次本地 CPU/RAM，保留 10 分钟趋势视图和 24 小时本地 CPU/RAM 历史；写入本地历史文件和菜单栏重绘都会节流
+- Battery Saver 会在使用电池时自动启用：Codex 额度仍会每 30 分钟刷新一次，但 SSD 温度和 CPU/RAM 采样会暂停，直到接回电源
 - 自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口
 - Signal Console 显示真实的下次刷新倒计时，不再只是静态刷新标签
-- 三套可选主题：默认 Paper Console，并提供 Signal Dark 和 Mono Graphite
+- 四套可选主题：默认 Paper Console，并提供 Clay Console、Signal Dark 和 Mono Graphite
 - 首次运行设置页会解释本地优先模式，并引导新用户打开 Codex、运行 Setup Doctor、开始使用菜单栏
 - Preferences 和 Setup Doctor 会跟随当前选择的 Signal Console 主题
 - 趋势按真实时间窗口显示：当前 5 小时窗口变化，以及过去 24 小时内的 7 天额度变化，并直接标出正负百分比
@@ -116,9 +117,10 @@ open native/dist/release
 | 菜单栏常驻 | 使用用户级 LaunchAgent，并在 Quit 时明确清理 |
 | 信息密度 | 同时展示 5 小时和 7 天额度 |
 | 刷新策略 | 根据额度余量自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后快速重试 |
+| Battery Saver | 使用电池时仍保留 Codex 额度显示，但刷新放慢到 30 分钟，并暂停 SSD 温度和 CPU/RAM 采样 |
 | 偏好设置 | 内置刷新频率、通知、登录时启动控制 |
 | 可选 SSD 温度 | 菜单栏 SSD 温度 chip 可以隐藏；诊断里仍会标注 Normal、Warm 或 Hot；Signal Console 会显示本地 10 分钟温度曲线，并进行 24 小时本地保留 |
-| 本地 CPU/RAM 状态 | 菜单栏显示极小 CPU/RAM 系统条，Signal Console 显示趋势脉冲，只保留 24 小时本地百分比历史，并且最多每分钟写入一次 |
+| 本地 CPU/RAM 状态 | 菜单栏显示极小 CPU/RAM 系统条，Signal Console 显示趋势脉冲，只保留 24 小时本地百分比历史；采样、写盘和菜单栏重绘都会节流以降低后台能耗 |
 | 通知 | 只在用户主动开启后提醒关键额度状态 |
 | Signal Console | 直接说明数据是实时、缓存、快照还是不可用 |
 | Setup Doctor | 检查 Codex App、helper、实时数据、LaunchAgent 和通知权限 |

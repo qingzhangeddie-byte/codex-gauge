@@ -12,6 +12,7 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertIn('ditto --norsrc --noextattr "$stage_bundle" "$APP_BUNDLE"', script)
         self.assertIn('APP_BINARY_NAME="${APP_NAME}-bin"', script)
         self.assertIn('APP_LAUNCHER="$APP_MACOS/$APP_NAME"', script)
+        self.assertIn("-framework IOKit", script)
         self.assertIn('#!/bin/zsh', script)
         self.assertIn("install_launch_agent", script)
         self.assertIn("app.codexgauge.menubar.plist", script)
@@ -73,7 +74,8 @@ class NativeHardeningTests(unittest.TestCase):
 
         self.assertIn('temperatureHistoryFileName = "CodexGauge-temperature-history.json"', source)
         self.assertIn("temperatureHistoryPath", source)
-        self.assertIn("maxTemperatureSamples = 24 * 60 * 60", source)
+        self.assertIn("temperatureSampleInterval: TimeInterval = 30", source)
+        self.assertIn("maxTemperatureSamples = 24 * 60 * 60 / 30", source)
         self.assertIn("temperatureGraphWindow: TimeInterval = 10 * 60", source)
         self.assertIn("temperatureHistoryRetentionWindow: TimeInterval = 24 * 60 * 60", source)
         self.assertIn("temperaturePersistInterval: TimeInterval = 60", source)
@@ -92,12 +94,12 @@ class NativeHardeningTests(unittest.TestCase):
 
         self.assertIn('systemMetricsHistoryFileName = "CodexGauge-system-metrics-history.json"', source)
         self.assertIn("systemMetricsHistoryPath", source)
-        self.assertIn("systemMetricSampleInterval: TimeInterval = 5", source)
+        self.assertIn("systemMetricSampleInterval: TimeInterval = 15", source)
         self.assertIn("systemMetricGraphWindow: TimeInterval = 10 * 60", source)
         self.assertIn("systemMetricRetentionWindow: TimeInterval = 24 * 60 * 60", source)
         self.assertIn("systemMetricPersistInterval: TimeInterval = 60", source)
         self.assertIn("lastSystemMetricPersistAt", source)
-        self.assertIn("maxSystemMetricSamples = 24 * 60 * 60 / 5", source)
+        self.assertIn("maxSystemMetricSamples = 24 * 60 * 60 / 15", source)
         self.assertIn("systemMetricsHistoryPath,", source)
         self.assertIn("Clear local data", source)
         self.assertIn("CPU/RAM", pathlib.Path("docs/PRIVACY.md").read_text(encoding="utf-8"))
@@ -110,6 +112,42 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertNotIn("auth.json", metric_storage)
 
         self.assertIn("private func shouldPersistSystemMetricSamples(now: Date = Date()) -> Bool", source)
+
+    def test_power_aware_sampling_reduces_battery_work_and_speeds_charging_telemetry(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "private enum PowerState",
+            "powerState = readPowerState()",
+            "powerState.isBatterySaver",
+            "batterySaverRefreshInterval",
+            "pluggedInRefreshInterval",
+            "chargingTemperatureSampleInterval: TimeInterval = 10",
+            "chargingSystemMetricSampleInterval: TimeInterval = 5",
+            "telemetryTemperatureSampleInterval()",
+            "telemetrySystemMetricSampleInterval()",
+            "startTemperatureSampler(interval:",
+            "startSystemMetricsSampler(interval:",
+            "Battery Saver · quota only · 30 min",
+            "Charging · sensors every 5-10 sec",
+            "Full · sensors every 5-10 sec",
+        ]:
+            self.assertIn(token, source)
+
+    def test_thought_coach_bridge_is_optional_for_public_builds(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            'thoughtCoachEnabledKey = "thoughtCoachBridgeEnabled"',
+            "isThoughtCoachBridgeEnabled()",
+            "startThoughtCoachPollingIfEnabled()",
+            "stopThoughtCoachPolling()",
+            "guard isThoughtCoachBridgeEnabled() else",
+            "Thought Coach disabled",
+            "Advanced local bridge",
+        ]:
+            self.assertIn(token, source)
+        self.assertIn("UserDefaults.standard.set(false, forKey: thoughtCoachEnabledKey)", source)
 
     def test_build_script_stamps_public_version_metadata(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()

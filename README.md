@@ -58,18 +58,20 @@ Search phrases this project is designed to answer naturally: **check Codex usage
   可选 SSD 温度后缀会在 macOS 暴露传感器时显示本机硬盘温度；SSD 温度显示可以在 Preferences 里关闭
 - SSD temperature is explained as Normal, Warm, or Hot in the dropdown, diagnostics, and Setup Doctor
   SSD 温度会在下拉菜单、诊断和 Setup Doctor 里标注为 Normal、Warm 或 Hot
-- 1-second local SSD temperature history renders as a smooth 10-minute temperature curve in the Movement section, with 24-hour local retention
-  1 秒本地 SSD 温度历史会在 Movement 区域显示为平滑的 10 分钟温度曲线，并进行 24 小时本地保留
+- 30-second local SSD temperature samples render as a smooth 10-minute temperature curve in the Movement section, with 24-hour local retention
+  每 30 秒采样一次本地 SSD 温度，并在 Movement 区域显示为平滑的 10 分钟温度曲线，同时进行 24 小时本地保留
 - Local CPU and RAM percentages appear as a tiny CPU/RAM system strip in the menu bar and as pulse lines in Signal Console
   本地 CPU 和 RAM 百分比会以很小的 CPU/RAM 系统条显示在菜单栏里，并在 Signal Console 中显示为趋势脉冲线
-- 5-second local CPU/RAM samples keep a 10-minute movement view and 24-hour local CPU/RAM history, while disk writes are throttled to once per minute
-  每 5 秒采样一次本地 CPU/RAM，保留 10 分钟趋势视图和 24 小时本地 CPU/RAM 历史；写入本地历史文件最多每分钟一次
+- 15-second local CPU/RAM samples keep a 10-minute movement view and 24-hour local CPU/RAM history, while disk writes and menu bar redraws are throttled
+  每 15 秒采样一次本地 CPU/RAM，保留 10 分钟趋势视图和 24 小时本地 CPU/RAM 历史；写入本地历史文件和菜单栏重绘都会节流
+- Battery Saver detects battery power, keeps Codex usage on a 30-minute quota refresh, and pauses SSD temperature and CPU/RAM sampling until AC power returns
+  Battery Saver 会在使用电池时自动启用：Codex 额度仍会每 30 分钟刷新一次，但 SSD 温度和 CPU/RAM 采样会暂停，直到接回电源
 - Custom Signal Console popover with status, quota, reset timing, trend, doctor checks, diagnostics, and actions
   自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口；下拉菜单显示额度重置时间和上次刷新时间
 - Signal Console shows the actual next-refresh countdown, not a static refresh label
   Signal Console 显示真实的下次刷新倒计时，不再只是静态刷新标签
-- Three selectable themes: Paper Console by default, Signal Dark, and Mono Graphite
-  三套可选主题：默认 Paper Console，并提供 Signal Dark 和 Mono Graphite
+- Four selectable themes: Paper Console by default, Clay Console, Signal Dark, and Mono Graphite
+  四套可选主题：默认 Paper Console，并提供 Clay Console、Signal Dark 和 Mono Graphite
 - First-run setup explains the local-only model and points new users to Codex, Setup Doctor, and the menu bar
   首次运行设置页会解释本地优先模式，并引导新用户打开 Codex、运行 Setup Doctor、开始使用菜单栏
 - Preferences and Setup Doctor use the same selected Signal Console theme
@@ -178,9 +180,10 @@ The generated zip includes `CodexGauge.app`, `Install Codex Gauge.command`, and 
 | Menu bar persistence | User LaunchAgent with explicit Quit cleanup |
 | Signal quality | Shows both 5-hour and 7-day quota instead of one vague number |
 | Refresh behavior | Adaptive refresh instead of constant polling: 5 minutes normally, 3 minutes when low, 2 minutes when critical, with quick retry after transient errors |
+| Battery Saver | On battery power, Codex Gauge keeps quota visible with a 30-minute quota refresh and pauses SSD temperature and CPU/RAM sampling |
 | Preferences | Built-in refresh cadence, notifications, and launch-at-login controls |
 | Optional SSD temperature | Menu bar SSD chip can be hidden; diagnostics still label the sensor as Normal, Warm, or Hot, and the Signal Console can draw a local 10-minute curve with 24-hour local retention |
-| Local CPU/RAM context | Tiny menu-bar CPU/RAM system strip plus Signal Console movement pulses, stored only as 24-hour local percentage history and persisted at most once per minute |
+| Local CPU/RAM context | Tiny menu-bar CPU/RAM system strip plus Signal Console movement pulses, stored only as 24-hour local percentage history; sampling, disk writes, and menu bar redraws are throttled for lower background energy use |
 | Notifications | Opt-in alerts for the moments users actually care about |
 | Signal Console | Explains whether data is live, cached, snapshot-based, or unavailable |
 | Setup Doctor | Local checks for Codex app, helper, live data, LaunchAgent, and notifications |
@@ -214,7 +217,7 @@ For live Codex quota, it first talks to the local Codex app-server. Each success
 
 It does **not** read browser cookies, does **not** read `~/.codex/auth.json`, and does **not** scan unrelated project folders, browser profiles, or Keychain.
 
-The CPU/RAM display is local CPU and RAM percentages only. Codex Gauge samples it every 5 seconds for the live strip, persists the bounded history at most once per minute, and stores no process list, app names, command lines, or file paths.
+The CPU/RAM display is local CPU and RAM percentages only. Codex Gauge samples it every 15 seconds for the live strip, persists the bounded history at most once per minute, throttles sensor-only menu bar redraws, and stores no process list, app names, command lines, or file paths.
 
 Important limitation: the Codex app-server path can start or refresh the Codex 5-hour window because it talks to the same local Codex service used by the Codex desktop app.
 

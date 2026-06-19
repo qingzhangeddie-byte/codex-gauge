@@ -178,6 +178,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         script_text = script.read_text()
         for phrase in [
             "Paper Console",
+            "Clay Console",
             "Signal Dark",
             "Mono Graphite",
             "Live",
@@ -232,7 +233,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
                 stdout=subprocess.PIPE,
             )
             self.assertIn("pixelWidth: 1120", result.stdout)
-            self.assertIn("pixelHeight: 1120", result.stdout)
+            self.assertIn("pixelHeight: 1040", result.stdout)
 
     def test_public_visual_assets_are_generated_from_real_app_render(self):
         script = pathlib.Path("script/generate_public_assets.swift")

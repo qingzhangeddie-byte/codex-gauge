@@ -200,11 +200,14 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn('paperConsoleThemeKey = "paperConsole"', source)
         self.assertIn('signalDarkThemeKey = "signalDark"', source)
         self.assertIn('monoGraphiteThemeKey = "monoGraphite"', source)
+        self.assertIn('clayConsoleThemeKey = "clayConsole"', source)
         self.assertIn("UserDefaults.standard.set(paperConsoleThemeKey, forKey: themePreferenceKey)", source)
         self.assertIn("currentSignalConsoleTheme()", source)
         self.assertIn("Signal Dark", source)
         self.assertIn("Paper Console", source)
         self.assertIn("Mono Graphite", source)
+        self.assertIn("Clay Console", source)
+        self.assertIn("clayConsoleTheme()", source)
         self.assertIn("#selector(themePreferenceChanged)", source)
         self.assertIn("themePopup?.selectItem(withTitle: currentSignalConsoleTheme().name)", source)
 
@@ -223,8 +226,20 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("private func paperConsoleTheme() -> SignalConsoleTheme", source)
         self.assertIn("textSecondary: NSColor(calibratedRed: 0.22, green: 0.27, blue: 0.25, alpha: 0.96)", source)
         self.assertIn("textMuted: NSColor(calibratedRed: 0.40, green: 0.45, blue: 0.42, alpha: 0.92)", source)
-        self.assertIn('drawText("window", x: rect.minX + 14, y: rect.minY + 35, width: 48, height: 14, size: 8, weight: .bold, color: textSecondary)', source)
-        self.assertIn('drawText("reset", x: rect.minX + 288, y: rect.minY + 12, width: 34, height: 16, size: 10, weight: .medium, color: textSecondary)', source)
+        self.assertIn('drawText("window", x: rect.minX + 14, y: rect.minY + 29, width: 48, height: 12, size: 7.4, weight: .bold, color: textSecondary)', source)
+        self.assertIn('drawText("reset", x: rect.minX + 284, y: rect.minY + 7, width: 34, height: 14, size: 9.4, weight: .medium, color: textSecondary)', source)
+
+    def test_clay_console_theme_uses_claude_command_style_palette(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("private func clayConsoleTheme() -> SignalConsoleTheme", source)
+        self.assertIn('name: "Clay Console"', source)
+        self.assertIn("panelBackground: NSColor(calibratedRed: 0.45, green: 0.35, blue: 0.27, alpha: 1.0)", source)
+        self.assertIn("panelStrongBackground: NSColor(calibratedRed: 0.26, green: 0.20, blue: 0.16, alpha: 1.0)", source)
+        self.assertIn("mintAccent: NSColor(calibratedRed: 0.56, green: 0.81, blue: 0.65, alpha: 0.96)", source)
+        self.assertIn("amberAccent: NSColor(calibratedRed: 0.96, green: 0.74, blue: 0.35, alpha: 0.96)", source)
+        self.assertIn("case clayConsoleThemeKey:", source)
+        self.assertIn("return clayConsoleTheme()", source)
 
     def test_all_themes_use_opaque_panel_backgrounds(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -234,6 +249,8 @@ class SignalConsoleUXTests(unittest.TestCase):
             "panelStrongBackground: NSColor(calibratedRed: 0.07, green: 0.13, blue: 0.18, alpha: 1.0)",
             "panelBackground: NSColor(calibratedRed: 0.94, green: 0.92, blue: 0.86, alpha: 1.0)",
             "panelStrongBackground: NSColor(calibratedRed: 0.99, green: 0.98, blue: 0.94, alpha: 1.0)",
+            "panelBackground: NSColor(calibratedRed: 0.45, green: 0.35, blue: 0.27, alpha: 1.0)",
+            "panelStrongBackground: NSColor(calibratedRed: 0.26, green: 0.20, blue: 0.16, alpha: 1.0)",
             "panelBackground: monoAccent(0.05, alpha: 1.0)",
             "panelStrongBackground: monoAccent(0.12, alpha: 1.0)",
         ]:
@@ -247,17 +264,20 @@ class SignalConsoleUXTests(unittest.TestCase):
 
         self.assertIn("textSecondary: NSColor(calibratedRed: 0.82, green: 0.89, blue: 0.94, alpha: 0.98)", source)
         self.assertIn("textMuted: NSColor(calibratedRed: 0.62, green: 0.70, blue: 0.76, alpha: 0.92)", source)
+        self.assertIn("textSecondary: NSColor(calibratedRed: 0.75, green: 0.68, blue: 0.59, alpha: 0.96)", source)
+        self.assertIn("textMuted: NSColor(calibratedRed: 0.60, green: 0.53, blue: 0.45, alpha: 0.92)", source)
         self.assertIn("textSecondary: monoAccent(0.82, alpha: 0.98)", source)
         self.assertIn("textMuted: monoAccent(0.64, alpha: 0.92)", source)
 
     def test_signal_console_is_compact_and_avoids_control_overlap(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("signalPopoverSize = NSSize(width: 560, height: 560)", source)
+        self.assertIn("signalPopoverSize = NSSize(width: 560, height: 520)", source)
         self.assertIn("drawStatusStrip", source)
         self.assertIn("drawHealthStatusGrid", source)
-        self.assertIn('addButton(title: "Run Check", frame: layout.runCheckButtonRect', source)
+        self.assertIn('addButton(title: "Run Check", frame: commandRects[2]', source)
         self.assertIn("drawHealthStatusGrid(in: layout.healthStatusGridRect)", source)
+        self.assertIn("powerStatusPillRect", source)
         self.assertNotIn("drawCommandButton", source)
         self.assertNotIn("drawBottomCommands", source)
         self.assertNotIn("signalPopoverSize = NSSize(width: 640, height: 750)", source)
@@ -273,8 +293,62 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("startPopoverCountdownTimer()", source)
         self.assertIn("stopPopoverCountdownTimer()", source)
         self.assertIn("let next = layout.nextRefreshPillRect", source)
-        self.assertIn("drawText(model.nextRefreshText, x: next.minX + 46", source)
+        self.assertIn("drawText(model.nextRefreshText, x: next.minX + 9", source)
         self.assertNotIn('model.isRefreshing ? "now" : "5 min"', source)
+
+    def test_power_aware_menu_bar_shows_battery_state(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "private enum PowerState",
+            "case battery",
+            "case charging",
+            "case full",
+            "menuBarSystemPodRect",
+            "drawMenuBarSystemPodPower",
+            "drawBatteryGlyph",
+            "batteryMenuBarFillColor",
+            "batteryMenuBarBorderColor",
+            "batteryMenuBarTextColor",
+            "powerState.menuBarLabel",
+            "powerPercentText()",
+            "powerMenuBarText()",
+            "powerState.accessibilityLabel",
+            "private let menuBarSystemPodRect = NSRect(x: 184, y: 3.0, width: 112, height: 16.0)",
+            "statusImageSize = NSSize(width: 300, height: 22)",
+        ]:
+            self.assertIn(token, source)
+
+        for token in [
+            "menuBarCompactLabel",
+            "return powerPercentText()",
+            "let fill = batteryMenuBarFillColor()",
+            "fill.setFill()",
+            "batteryMenuBarTextColor(fill: fill)",
+            "batteryMenuBarIconColor(fill: fill)",
+            "drawBatteryGlyph(in: iconRect, color: color, palette: palette)",
+            "drawMenuBarSystemPodText(powerMenuBarText(), rect: textRect, color: textColor",
+        ]:
+            self.assertIn(token, source)
+
+    def test_signal_console_has_bridge_and_power_command_cards(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "bridgeCardRect",
+            "powerStatusPillRect",
+            "drawBridgeCard",
+            "drawPowerSignalState",
+            '"Copy"',
+            "Restart",
+            "model.powerModeTitle",
+            "model.powerModeDetail",
+            "model.powerPercentText",
+            "model.thoughtCoachEnabled",
+        ]:
+            self.assertIn(token, source)
+        self.assertIn("copyThoughtCoachPairingAction", source)
+        self.assertIn("restartThoughtCoachAction", source)
 
     def test_quota_movement_labels_include_signed_window_deltas(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -301,23 +375,22 @@ class SignalConsoleUXTests(unittest.TestCase):
     def test_signal_console_has_clear_codex_closed_empty_state(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("drawClosedSignalState", source)
+        self.assertIn("drawThoughtCoachSignalState", source)
         self.assertIn('"Codex closed"', source)
         self.assertIn('"Open Codex for live quota"', source)
         self.assertIn('"Open Codex desktop once to enable live usage"', source)
         self.assertIn('"After Codex is open, Codex Gauge refreshes hands-free from the menu bar."', source)
-        self.assertIn('"No live quota yet"', source)
-        self.assertIn("if model.isUnavailable {", source)
+        self.assertIn('"TC Offline"', source)
 
     def test_signal_console_closed_state_copy_stays_compact(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("width: unavailable ? 176 : 268", source)
+        self.assertIn("width: unavailable ? 220 : 230, height: 16", source)
         self.assertIn('return "Open Codex for live quota"', source)
         self.assertNotIn('return "Open Codex to refresh live usage."', source)
         self.assertIn('case "LaunchAgent":', source)
         self.assertIn('case "LaunchAgent running":', source)
-        self.assertIn('return "Login"', source)
+        self.assertIn('return "Lg"', source)
 
     def test_quota_movement_uses_semantic_colors(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -365,7 +438,7 @@ class SignalConsoleUXTests(unittest.TestCase):
     def test_usage_report_actions_do_not_overlap_source_text(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        card_height = self._first_float(r"var trendCardRect: NSRect \{\n        NSRect\(x: margin, y: 274, width: 248, height: ([0-9.]+)\)", source)
+        card_height = self._first_float(r"var trendCardRect: NSRect \{\n        NSRect\(x: margin, y: 260, width: 248, height: ([0-9.]+)\)", source)
         source_offset = self._first_float(r"var reportTodayTextRect: NSRect \{\n        let card = reportCardRect\n        return NSRect\(x: card\.minX \+ innerInset, y: card\.minY \+ ([0-9.]+), width: 212, height: 12\)", source)
         source_height = self._first_float(r"var reportTodayTextRect: NSRect \{\n        let card = reportCardRect\n        return NSRect\(x: card\.minX \+ innerInset, y: card\.minY \+ 34, width: 212, height: ([0-9.]+)\)", source)
         copy_from_bottom = self._first_float(r"return NSRect\(x: card\.minX \+ 18, y: card\.maxY - ([0-9.]+), width: 96, height: 30\)", source)
@@ -466,16 +539,17 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("showSSDTemperatureCheckbox?.state = showSSDTemperatureInMenuBar() ? .on : .off", source)
         self.assertIn("private func showSSDTemperatureInMenuBar() -> Bool", source)
         self.assertIn("UserDefaults.standard.bool(forKey: showSSDTemperatureInMenuBarKey)", source)
-        self.assertIn("if showSSDTemperatureInMenuBar() {", source)
+        self.assertIn("showSSDTemperatureInMenuBar() ? ssdTemperature : nil", source)
         self.assertIn("ssdTemperatureDoctorCheck(ssdTemperature)", source)
 
     def test_menu_bar_integrates_ssd_temperature_without_removing_current_quota_info(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("statusItemWidth: CGFloat = 232", source)
-        self.assertIn("statusImageSize = NSSize(width: 226", source)
-        self.assertIn("private let quotaRailWidth: CGFloat = 28", source)
+        self.assertIn("statusItemWidth: CGFloat = 306", source)
+        self.assertIn("statusImageSize = NSSize(width: 300", source)
+        self.assertIn("private let quotaRailWidth: CGFloat = 38", source)
         self.assertIn("private let resetRailWidth: CGFloat = 18", source)
+        self.assertIn("private let menuBarCodexContentX: CGFloat = 30", source)
         self.assertIn("makeStatusImage(", source)
         self.assertIn("ssdTemperature: ssdTemperatureForDisplay()", source)
         self.assertIn("menuBarAccessibilitySummary", source)
@@ -483,13 +557,12 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("menuBarTooltipTitle(title: title, status: status)", source)
         self.assertIn('parts.append("SSD \\(temperature)")', source)
         self.assertIn("button.imagePosition = .imageOnly", source)
-        self.assertIn("drawMenuBarSSDTemperature(status: ssdTemperature, rect: menuBarTemperatureChipRect, palette: palette)", source)
-        self.assertIn("private let menuBarTemperatureChipRect = NSRect(x: 82", source)
-        self.assertIn("width: 27, height: 12.2", source)
+        self.assertIn("drawMenuBarSystemPod(ssdTemperature: ssdTemperature, systemMetric: systemMetric, rect: menuBarSystemPodRect, palette: palette)", source)
+        self.assertIn("private let menuBarSystemPodRect = NSRect(x: 184, y: 3.0, width: 112, height: 16.0)", source)
         self.assertIn("let fontSize: CGFloat = text.count > 3 ? 6.6 : 7.2", source)
         self.assertIn("NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .bold)", source)
         self.assertIn("ssdTemperatureFillAlpha(status)", source)
-        self.assertIn("private func drawMenuBarSSDTemperature", source)
+        self.assertIn("private func drawMenuBarSystemPodTemperature", source)
         self.assertIn("private func ssdTemperatureColor", source)
         self.assertIn("drawPlanBGauge(", source)
         self.assertIn("drawPlanBRow(window: \"5h\"", source)
@@ -526,14 +599,15 @@ class SignalConsoleUXTests(unittest.TestCase):
             "cpuUsageText: String",
             "ramUsageText: String",
             "let retainedSystemMetricHistory = systemMetricGraphSamples(systemMetricSamples)",
-            "systemMetricHistory: retainedSystemMetricHistory",
-            "cpuUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.cpuPercent)",
-            "ramUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.ramPercent)",
+            "systemMetricHistory: powerState.isBatterySaver ? [] : retainedSystemMetricHistory",
+            "cpuUsageText: powerState.isBatterySaver ? \"paused\" : systemMetricPercentText(retainedSystemMetricHistory.last?.cpuPercent)",
+            "ramUsageText: powerState.isBatterySaver ? \"paused\" : systemMetricPercentText(retainedSystemMetricHistory.last?.ramPercent)",
             "systemMetric: systemMetricSampleForDisplay()",
-            "private let menuBarSystemMetricStripRect",
-            "drawMenuBarSystemMetricStrip(sample: systemMetric, rect: menuBarSystemMetricStripRect, palette: palette)",
+            "private let menuBarSystemPodRect",
+            "drawMenuBarSystemPod(ssdTemperature: ssdTemperature, systemMetric: systemMetric, rect: menuBarSystemPodRect, palette: palette)",
             "systemMetricMenuBarText(prefix: \"C\", value: sample?.cpuPercent)",
             "systemMetricMenuBarText(prefix: \"R\", value: sample?.ramPercent)",
+            "drawMenuBarSystemPodMetrics(sample: systemMetric, rect: metricsRect, palette: palette)",
             "drawSystemMetricMovementRows",
             "drawSystemMetricMovementRow(label: \"CPU\"",
             "drawSystemMetricMovementRow(label: \"RAM\"",
@@ -543,32 +617,76 @@ class SignalConsoleUXTests(unittest.TestCase):
         ]:
             self.assertIn(token, source)
 
-        self.assertIn("statusItemWidth: CGFloat = 232", source)
-        self.assertIn("statusImageSize = NSSize(width: 226", source)
-        self.assertIn("private let menuBarSystemMetricStripRect = NSRect(x: 170, y: 1.8, width: 52, height: 18.4)", source)
-        self.assertIn("let fontSize: CGFloat = 7.2", source)
+        self.assertIn("statusItemWidth: CGFloat = 306", source)
+        self.assertIn("statusImageSize = NSSize(width: 300", source)
+        self.assertIn("private let menuBarSystemPodRect = NSRect(x: 184, y: 3.0, width: 112, height: 16.0)", source)
+        self.assertIn("size: 5.8", source)
         self.assertNotIn("text.count > 3 ? 5.1 : 5.6", source)
 
         movement_body = source.split("private func drawSystemMetricMovementRows", 1)[1].split("private func drawSystemMetricMovementRow", 1)[0]
         self.assertIn("model.cpuUsageText", movement_body)
         self.assertIn("model.ramUsageText", movement_body)
 
-    def test_ssd_temperature_history_samples_every_second_and_is_bounded(self):
+    def test_thought_coach_bridge_is_embedded_in_current_menu_bar_app(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "ThoughtCoachBridgeState",
+            "Thought Coach: Ready",
+            "Thought Coach: Local only",
+            "Thought Coach: Offline",
+            "thoughtCoachPollInterval: TimeInterval = 12",
+            'URL(string: "http://127.0.0.1:8797/health")!',
+            'URL(string: "http://127.0.0.1:8797/pairing")!',
+            "startThoughtCoachPolling()",
+            "pollThoughtCoachBridge()",
+            "thoughtCoachHealthIsOK",
+            "thoughtCoachPairingBridgeURL",
+            "isLocalOnlyThoughtCoachBridgeURL",
+            "drawThoughtCoachMenuBarChip",
+            '("TC" as NSString)',
+            "drawThoughtCoachSignalState",
+            "Copy iPhone Pairing Payload",
+            "Show Pairing Payload",
+            "Restart Bridge",
+            "Open Bridge Log",
+            "Open Bridge Error Log",
+            "thoughtCoachBridgeLaunchAgentLabelKey",
+            "defaultThoughtCoachBridgeLaunchAgentLabel",
+            "thoughtCoachBridgeLaunchAgentLabel()",
+            "thoughtCoachProjectPath()",
+            "Project folder not configured",
+        ]:
+            self.assertIn(token, source)
+
+        self.assertIn("menu.popUp(positioning: nil", source)
+        self.assertIn("button.action = #selector(toggleSignalConsole", source)
+        self.assertNotIn("statusItem.menu = menu", source)
+        self.assertNotIn("bustawind", source)
+        self.assertNotIn("OPENAI_API_KEY", source)
+        self.assertNotIn(".codex/auth.json", source.split("private enum ThoughtCoachBridgeState", 1)[1].split("private func safeDiagnosticsText", 1)[0])
+
+    def test_ssd_temperature_history_samples_every_thirty_seconds_and_is_bounded(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         self.assertIn("private struct TemperatureSample: Codable", source)
+        self.assertIn("let timeEpoch: Double?", source)
+        self.assertIn("private var lastStatusImageRedrawAt: Date?", source)
+        self.assertIn("private let sensorStatusImageRedrawInterval: TimeInterval = 30", source)
         self.assertIn('private let temperatureQueue = DispatchQueue(label: "app.codexgauge.temperature", qos: .utility)', source)
         self.assertIn("private var temperatureTimer: Timer?", source)
         self.assertIn("private var temperatureReadInFlight = false", source)
         self.assertIn("private var temperatureSamples: [TemperatureSample] = []", source)
-        self.assertIn("private let temperatureSampleInterval: TimeInterval = 1", source)
+        self.assertIn("private let temperatureSampleInterval: TimeInterval = 30", source)
+        self.assertIn("private let chargingTemperatureSampleInterval: TimeInterval = 10", source)
         self.assertIn("private let temperatureGraphWindow: TimeInterval = 10 * 60", source)
         self.assertIn("private let temperatureHistoryRetentionWindow: TimeInterval = 24 * 60 * 60", source)
         self.assertIn("private let temperaturePersistInterval: TimeInterval = 60", source)
-        self.assertIn("private let maxTemperatureSamples = 24 * 60 * 60", source)
-        self.assertIn("startTemperatureSampler()", source)
+        self.assertIn("private let maxTemperatureSamples = 24 * 60 * 60 / 30", source)
+        self.assertIn("startTemperatureSampler(interval:", source)
         self.assertIn("sampleTemperature()", source)
-        self.assertIn("Timer(timeInterval: temperatureSampleInterval, repeats: true)", source)
+        self.assertIn("Timer(timeInterval: interval, repeats: true)", source)
+        self.assertIn("telemetryTemperatureSampleInterval()", source)
         self.assertIn("temperatureQueue.async", source)
         self.assertIn("DispatchQueue.main.async", source)
         self.assertIn("temperatureReadInFlight = true", source)
@@ -581,6 +699,9 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("retainedTemperatureSamples", source)
         self.assertIn("writeTemperatureSamples", source)
         self.assertIn("readTemperatureSamples", source)
+        self.assertIn("normalizedTemperatureSamples", source)
+        self.assertIn("refreshStatusImageFromCurrentState", source)
+        self.assertIn("shouldRefreshSensorStatusImage", source)
 
         sample_body = source.split("private func sampleTemperature()", 1)[1].split("private func finishRefresh", 1)[0]
         finish_body = source.split("private func finishRefresh", 1)[1].split("private func refreshModeTitle", 1)[0]
@@ -589,6 +710,7 @@ class SignalConsoleUXTests(unittest.TestCase):
         setup_doctor_body = source.split("private func runSetupDoctorChecks()", 1)[1].split("private func doctorCheck", 1)[0]
         append_body = source.split("private func appendTemperatureSample", 1)[1].split("private func persistTemperatureSamplesAsync", 1)[0]
         persist_body = source.split("private func persistTemperatureSamplesAsync", 1)[1].split("private func writeTemperatureSamples", 1)[0]
+        read_body = source.split("private func readTemperatureSamples", 1)[1].split("private func normalizedTemperatureSamples", 1)[0]
         retained_body = source.split("private func retainedTemperatureSamples", 1)[1].split("private func retainedHistorySamples", 1)[0]
         diagnostics_body = source.split("private func ssdTemperatureDiagnosticsText()", 1)[1].split("private func safeDiagnosticsText", 1)[0]
         main_update_body = sample_body.split("DispatchQueue.main.async", 1)[1]
@@ -599,6 +721,8 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("let status = self.readSSDTemperature()", sample_body)
         self.assertNotIn("refreshSignalPopoverIfNeeded()", sample_body)
         self.assertNotIn("writeTemperatureSamples", sample_body)
+        self.assertNotIn("setStatusImage(title:", sample_body)
+        self.assertIn("refreshStatusImageFromCurrentState()", sample_body)
         self.assertNotIn("writeTemperatureSamples", main_update_body)
         self.assertIn("temperatureSamples = []", clear_data_body)
         self.assertIn("clearTemperatureHistoryAsync()", clear_data_body)
@@ -608,37 +732,45 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("temperatureSamples = retainedTemperatureSamples(temperatureSamples)", append_body)
         self.assertIn("let samplesSnapshot = temperatureSamples", append_body)
         self.assertIn("persistTemperatureSamplesAsync(samplesSnapshot)", append_body)
+        self.assertIn("timeEpoch: now.timeIntervalSince1970", append_body)
         self.assertIn("temperatureC: status?.ok == true ? status?.temperatureC : nil", append_body)
         self.assertIn("ok: status?.ok == true && status?.temperatureC != nil", append_body)
         self.assertNotIn("writeTemperatureSamples", append_body)
         self.assertIn("shouldPersistTemperatureSamples(now: now)", append_body)
         self.assertIn("temperatureQueue.async", persist_body)
         self.assertIn("self.writeTemperatureSamples(samples)", persist_body)
-        self.assertIn("isoDate(sample.time)", retained_body)
+        self.assertIn("retainedTemperatureSamples(normalizedTemperatureSamples(samples))", read_body)
+        self.assertIn("sampleEpoch(sample)", retained_body)
+        self.assertNotIn("isoDate(sample.time)", retained_body)
         self.assertIn("temperatureHistoryRetentionWindow", retained_body)
         self.assertIn("suffix(maxTemperatureSamples)", retained_body)
         self.assertNotIn("readSSDTemperature()", finish_body)
         self.assertNotIn("readSSDTemperature()", setup_doctor_body)
         self.assertNotIn("readSSDTemperature()", diagnostics_body)
 
-    def test_system_metrics_sample_every_five_seconds_and_are_bounded(self):
+    def test_system_metrics_sample_every_fifteen_seconds_and_are_bounded(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         self.assertIn("private struct SystemMetricSample: Codable", source)
+        self.assertIn("let timeEpoch: Double?", source)
+        self.assertIn("private var lastStatusImageRedrawAt: Date?", source)
+        self.assertIn("private let sensorStatusImageRedrawInterval: TimeInterval = 30", source)
         self.assertIn("private var systemMetricsTimer: Timer?", source)
         self.assertIn("private var systemMetricSamples: [SystemMetricSample] = []", source)
-        self.assertIn("private let systemMetricSampleInterval: TimeInterval = 5", source)
+        self.assertIn("private let systemMetricSampleInterval: TimeInterval = 15", source)
+        self.assertIn("private let chargingSystemMetricSampleInterval: TimeInterval = 5", source)
         self.assertIn("private let systemMetricGraphWindow: TimeInterval = 10 * 60", source)
         self.assertIn("private let systemMetricRetentionWindow: TimeInterval = 24 * 60 * 60", source)
-        self.assertIn("private let maxSystemMetricSamples = 24 * 60 * 60 / 5", source)
+        self.assertIn("private let maxSystemMetricSamples = 24 * 60 * 60 / 15", source)
         self.assertIn('systemMetricsHistoryFileName = "CodexGauge-system-metrics-history.json"', source)
         self.assertIn("private lazy var systemMetricsHistoryPath", source)
         self.assertIn("systemMetricSamples = readSystemMetricSamples()", source)
-        self.assertIn("startSystemMetricsSampler()", source)
+        self.assertIn("startSystemMetricsSampler(interval:", source)
         self.assertIn("systemMetricsTimer?.invalidate()", source)
         self.assertIn("writeSystemMetricSamples(systemMetricSamples)", source)
         self.assertIn("sampleSystemMetrics()", source)
-        self.assertIn("Timer(timeInterval: systemMetricSampleInterval, repeats: true)", source)
+        self.assertIn("Timer(timeInterval: interval, repeats: true)", source)
+        self.assertIn("telemetrySystemMetricSampleInterval()", source)
         self.assertIn("readSystemMetrics()", source)
         self.assertIn("readCPUUsagePercent()", source)
         self.assertIn("readRAMUsagePercent()", source)
@@ -649,13 +781,68 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("systemMetricGraphSamples", source)
         self.assertIn("writeSystemMetricSamples", source)
         self.assertIn("readSystemMetricSamples", source)
+        self.assertIn("normalizedSystemMetricSamples", source)
+        self.assertIn("refreshStatusImageFromCurrentState", source)
+        self.assertIn("shouldRefreshSensorStatusImage", source)
 
         clear_data_body = source.split("private func performClearLocalData()", 1)[1].split("private func clearTemperatureHistoryAsync", 1)[0]
+        sample_body = source.split("private func sampleSystemMetrics()", 1)[1].split("private func readSystemMetrics", 1)[0]
+        read_body = source.split("private func readSystemMetricSamples", 1)[1].split("private func normalizedSystemMetricSamples", 1)[0]
         retained_body = source.split("private func retainedSystemMetricSamples", 1)[1].split("private func retainedTemperatureSamples", 1)[0]
         self.assertIn("systemMetricSamples = []", clear_data_body)
+        self.assertNotIn("setStatusImage(title:", sample_body)
+        self.assertIn("refreshStatusImageFromCurrentState()", sample_body)
         self.assertIn("systemMetricsHistoryPath,", source)
+        self.assertIn("retainedSystemMetricSamples(normalizedSystemMetricSamples(samples))", read_body)
+        self.assertIn("sampleEpoch(sample)", retained_body)
+        self.assertNotIn("isoDate(sample.time)", retained_body)
         self.assertIn("systemMetricRetentionWindow", retained_body)
         self.assertIn("suffix(maxSystemMetricSamples)", retained_body)
+
+    def test_battery_saver_pauses_local_sensors_and_slows_quota_refresh(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("import IOKit.ps", source)
+        self.assertIn("private var powerSourceRunLoopSource: CFRunLoopSource?", source)
+        self.assertIn("private var isBatterySaverMode = false", source)
+        self.assertIn("private let batterySaverRefreshInterval: TimeInterval = 30 * 60", source)
+        self.assertIn("IOPSGetProvidingPowerSourceType", source)
+        self.assertIn("kIOPSBatteryPowerValue", source)
+        self.assertIn("IOPSNotificationCreateRunLoopSource", source)
+        self.assertIn("startPowerSourceMonitor()", source)
+        self.assertIn("stopPowerSourceMonitor()", source)
+        self.assertIn("handlePowerSourceChanged()", source)
+        self.assertIn("startTelemetrySamplersIfNeeded()", source)
+        self.assertIn("restartTelemetrySamplersIfNeeded()", source)
+        self.assertIn("stopTelemetrySamplers()", source)
+
+        launch_body = source.split("func applicationDidFinishLaunching", 1)[1].split("func applicationWillTerminate", 1)[0]
+        terminate_body = source.split("func applicationWillTerminate", 1)[1].split("func applicationShouldTerminate", 1)[0]
+        next_interval_body = source.split("private func nextRefreshInterval", 1)[1].split("private func nextRefreshCountdownText", 1)[0]
+        temperature_body = source.split("private func sampleTemperature()", 1)[1].split("private func finishRefresh", 1)[0]
+        metrics_body = source.split("private func sampleSystemMetrics()", 1)[1].split("private func readSystemMetrics", 1)[0]
+        model_body = source.split("private func signalConsoleModel()", 1)[1].split("private func signalStateTitle", 1)[0]
+
+        self.assertIn("updateBatterySaverMode()", launch_body)
+        self.assertIn("startPowerSourceMonitor()", launch_body)
+        self.assertIn("startTelemetrySamplersIfNeeded()", launch_body)
+        self.assertNotIn("startTemperatureSampler()", launch_body)
+        self.assertNotIn("startSystemMetricsSampler()", launch_body)
+        self.assertIn("stopPowerSourceMonitor()", terminate_body)
+        self.assertIn("stopTelemetrySamplers()", terminate_body)
+        self.assertIn("if powerState.isBatterySaver", next_interval_body)
+        self.assertIn("return batterySaverRefreshInterval", next_interval_body)
+        self.assertIn("guard !powerState.isBatterySaver else", temperature_body)
+        self.assertIn("guard !powerState.isBatterySaver else", metrics_body)
+        self.assertIn("sourcePill: sourcePillText(for:", model_body)
+        self.assertIn("Battery Saver: quota only", model_body)
+        self.assertIn("Codex usage refreshes every 30 min. Local sensors are paused.", model_body)
+        self.assertIn("temperatureHistory: powerState.isBatterySaver ? [] : retainedTemperatureHistory", model_body)
+        self.assertIn("systemMetricHistory: powerState.isBatterySaver ? [] : retainedSystemMetricHistory", model_body)
+        self.assertIn("cpuUsageText: powerState.isBatterySaver ? \"paused\"", model_body)
+        self.assertIn("ramUsageText: powerState.isBatterySaver ? \"paused\"", model_body)
+        self.assertIn("ssdTemperatureStatusText", source)
+        self.assertIn("paused on battery", source)
 
     def test_ssd_temperature_display_keeps_last_valid_read_briefly(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -663,8 +850,12 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("private var lastValidSSDTemperature: SSDTemperatureStatus?", source)
         self.assertIn("private var lastValidSSDTemperatureAt: Date?", source)
         self.assertIn("private let ssdTemperatureDisplayGraceInterval: TimeInterval = 10 * 60", source)
+        self.assertIn("seedLastValidSSDTemperatureFromHistory()", source)
+        self.assertIn("private func seedLastValidSSDTemperatureFromHistory(now: Date = Date())", source)
+        self.assertIn('source: "history"', source)
         self.assertIn("private func updateLastValidSSDTemperature", source)
         self.assertIn("private func ssdTemperatureForDisplay(now: Date = Date()) -> SSDTemperatureStatus?", source)
+        self.assertIn("recentTemperatureStatusFromHistory(now: now)", source)
         self.assertIn("now.timeIntervalSince(lastValidSSDTemperatureAt) <= ssdTemperatureDisplayGraceInterval", source)
         self.assertIn("lastValidSSDTemperature = status", source)
         self.assertIn("lastValidSSDTemperatureAt = date", source)
@@ -692,9 +883,9 @@ class SignalConsoleUXTests(unittest.TestCase):
             "currentTemperatureText: String",
             "temperatureHistoryText: String",
             "let retainedTemperatureHistory = temperatureGraphSamples(temperatureSamples)",
-            "temperatureHistory: retainedTemperatureHistory",
-            "currentTemperatureText(status: ssdTemperatureForDisplay(), samples: retainedTemperatureHistory)",
-            "temperatureHistoryText: temperatureHistorySummaryText(retainedTemperatureHistory)",
+            "temperatureHistory: powerState.isBatterySaver ? [] : retainedTemperatureHistory",
+            "currentTemperatureText: powerState.isBatterySaver ? \"paused\" : currentTemperatureText(status: ssdTemperatureForDisplay(), samples: retainedTemperatureHistory)",
+            "temperatureHistoryText: powerState.isBatterySaver ? \"paused on battery\" : temperatureHistorySummaryText(retainedTemperatureHistory)",
             '"SSD temp"',
             '"last 10m"',
             '"SSD temp unavailable"',

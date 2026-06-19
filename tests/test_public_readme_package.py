@@ -86,9 +86,12 @@ class PublicReadmePackageTests(unittest.TestCase):
             "No `~/.codex/auth.json` reads in the menu bar app",
             "Self-contained app bundle",
             "Adaptive refresh",
+            "Battery Saver",
+            "30-minute quota refresh",
+            "pauses SSD temperature and CPU/RAM sampling",
             "Optional SSD temperature",
             "Normal, Warm, or Hot",
-            "1-second local SSD temperature history",
+            "30-second local SSD temperature samples",
             "smooth 10-minute temperature curve",
             "local CPU and RAM percentages",
             "CPU/RAM system strip",
@@ -193,7 +196,7 @@ class PublicReadmePackageTests(unittest.TestCase):
 
         self.assertTrue(readme.startswith("# Codex Gauge\n"))
         self.assertIn("简单、安全的 Codex 菜单栏额度仪表", readme)
-        self.assertIn("1 秒本地 SSD 温度历史", readme)
+        self.assertIn("每 30 秒采样一次本地 SSD 温度", readme)
         self.assertIn("10 分钟温度曲线", readme)
         self.assertIn("24 小时本地保留", readme)
         self.assertIn("git clone https://github.com/qingzhangeddie-byte/codex-gauge.git", readme)

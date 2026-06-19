@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-- Nothing yet.
+- Reduced SSD temperature energy use by sampling every 30 seconds instead of every second.
+- Reduced CPU/RAM monitor overhead by sampling every 15 seconds and throttling sensor-only menu bar redraws.
+- Added Battery Saver mode: on battery power, Codex Gauge keeps quota refreshes to 30 minutes and pauses SSD temperature plus CPU/RAM sampling until AC power returns.
+- Replaced hot-path temperature and CPU/RAM history date parsing with numeric timestamps so long-running menu bar sessions do not burn CPU while trimming local history.
 
 ## v0.9.0 - 2026-06-17
 
@@ -17,7 +20,7 @@
 
 ## v0.8.0 - 2026-06-13
 
-- Added selectable Signal Console themes: Paper Console by default, Signal Dark, and Mono Graphite.
+- Added selectable Signal Console themes: Paper Console by default, Clay Console, Signal Dark, and Mono Graphite.
 - Made the local 24-hour usage report visible directly inside the Signal Console.
 - Added a compact Today summary to the report card and copied report.
 - Added live-age wording for Live, Last live, and Snapshot states so stale data is obvious.
