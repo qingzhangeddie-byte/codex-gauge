@@ -206,6 +206,24 @@ plist 应该只引用 `codex_status.py`，不应该包含你的源码目录路�
 
 实时 Codex app-server 路径可能启动或刷新 Codex 5 小时窗口，因为它和 Codex 桌面端使用同一套本地服务。
 
+## 常见问题排查
+
+### 安装后菜单栏里看不到 Codex Gauge
+
+macOS 菜单栏太挤时会自动隐藏左侧图标。可以先关闭几个菜单栏 App、缩小当前窗口占用，或从 `/Applications/CodexGauge.app` 重新打开。
+
+### 显示 Open Codex 或 Snapshot，不是 Live
+
+先打开一次 Codex 桌面端。Live 额度来自本地 Codex app-server；Snapshot 只是实时数据不可用时的有边界本地 fallback，并且会明确标注。
+
+### Battery Saver 让刷新变慢了
+
+这是刻意设计的省电模式。使用电池时，Codex Gauge 会保留每 30 分钟一次的额度刷新，并暂停 SSD 温度和 CPU/RAM 采样，接回电源后自动恢复。
+
+### Thought Coach 显示 Offline
+
+Thought Coach 是可选功能。如果你使用 bridge，请打开 **Preferences → Bridge Settings**，确认 LaunchAgent label 和本地路径，再在 Signal Console 里点 **Restart Bridge**。
+
 ## 开发验证
 
 ```bash

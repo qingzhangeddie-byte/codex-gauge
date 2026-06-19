@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added a public-safe Thought Coach Bridge Settings panel for local LaunchAgent and log path configuration.
+- Improved menu bar accessibility text for the image-only status item, including quota, power, SSD, CPU/RAM, and Thought Coach state.
+- Added README troubleshooting for hidden menu bar items, Codex live data, Battery Saver, and optional Thought Coach bridge setup.
 - Reduced SSD temperature energy use by sampling every 30 seconds instead of every second.
 - Reduced CPU/RAM monitor overhead by sampling every 15 seconds and throttling sensor-only menu bar redraws.
 - Added Battery Saver mode: on battery power, Codex Gauge keeps quota refreshes to 30 minutes and pauses SSD temperature plus CPU/RAM sampling until AC power returns.

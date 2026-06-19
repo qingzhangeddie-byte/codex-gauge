@@ -295,6 +295,36 @@ No. It uses the local Codex app-server for live usage and a bounded read-only se
 
 The live Codex app-server path can start or refresh the Codex 5-hour window because it talks to the same local Codex service used by the Codex desktop app.
 
+## Troubleshooting
+
+### I installed it, but I do not see Codex Gauge in the menu bar.
+### 我安装了，但菜单栏里看不到 Codex Gauge。
+
+macOS can hide left-side menu bar items when the menu bar is crowded. Close a few menu bar apps, widen the active app window less, or open Codex Gauge from `/Applications/CodexGauge.app` again.
+
+macOS 菜单栏太挤时会自动隐藏左侧图标。可以先关闭几个菜单栏 App、缩小当前窗口占用，或从 `/Applications/CodexGauge.app` 重新打开。
+
+### It says Open Codex or Snapshot instead of Live.
+### 它显示 Open Codex 或 Snapshot，不是 Live。
+
+Open Codex desktop once. Live quota comes from the local Codex app-server; Snapshot is only a labeled, bounded local fallback when live data is unavailable.
+
+先打开一次 Codex 桌面端。Live 额度来自本地 Codex app-server；Snapshot 只是实时数据不可用时的有边界本地 fallback，并且会明确标注。
+
+### Battery Saver slowed down refreshes.
+### Battery Saver 让刷新变慢了。
+
+That is intentional. On battery power, Codex Gauge keeps quota refreshes alive every 30 minutes and pauses SSD temperature plus CPU/RAM sampling until AC power returns.
+
+这是刻意设计的省电模式。使用电池时，Codex Gauge 会保留每 30 分钟一次的额度刷新，并暂停 SSD 温度和 CPU/RAM 采样，接回电源后自动恢复。
+
+### Thought Coach is offline.
+### Thought Coach 显示 Offline。
+
+Thought Coach is optional. If you use the bridge, open **Preferences → Bridge Settings**, confirm the LaunchAgent label and local paths, then use **Restart Bridge** from the Signal Console.
+
+Thought Coach 是可选功能。如果你使用 bridge，请打开 **Preferences → Bridge Settings**，确认 LaunchAgent label 和本地路径，再在 Signal Console 里点 **Restart Bridge**。
+
 ## Development Checks
 
 ```bash
