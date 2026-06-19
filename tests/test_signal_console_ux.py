@@ -666,6 +666,70 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertNotIn("OPENAI_API_KEY", source)
         self.assertNotIn(".codex/auth.json", source.split("private enum ThoughtCoachBridgeState", 1)[1].split("private func safeDiagnosticsText", 1)[0])
 
+    def test_preferences_expose_public_safe_bridge_settings_panel(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "private var bridgeSettingsWindow: NSWindow?",
+            "private var thoughtCoachLaunchAgentField: NSTextField?",
+            "private var thoughtCoachProjectPathField: NSTextField?",
+            "private var thoughtCoachLogPathField: NSTextField?",
+            "private var thoughtCoachErrorLogPathField: NSTextField?",
+            "#selector(openBridgeSettings)",
+            "private func makeBridgeSettingsWindow() -> NSWindow",
+            "private func makeBridgeSettingsContentView",
+            "private func syncBridgeSettingsControls()",
+            "#selector(saveBridgeSettings)",
+            "Save Bridge Settings",
+            "LaunchAgent label",
+            "Project folder",
+            "Bridge log",
+            "Error log",
+            "No API keys are stored",
+            "UserDefaults.standard.set(thoughtCoachLaunchAgentField?.stringValue",
+            "UserDefaults.standard.set(thoughtCoachProjectPathField?.stringValue",
+            "UserDefaults.standard.set(thoughtCoachLogPathField?.stringValue",
+            "UserDefaults.standard.set(thoughtCoachErrorLogPathField?.stringValue",
+            "thoughtCoachBridgeLaunchAgentLabelKey",
+        ]:
+            self.assertIn(token, source)
+
+        bridge_section = source.split("private func makeBridgeSettingsContentView", 1)[1].split("private func makeBridgeSettingsWindow", 1)[0]
+        self.assertNotIn("OPENAI_API_KEY", bridge_section)
+        self.assertNotIn("auth.json", bridge_section)
+        self.assertNotIn("cookie", bridge_section.lower())
+
+    def test_menu_bar_accessibility_describes_image_only_status_item(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "button.imagePosition = .imageOnly",
+            "button.setAccessibilityLabel(\"Codex Gauge\")",
+            "button.setAccessibilityValue(menuBarAccessibilitySummary(status))",
+            "button.setAccessibilityHelp(menuBarTooltipTitle(title: title, status: status))",
+            "5-hour quota",
+            "7-day quota",
+            "SSD",
+            "CPU",
+            "RAM",
+            "Thought Coach",
+        ]:
+            self.assertIn(token, source)
+
+    def test_battery_saver_state_is_explicit_in_dropdown_and_accessibility(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "batterySaverStatusText()",
+            "Battery Saver on",
+            "quota refresh every 30 min",
+            "local sensors paused",
+            "drawText(batterySaverStatusText(),",
+            "powerState.isBatterySaver ? \"Battery Saver on",
+            "menuBarAccessibilitySummary",
+        ]:
+            self.assertIn(token, source)
+
     def test_ssd_temperature_history_samples_every_thirty_seconds_and_is_bounded(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
@@ -835,8 +899,10 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("guard !powerState.isBatterySaver else", temperature_body)
         self.assertIn("guard !powerState.isBatterySaver else", metrics_body)
         self.assertIn("sourcePill: sourcePillText(for:", model_body)
-        self.assertIn("Battery Saver: quota only", model_body)
-        self.assertIn("Codex usage refreshes every 30 min. Local sensors are paused.", model_body)
+        self.assertIn("Battery Saver on", model_body)
+        self.assertIn("batterySaverStatusText()", model_body)
+        self.assertIn("quota refresh every 30 min", source)
+        self.assertIn("local sensors paused", source)
         self.assertIn("temperatureHistory: powerState.isBatterySaver ? [] : retainedTemperatureHistory", model_body)
         self.assertIn("systemMetricHistory: powerState.isBatterySaver ? [] : retainedSystemMetricHistory", model_body)
         self.assertIn("cpuUsageText: powerState.isBatterySaver ? \"paused\"", model_body)

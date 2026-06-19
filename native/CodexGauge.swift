@@ -890,7 +890,11 @@ private final class SignalConsolePanelView: NSView {
         drawCircle(center: NSPoint(x: rect.minX + 18, y: rect.minY + 19), radius: 4, color: stateColor, stroke: nil)
         drawText("Live signal", x: rect.minX + 30, y: rect.minY + 10, width: 86, height: 18, size: 13, weight: .bold, color: stateColor)
         let detail = layout.statusStripDetailRect(unavailable: model.isUnavailable)
-        drawText(statusStripDetail(), x: detail.minX, y: detail.minY, width: detail.width, height: detail.height, size: 10.5, weight: .regular, color: textSecondary)
+        if model.isBatterySaverMode {
+            drawText(batterySaverStatusText(), x: detail.minX, y: detail.minY, width: detail.width, height: detail.height, size: 10.5, weight: .regular, color: textSecondary)
+        } else {
+            drawText(statusStripDetail(), x: detail.minX, y: detail.minY, width: detail.width, height: detail.height, size: 10.5, weight: .regular, color: textSecondary)
+        }
         drawThoughtCoachSignalState(in: layout.closedSignalStateRect)
         drawPowerSignalState(in: layout.powerStatusPillRect)
         let next = layout.nextRefreshPillRect
@@ -1497,6 +1501,10 @@ private final class SignalConsolePanelView: NSView {
         }
     }
 
+    private func batterySaverStatusText() -> String {
+        model.statusDetail
+    }
+
     private func shortTrendText(_ text: String) -> String {
         if text.localizedCaseInsensitiveContains("stable") {
             return "steady"
@@ -2078,6 +2086,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var animationTimer: Timer?
     private var popoverCountdownTimer: Timer?
     private var preferencesWindow: NSWindow?
+    private var bridgeSettingsWindow: NSWindow?
     private var setupDoctorWindow: NSWindow?
     private var firstRunSetupWindow: NSWindow?
     private var firstRunSetupPopover: NSPopover?
@@ -2087,6 +2096,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var launchAtLoginCheckbox: NSButton?
     private var showSSDTemperatureCheckbox: NSButton?
     private var thoughtCoachCheckbox: NSButton?
+    private var thoughtCoachLaunchAgentField: NSTextField?
+    private var thoughtCoachProjectPathField: NSTextField?
+    private var thoughtCoachLogPathField: NSTextField?
+    private var thoughtCoachErrorLogPathField: NSTextField?
     private var snapshot: UsageSnapshot?
     private var ssdTemperature: SSDTemperatureStatus?
     private var lastValidSSDTemperature: SSDTemperatureStatus?
@@ -2386,8 +2399,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 sourcePill: sourcePillText(for: status.source),
                 stateTitle: title.title,
                 stateDetail: title.detail,
-                statusTitle: powerState.isBatterySaver ? "Battery Saver: quota only" : sourceStatusTitle(status),
-                statusDetail: powerState.isBatterySaver ? "Codex usage refreshes every 30 min. Local sensors are paused." : sourceStatusDetail(status),
+                statusTitle: powerState.isBatterySaver ? "Battery Saver on" : sourceStatusTitle(status),
+                statusDetail: powerState.isBatterySaver ? batterySaverStatusText() : sourceStatusDetail(status),
                 fiveHourLeft: unavailable ? nil : status.fiveHourLeft,
                 sevenDayLeft: unavailable ? nil : status.sevenDayLeft,
                 fiveHourResetText: unavailable ? "--" : fiveHourResetCountdown(status.fiveHourReset),
@@ -2442,8 +2455,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             sourcePill: sourcePillText(for: nil),
             stateTitle: "Codex closed",
             stateDetail: "Open Codex",
-            statusTitle: powerState.isBatterySaver ? "Battery Saver: quota only" : "Open Codex desktop once to enable live usage",
-            statusDetail: powerState.isBatterySaver ? "Codex usage refreshes every 30 min. Local sensors are paused." : detail,
+            statusTitle: powerState.isBatterySaver ? "Battery Saver on" : "Open Codex desktop once to enable live usage",
+            statusDetail: powerState.isBatterySaver ? batterySaverStatusText() : detail,
             fiveHourLeft: nil,
             sevenDayLeft: nil,
             fiveHourResetText: "--",
@@ -2544,6 +2557,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         configuredThoughtCoachValue(thoughtCoachBridgeLaunchAgentLabelKey, fallback: defaultThoughtCoachBridgeLaunchAgentLabel)
     }
 
+    private func batterySaverStatusText() -> String {
+        "Battery Saver on · quota refresh every 30 min · local sensors paused"
+    }
+
     private func trendText(values: [Int], suffix: String) -> String {
         guard values.count >= 2, let first = values.first, let last = values.last else {
             return "No data"
@@ -2632,6 +2649,30 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         window.center()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc private func openBridgeSettings() {
+        let window = bridgeSettingsWindow ?? makeBridgeSettingsWindow()
+        bridgeSettingsWindow = window
+        syncBridgeSettingsControls()
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc private func saveBridgeSettings() {
+        UserDefaults.standard.set(thoughtCoachLaunchAgentField?.stringValue.trimmingCharacters(in: .whitespacesAndNewlines) ?? "", forKey: thoughtCoachBridgeLaunchAgentLabelKey)
+        UserDefaults.standard.set(thoughtCoachProjectPathField?.stringValue.trimmingCharacters(in: .whitespacesAndNewlines) ?? "", forKey: thoughtCoachProjectPathKey)
+        UserDefaults.standard.set(thoughtCoachLogPathField?.stringValue.trimmingCharacters(in: .whitespacesAndNewlines) ?? "", forKey: thoughtCoachBridgeLogPathKey)
+        UserDefaults.standard.set(thoughtCoachErrorLogPathField?.stringValue.trimmingCharacters(in: .whitespacesAndNewlines) ?? "", forKey: thoughtCoachBridgeErrorLogPathKey)
+        appendLog("thought coach bridge settings saved")
+        syncBridgeSettingsControls()
+        rebuildMenu()
+        refreshStatusImageFromCurrentState(force: true)
+        refreshSignalPopoverIfNeeded()
+        if isThoughtCoachBridgeEnabled() {
+            pollThoughtCoachBridge()
+        }
     }
 
     private func showFirstRunSetupIfNeeded() {
@@ -3261,7 +3302,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func makePreferencesWindow() -> NSWindow {
         let theme = currentSignalConsoleTheme()
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 380),
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 440),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -3270,14 +3311,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         window.appearance = NSAppearance(named: theme.appearance)
         window.isReleasedWhenClosed = false
 
-        let content = makeThemedUtilityContentView(size: NSSize(width: 420, height: 380))
+        let content = makeThemedUtilityContentView(size: NSSize(width: 420, height: 440))
         window.contentView = content
 
-        content.addSubview(utilityLabel("Codex Gauge", frame: NSRect(x: 24, y: 334, width: 220, height: 24), size: 16, weight: .semibold, color: theme.textPrimary))
+        content.addSubview(utilityLabel("Codex Gauge", frame: NSRect(x: 24, y: 394, width: 220, height: 24), size: 16, weight: .semibold, color: theme.textPrimary))
 
-        content.addSubview(utilityLabel("Theme", frame: NSRect(x: 24, y: 292, width: 96, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
+        content.addSubview(utilityLabel("Theme", frame: NSRect(x: 24, y: 352, width: 96, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
 
-        let themeSelect = NSPopUpButton(frame: NSRect(x: 132, y: 290, width: 180, height: 26), pullsDown: false)
+        let themeSelect = NSPopUpButton(frame: NSRect(x: 132, y: 350, width: 180, height: 26), pullsDown: false)
         themeSelect.addItems(withTitles: ["Paper Console", "Clay Console", "Signal Dark", "Mono Graphite"])
         themeSelect.item(withTitle: "Paper Console")?.representedObject = paperConsoleThemeKey
         themeSelect.item(withTitle: "Clay Console")?.representedObject = clayConsoleThemeKey
@@ -3288,9 +3329,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         content.addSubview(themeSelect)
         themePopup = themeSelect
 
-        content.addSubview(utilityLabel("Refresh", frame: NSRect(x: 24, y: 252, width: 96, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
+        content.addSubview(utilityLabel("Refresh", frame: NSRect(x: 24, y: 312, width: 96, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
 
-        let popup = NSPopUpButton(frame: NSRect(x: 132, y: 250, width: 180, height: 26), pullsDown: false)
+        let popup = NSPopUpButton(frame: NSRect(x: 132, y: 310, width: 180, height: 26), pullsDown: false)
         popup.addItems(withTitles: ["Adaptive", "5 minutes", "10 minutes"])
         popup.item(withTitle: "Adaptive")?.representedObject = adaptiveRefreshMode
         popup.item(withTitle: "5 minutes")?.representedObject = fiveMinuteRefreshMode
@@ -3300,54 +3341,59 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         content.addSubview(popup)
         refreshPopup = popup
 
-        content.addSubview(utilityLabel("Menu bar", frame: NSRect(x: 24, y: 208, width: 110, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
+        content.addSubview(utilityLabel("Menu bar", frame: NSRect(x: 24, y: 268, width: 110, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
 
         let showSSD = NSButton(checkboxWithTitle: "Show SSD temperature in menu bar", target: self, action: #selector(showSSDTemperaturePreferenceChanged))
-        showSSD.frame = NSRect(x: 132, y: 206, width: 250, height: 24)
+        showSSD.frame = NSRect(x: 132, y: 266, width: 250, height: 24)
         showSSD.contentTintColor = theme.textSecondary
         content.addSubview(showSSD)
         showSSDTemperatureCheckbox = showSSD
 
         let thoughtCoach = NSButton(checkboxWithTitle: "Advanced local bridge: Thought Coach", target: self, action: #selector(thoughtCoachPreferenceChanged))
-        thoughtCoach.frame = NSRect(x: 132, y: 186, width: 260, height: 24)
+        thoughtCoach.frame = NSRect(x: 132, y: 244, width: 260, height: 24)
         thoughtCoach.contentTintColor = theme.textSecondary
         content.addSubview(thoughtCoach)
         thoughtCoachCheckbox = thoughtCoach
 
-        content.addSubview(utilityLabel("Notifications", frame: NSRect(x: 24, y: 168, width: 110, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
+        let bridgeSettings = NSButton(title: "Bridge Settings", target: self, action: #selector(openBridgeSettings))
+        bridgeSettings.frame = NSRect(x: 132, y: 212, width: 126, height: 28)
+        styleUtilityButton(bridgeSettings)
+        content.addSubview(bridgeSettings)
+
+        content.addSubview(utilityLabel("Notifications", frame: NSRect(x: 24, y: 178, width: 110, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
 
         let notifications = NSButton(checkboxWithTitle: "Quota notifications", target: self, action: #selector(notificationsPreferenceChanged))
-        notifications.frame = NSRect(x: 132, y: 166, width: 220, height: 24)
+        notifications.frame = NSRect(x: 132, y: 176, width: 220, height: 24)
         notifications.contentTintColor = theme.textSecondary
         content.addSubview(notifications)
         notificationsCheckbox = notifications
 
-        content.addSubview(utilityLabel("Startup", frame: NSRect(x: 24, y: 128, width: 110, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
+        content.addSubview(utilityLabel("Startup", frame: NSRect(x: 24, y: 138, width: 110, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
 
         let login = NSButton(checkboxWithTitle: "Launch at login", target: self, action: #selector(launchAtLoginPreferenceChanged))
-        login.frame = NSRect(x: 132, y: 126, width: 220, height: 24)
+        login.frame = NSRect(x: 132, y: 136, width: 220, height: 24)
         login.contentTintColor = theme.textSecondary
         content.addSubview(login)
         launchAtLoginCheckbox = login
 
-        content.addSubview(utilityLabel("Diagnostics", frame: NSRect(x: 24, y: 82, width: 110, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
+        content.addSubview(utilityLabel("Diagnostics", frame: NSRect(x: 24, y: 92, width: 110, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
 
         let testRefresh = NSButton(title: "Test Refresh", target: self, action: #selector(refreshNow))
-        testRefresh.frame = NSRect(x: 132, y: 78, width: 92, height: 28)
+        testRefresh.frame = NSRect(x: 132, y: 88, width: 92, height: 28)
         styleUtilityButton(testRefresh)
         content.addSubview(testRefresh)
 
         let setupDoctor = NSButton(title: "Setup Doctor", target: self, action: #selector(openSetupDoctor))
-        setupDoctor.frame = NSRect(x: 230, y: 78, width: 108, height: 28)
+        setupDoctor.frame = NSRect(x: 230, y: 88, width: 108, height: 28)
         styleUtilityButton(setupDoctor)
         content.addSubview(setupDoctor)
 
         let diagnostics = NSButton(title: "Copy Diagnostics", target: self, action: #selector(copyDiagnostics))
-        diagnostics.frame = NSRect(x: 132, y: 46, width: 136, height: 28)
+        diagnostics.frame = NSRect(x: 132, y: 54, width: 136, height: 28)
         styleUtilityButton(diagnostics)
         content.addSubview(diagnostics)
 
-        content.addSubview(utilityLabel("Live, Last live, Snapshot, and unavailable labels stay visible in the menu.", frame: NSRect(x: 24, y: 18, width: 372, height: 18), size: 11, weight: .regular, color: theme.textMuted))
+        content.addSubview(utilityLabel("Live, Last live, Snapshot, and unavailable labels stay visible in the menu.", frame: NSRect(x: 24, y: 22, width: 372, height: 18), size: 11, weight: .regular, color: theme.textMuted))
 
         return window
     }
@@ -3362,6 +3408,81 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let launchEnabled = isLaunchAgentConfigured()
         UserDefaults.standard.set(launchEnabled, forKey: launchAtLoginKey)
         launchAtLoginCheckbox?.state = launchEnabled ? .on : .off
+    }
+
+    private func bridgeSettingsTextField(value: String, frame: NSRect, placeholder: String) -> NSTextField {
+        let theme = currentSignalConsoleTheme()
+        let field = NSTextField(frame: frame)
+        field.stringValue = value
+        field.placeholderString = placeholder
+        field.font = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
+        field.textColor = theme.textPrimary
+        field.backgroundColor = theme.panelSoftBackground
+        field.isBordered = false
+        field.isEditable = true
+        field.focusRingType = .none
+        field.wantsLayer = true
+        field.layer?.cornerRadius = 7
+        field.layer?.borderWidth = 1
+        field.layer?.borderColor = theme.panelBorder.cgColor
+        field.layer?.backgroundColor = theme.panelSoftBackground.cgColor
+        return field
+    }
+
+    private func makeBridgeSettingsContentView(size: NSSize) -> ThemedUtilityPanelView {
+        let theme = currentSignalConsoleTheme()
+        let content = makeThemedUtilityContentView(size: size)
+        content.addSubview(utilityLabel("Thought Coach Bridge", frame: NSRect(x: 24, y: 266, width: 260, height: 24), size: 16, weight: .semibold, color: theme.textPrimary))
+        content.addSubview(utilityLabel("No API keys are stored. These settings only point Codex Gauge to your local bridge process and local files.", frame: NSRect(x: 24, y: 238, width: 512, height: 32), size: 11, weight: .regular, color: theme.textSecondary))
+
+        content.addSubview(utilityLabel("LaunchAgent label", frame: NSRect(x: 24, y: 202, width: 126, height: 18), size: 12, weight: .medium, color: theme.textSecondary))
+        let labelField = bridgeSettingsTextField(value: thoughtCoachBridgeLaunchAgentLabel(), frame: NSRect(x: 160, y: 196, width: 360, height: 28), placeholder: defaultThoughtCoachBridgeLaunchAgentLabel)
+        content.addSubview(labelField)
+        thoughtCoachLaunchAgentField = labelField
+
+        content.addSubview(utilityLabel("Project folder", frame: NSRect(x: 24, y: 162, width: 126, height: 18), size: 12, weight: .medium, color: theme.textSecondary))
+        let projectField = bridgeSettingsTextField(value: thoughtCoachProjectPath(), frame: NSRect(x: 160, y: 156, width: 360, height: 28), placeholder: "/path/to/local/project")
+        content.addSubview(projectField)
+        thoughtCoachProjectPathField = projectField
+
+        content.addSubview(utilityLabel("Bridge log", frame: NSRect(x: 24, y: 122, width: 126, height: 18), size: 12, weight: .medium, color: theme.textSecondary))
+        let logField = bridgeSettingsTextField(value: thoughtCoachBridgeLogPath(), frame: NSRect(x: 160, y: 116, width: 360, height: 28), placeholder: defaultThoughtCoachBridgeLogPath)
+        content.addSubview(logField)
+        thoughtCoachLogPathField = logField
+
+        content.addSubview(utilityLabel("Error log", frame: NSRect(x: 24, y: 82, width: 126, height: 18), size: 12, weight: .medium, color: theme.textSecondary))
+        let errorLogField = bridgeSettingsTextField(value: thoughtCoachBridgeErrorLogPath(), frame: NSRect(x: 160, y: 76, width: 360, height: 28), placeholder: defaultThoughtCoachBridgeErrorLogPath)
+        content.addSubview(errorLogField)
+        thoughtCoachErrorLogPathField = errorLogField
+
+        let save = NSButton(title: "Save Bridge Settings", target: self, action: #selector(saveBridgeSettings))
+        save.frame = NSRect(x: 374, y: 24, width: 146, height: 30)
+        styleUtilityButton(save, primary: true)
+        content.addSubview(save)
+        return content
+    }
+
+    private func makeBridgeSettingsWindow() -> NSWindow {
+        let theme = currentSignalConsoleTheme()
+        let size = NSSize(width: 560, height: 320)
+        let window = NSWindow(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Bridge Settings"
+        window.appearance = NSAppearance(named: theme.appearance)
+        window.isReleasedWhenClosed = false
+        window.contentView = makeBridgeSettingsContentView(size: size)
+        return window
+    }
+
+    private func syncBridgeSettingsControls() {
+        thoughtCoachLaunchAgentField?.stringValue = thoughtCoachBridgeLaunchAgentLabel()
+        thoughtCoachProjectPathField?.stringValue = thoughtCoachProjectPath()
+        thoughtCoachLogPathField?.stringValue = thoughtCoachBridgeLogPath()
+        thoughtCoachErrorLogPathField?.stringValue = thoughtCoachBridgeErrorLogPath()
     }
 
     private func refreshTitle(for mode: String) -> String {
@@ -4307,7 +4428,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         if status.ok {
             addDisabled(planTitle(status), monospaced: false)
             if powerState.isBatterySaver {
-                addDisabled("Battery Saver · quota only · 30 min")
+                addDisabled(batterySaverStatusText())
             } else {
                 addDisabled("\(powerState.consoleTitle) · \(powerState.consoleDetail)")
             }
@@ -4386,7 +4507,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: nil, ssdTemperature: ssdTemperatureForDisplay(), systemMetric: systemMetricSampleForDisplay())
         }
         button.toolTip = menuBarTooltipTitle(title: title, status: status)
-        button.setAccessibilityLabel("Codex Gauge \(menuBarAccessibilitySummary(status))")
+        button.setAccessibilityLabel("Codex Gauge")
+        button.setAccessibilityValue(menuBarAccessibilitySummary(status))
+        button.setAccessibilityHelp(menuBarTooltipTitle(title: title, status: status))
     }
 
     private func menuBarTooltipTitle(title: String, status: ServiceStatus?) -> String {
@@ -4418,14 +4541,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let systemSummary = ", CPU \(systemMetricPercentText(metrics?.cpuPercent)), RAM \(systemMetricPercentText(metrics?.ramPercent))"
         let bridgeSummary = isThoughtCoachBridgeEnabled() ? "\(thoughtCoachStatus.state.title), " : ""
         let powerSummary = "\(powerState.accessibilityLabel) \(powerPercentText()), "
+        let saverSummary = powerState.isBatterySaver ? "\(batterySaverStatusText()), " : ""
         guard let status, status.ok, !isUnavailableStatus(status) else {
             return showSSDTemperatureInMenuBar()
-                ? "\(bridgeSummary)\(powerSummary)SSD \(ssdTemperatureDisplayText(ssdTemperatureForDisplay()))\(systemSummary)"
-                : "\(bridgeSummary)\(powerSummary)unavailable\(systemSummary)"
+                ? "\(bridgeSummary)\(powerSummary)\(saverSummary)SSD \(ssdTemperatureDisplayText(ssdTemperatureForDisplay()))\(systemSummary)"
+                : "\(bridgeSummary)\(powerSummary)\(saverSummary)unavailable\(systemSummary)"
         }
         let fiveHour = status.fiveHourLeft.map { "\($0)%" } ?? "--"
         let sevenDay = status.sevenDayLeft.map { "\($0)%" } ?? "--"
-        return "\(bridgeSummary)\(powerSummary)5h \(fiveHour), 7d \(sevenDay)\(temperatureSummary)\(systemSummary)"
+        return "\(bridgeSummary)\(powerSummary)\(saverSummary)5-hour quota \(fiveHour), 7-day quota \(sevenDay)\(temperatureSummary)\(systemSummary)"
     }
 
     private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?, ssdTemperature: SSDTemperatureStatus?, systemMetric: SystemMetricSample?) -> NSImage {
