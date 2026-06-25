@@ -64,6 +64,10 @@ Search phrases this project is designed to answer naturally: **check Codex usage
   本地 CPU 和 RAM 百分比会以很小的 CPU/RAM 系统条显示在菜单栏里，并在 Signal Console 中显示为趋势脉冲线
 - 5-second local CPU/RAM samples keep a 10-minute movement view and 24-hour local CPU/RAM history, while disk writes are throttled to once per minute
   每 5 秒采样一次本地 CPU/RAM，保留 10 分钟趋势视图和 24 小时本地 CPU/RAM 历史；写入本地历史文件最多每分钟一次
+- A native battery signal shows local charge and power-source state with a familiar battery glyph
+  原生电池信号会用熟悉的电池图形显示本机电量和供电状态
+- Power Saver on battery slows quota refresh to 20 minutes normally on battery, 10 minutes when low, and 5 minutes when critical, while pausing background hardware history sampling until Signal Console is open
+  电池供电时 Power Saver 会把额度刷新降低到通常 20 分钟、额度偏低 10 分钟、严重偏低 5 分钟，并暂停后台硬件历史采样，直到打开 Signal Console
 - Custom Signal Console popover with status, quota, reset timing, trend, doctor checks, diagnostics, and actions
   自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口；下拉菜单显示额度重置时间和上次刷新时间
 - Signal Console shows the actual next-refresh countdown, not a static refresh label
@@ -181,6 +185,7 @@ The generated zip includes `CodexGauge.app`, `Install Codex Gauge.command`, and 
 | Preferences | Built-in refresh cadence, notifications, and launch-at-login controls |
 | Optional SSD temperature | Menu bar SSD chip can be hidden; diagnostics still label the sensor as Normal, Warm, or Hot, and the Signal Console can draw a local 10-minute curve with 24-hour local retention |
 | Local CPU/RAM context | Tiny menu-bar CPU/RAM system strip plus Signal Console movement pulses, stored only as 24-hour local percentage history and persisted at most once per minute |
+| Battery Power Saver | Native battery glyph plus automatic on-battery Power Saver that keeps quota useful while reducing background hardware sampling |
 | Notifications | Opt-in alerts for the moments users actually care about |
 | Signal Console | Explains whether data is live, cached, snapshot-based, or unavailable |
 | Setup Doctor | Local checks for Codex app, helper, live data, LaunchAgent, and notifications |
@@ -215,6 +220,8 @@ For live Codex quota, it first talks to the local Codex app-server. Each success
 It does **not** read browser cookies, does **not** read `~/.codex/auth.json`, and does **not** scan unrelated project folders, browser profiles, or Keychain.
 
 The CPU/RAM display is local CPU and RAM percentages only. Codex Gauge samples it every 5 seconds for the live strip, persists the bounded history at most once per minute, and stores no process list, app names, command lines, or file paths.
+
+Battery display is local battery percentage and power-source state only. Codex Gauge does not store battery history.
 
 Important limitation: the Codex app-server path can start or refresh the Codex 5-hour window because it talks to the same local Codex service used by the Codex desktop app.
 

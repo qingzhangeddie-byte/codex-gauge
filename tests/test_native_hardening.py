@@ -206,6 +206,18 @@ class NativeHardeningTests(unittest.TestCase):
             next_refresh_body.index("if let interval = fixedRefreshInterval()"),
         )
 
+    def test_privacy_docs_describe_battery_as_local_hardware_telemetry(self):
+        privacy = pathlib.Path("docs/PRIVACY.md").read_text(encoding="utf-8")
+
+        for phrase in [
+            "battery percentage and power-source state",
+            "Power Saver",
+            "does not store battery history",
+        ]:
+            self.assertIn(phrase, privacy)
+
+        self.assertNotIn("Battery-history", privacy)
+
     def test_build_script_stamps_public_version_metadata(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()
 
