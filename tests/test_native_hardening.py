@@ -157,6 +157,32 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertNotIn("batteryHistoryPath", source)
         self.assertNotIn("CodexGauge-battery", source)
 
+    def test_power_saver_refresh_policy_overrides_background_refresh_on_battery(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "private let powerSaverHealthyRefreshInterval: TimeInterval = 20 * 60",
+            "private let powerSaverLowRefreshInterval: TimeInterval = 10 * 60",
+            "private let powerSaverCriticalRefreshInterval: TimeInterval = 5 * 60",
+            "private func powerSaverActive() -> Bool",
+            "batteryStatus?.powerSaverActive == true",
+            "private func powerSaverRefreshInterval(for status: ServiceStatus?) -> TimeInterval",
+            "return powerSaverCriticalRefreshInterval",
+            "return powerSaverLowRefreshInterval",
+            "return powerSaverHealthyRefreshInterval",
+            "if powerSaverActive() {",
+            "return powerSaverRefreshInterval(for: status)",
+            "if let interval = fixedRefreshInterval()",
+            "scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))",
+        ]:
+            self.assertIn(token, source)
+
+        next_refresh_body = source.split("private func nextRefreshInterval(for status: ServiceStatus?)", 1)[1].split("private func nextRefreshCountdownText", 1)[0]
+        self.assertLess(
+            next_refresh_body.index("if powerSaverActive() {"),
+            next_refresh_body.index("if let interval = fixedRefreshInterval()"),
+        )
+
     def test_build_script_stamps_public_version_metadata(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()
 

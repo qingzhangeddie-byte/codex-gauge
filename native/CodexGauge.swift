@@ -1788,6 +1788,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let watchRefreshInterval: TimeInterval = 3 * 60
     private let criticalRefreshInterval: TimeInterval = 2 * 60
     private let failureRefreshInterval: TimeInterval = 60
+    private let powerSaverHealthyRefreshInterval: TimeInterval = 20 * 60
+    private let powerSaverLowRefreshInterval: TimeInterval = 10 * 60
+    private let powerSaverCriticalRefreshInterval: TimeInterval = 5 * 60
     private let moodAnimationFrameLimit = 8
     private let maxRuntimeLogBytes: UInt64 = 512 * 1024
     private let maxHistorySamples = 720
@@ -4152,7 +4155,30 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         return values.min()
     }
 
+    private func powerSaverActive() -> Bool {
+        batteryStatus?.powerSaverActive == true
+    }
+
+    private func powerSaverRefreshInterval(for status: ServiceStatus?) -> TimeInterval {
+        guard let status, status.ok else {
+            return powerSaverCriticalRefreshInterval
+        }
+        guard let lowest = minQuota(status.fiveHourLeft, status.sevenDayLeft) else {
+            return powerSaverCriticalRefreshInterval
+        }
+        if lowest < 10 {
+            return powerSaverCriticalRefreshInterval
+        }
+        if lowest <= 40 {
+            return powerSaverLowRefreshInterval
+        }
+        return powerSaverHealthyRefreshInterval
+    }
+
     private func nextRefreshInterval(for status: ServiceStatus?) -> TimeInterval {
+        if powerSaverActive() {
+            return powerSaverRefreshInterval(for: status)
+        }
         guard let status, status.ok else {
             return failureRefreshInterval
         }
