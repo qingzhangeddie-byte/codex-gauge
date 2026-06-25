@@ -2962,7 +2962,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func handlePowerSourceChanged() {
         sampleBattery()
-        scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))
         rebuildMenu()
         if let snapshot {
             setStatusImage(title: statusTooltipTitle(snapshot), status: snapshot.codex)

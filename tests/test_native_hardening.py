@@ -147,6 +147,10 @@ class NativeHardeningTests(unittest.TestCase):
             self.assertIn(token, source)
 
         self.assertIn("-framework IOKit", build_script)
+        notification_handler = source.split("private func handlePowerSourceChanged()", 1)[1].split(
+            "private func sampleBattery()", 1
+        )[0]
+        self.assertNotIn("scheduleNextRefresh", notification_handler)
         self.assertNotIn("pmset", source)
         self.assertNotIn("ioreg", source)
         self.assertNotIn("Battery-history", source)
