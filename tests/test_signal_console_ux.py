@@ -9,6 +9,22 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIsNotNone(match, pattern)
         return float(match.group(1))
 
+    def _swift_function_body(self, source, signature):
+        start = source.find(signature)
+        self.assertNotEqual(start, -1, signature)
+        brace_start = source.find("{", start)
+        self.assertNotEqual(brace_start, -1, signature)
+        depth = 0
+        for index in range(brace_start, len(source)):
+            char = source[index]
+            if char == "{":
+                depth += 1
+            elif char == "}":
+                depth -= 1
+                if depth == 0:
+                    return source[brace_start + 1:index]
+        self.fail(f"Could not extract Swift function body for {signature}")
+
     def test_native_app_has_signal_console_source_state_copy(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
@@ -563,6 +579,7 @@ class SignalConsoleUXTests(unittest.TestCase):
             "private func configureHardwareSamplersForPowerState()",
             "private func hardwareBackgroundSamplingAllowed() -> Bool",
             "return !powerSaverActive()",
+            "private func sampleHardwareAfterRefreshIfAllowed()",
             "private func startTemporaryHardwareSamplerIfNeeded()",
             "Timer(timeInterval: powerSaverHardwareSampleInterval, repeats: true)",
             "sampleHardwareForOpenSignalConsole()",
@@ -587,6 +604,28 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("startSystemMetricsSampler()", configure_body)
         self.assertIn("temperatureTimer?.invalidate()", configure_body)
         self.assertIn("systemMetricsTimer?.invalidate()", configure_body)
+
+        finish_body = self._swift_function_body(source, "private func finishRefresh(status: Int32, output: String, errorOutput: String)")
+        self.assertIn("sampleHardwareAfterRefreshIfAllowed()", finish_body)
+        self.assertNotIn("sampleTemperature()", finish_body)
+
+        post_refresh_sample_body = self._swift_function_body(source, "private func sampleHardwareAfterRefreshIfAllowed()")
+        self.assertIn("hardwareBackgroundSamplingAllowed() || signalPopover?.isShown == true", post_refresh_sample_body)
+        self.assertIn("sampleTemperature()", post_refresh_sample_body)
+
+        show_popover_body = self._swift_function_body(source, "private func showSignalConsolePopover()")
+        self.assertIn("startTemporaryHardwareSamplerIfNeeded()", show_popover_body)
+
+        toggle_popover_body = self._swift_function_body(source, "@objc private func toggleSignalConsole(_ sender: Any?)")
+        close_branch = toggle_popover_body.split("showSignalConsolePopover()", 1)[0]
+        self.assertIn("stopTemporaryHardwareSampler()", close_branch)
+
+        countdown_body = self._swift_function_body(source, "private func startPopoverCountdownTimer()")
+        self.assertIn("self.stopTemporaryHardwareSampler()", countdown_body)
+
+        power_source_body = self._swift_function_body(source, "private func handlePowerSourceChanged()")
+        self.assertIn("rescheduleNextRefreshIfEarlier(after: nextRefreshInterval(for: snapshot?.codex))", power_source_body)
+        self.assertIn("configureHardwareSamplersForPowerState()", power_source_body)
 
     def test_ssd_temperature_history_samples_every_second_and_is_bounded(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()

@@ -2953,6 +2953,13 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         sampleSystemMetrics()
     }
 
+    private func sampleHardwareAfterRefreshIfAllowed() {
+        guard hardwareBackgroundSamplingAllowed() || signalPopover?.isShown == true else {
+            return
+        }
+        sampleTemperature()
+    }
+
     private func stopTemporaryHardwareSampler() {
         temporaryHardwareSamplerTimer?.invalidate()
         temporaryHardwareSamplerTimer = nil
@@ -3217,7 +3224,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func finishRefresh(status: Int32, output: String, errorOutput: String) {
         isRefreshing = false
-        sampleTemperature()
+        sampleHardwareAfterRefreshIfAllowed()
         appendLog("refresh finished status=\(status) stdout=\(clipped(output, limit: 600)) stderr=\(clipped(errorOutput, limit: 600))")
         if status == 0 {
             do {
