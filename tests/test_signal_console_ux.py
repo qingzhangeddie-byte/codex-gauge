@@ -627,6 +627,37 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("rescheduleNextRefreshIfEarlier(after: nextRefreshInterval(for: snapshot?.codex))", power_source_body)
         self.assertIn("configureHardwareSamplersForPowerState()", power_source_body)
 
+    def test_battery_signal_appears_in_menu_bar_console_diagnostics_and_doctor(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "batteryStatusText: String",
+            "powerSaverText: String",
+            "refreshCadenceText: String",
+            "batteryStatusText(status: batteryStatus)",
+            "powerSaverStatusText()",
+            "refreshCadenceStatusText()",
+            "batteryStatus: batteryStatus",
+            "drawBatteryStatusRow(in: card)",
+            "drawMenuBarBattery(status: batteryStatus, rect: menuBarBatteryRect, palette: palette)",
+            "private let menuBarBatteryRect",
+            "private func drawMenuBarBattery",
+            "drawMenuBarBatteryTerminal",
+            "drawMenuBarBatteryFill",
+            "private func batteryMenuBarColor",
+            "private func batteryDisplayText",
+            "Battery",
+            "Power Saver",
+            "batteryDoctorCheck(batteryStatus)",
+            "Battery state: \\(batteryDiagnosticsText())",
+            "Power Saver state: \\(powerSaverStatusText())",
+            "parts.append(\"Battery \\(batteryDisplayText(batteryStatus))\")",
+        ]:
+            self.assertIn(token, source)
+
+        make_status_signature = source.split("private func makeStatusImage(", 1)[1].split(") -> NSImage", 1)[0]
+        self.assertIn("batteryStatus: BatteryStatus?", make_status_signature)
+
     def test_ssd_temperature_history_samples_every_second_and_is_bounded(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 

@@ -509,6 +509,9 @@ private struct SignalConsoleModel {
     let systemMetricHistory: [SystemMetricSample]
     let cpuUsageText: String
     let ramUsageText: String
+    let batteryStatusText: String
+    let powerSaverText: String
+    let refreshCadenceText: String
     let reportFiveHourMovement: String
     let reportSevenDayMovement: String
     let reportTodaySummary: String
@@ -748,6 +751,7 @@ private final class SignalConsolePanelView: NSView {
         drawTrendRow(label: "7d", text: model.sevenDayTrendText, values: model.sevenDayHistory, y: 348)
         drawSystemMetricMovementRows(in: card)
         drawTemperatureMovementRow(in: card)
+        drawBatteryStatusRow(in: card)
     }
 
     private func drawTrendContext() {
@@ -849,6 +853,15 @@ private final class SignalConsolePanelView: NSView {
         }
         drawText("10m", x: curveRect.minX, y: row.minY + 16, width: 20, height: 8, size: 5.8, weight: .regular, color: textMuted)
         drawText("now", x: curveRect.maxX - 18, y: row.minY + 16, width: 20, height: 8, size: 5.8, weight: .regular, color: textMuted)
+    }
+
+    private func drawBatteryStatusRow(in card: NSRect) {
+        let row = NSRect(x: card.minX + 16, y: card.maxY - 62, width: card.width - 32, height: 18)
+        let color = model.powerSaverText.contains("active") ? amberAccent : textSecondary
+        drawText("Battery", x: row.minX, y: row.minY + 1, width: 54, height: 12, size: 8.6, weight: .bold, color: color)
+        drawText(model.batteryStatusText, x: row.minX + 68, y: row.minY + 1, width: 92, height: 12, size: 8.6, weight: .semibold, color: textPrimary, mono: true)
+        drawText(model.powerSaverText, x: row.minX + 168, y: row.minY + 1, width: 116, height: 12, size: 8.2, weight: .medium, color: color)
+        drawText(model.refreshCadenceText, x: row.maxX - 82, y: row.minY + 1, width: 82, height: 12, size: 8.2, weight: .medium, color: textMuted, mono: true)
     }
 
     private func drawTemperatureCurve(samples: [TemperatureSample], rect: NSRect) {
@@ -1418,6 +1431,8 @@ private final class SignalConsolePanelView: NSView {
             return "Alerts"
         case "SSD temp":
             return "SSD"
+        case "Battery":
+            return "Batt"
         default:
             return title
         }
@@ -1689,6 +1704,9 @@ private func signalConsolePreviewModel(
         systemMetricHistory: systemMetricHistory,
         cpuUsageText: systemMetricPercentText(systemMetricHistory.last?.cpuPercent),
         ramUsageText: systemMetricPercentText(systemMetricHistory.last?.ramPercent),
+        batteryStatusText: unavailable ? "Battery --" : "Battery 74%",
+        powerSaverText: unavailable ? "Power Saver unknown" : "Power Saver active",
+        refreshCadenceText: unavailable ? "Refresh --" : "Refresh 20m",
         reportFiveHourMovement: reportFive,
         reportSevenDayMovement: reportSeven,
         reportTodaySummary: todaySummary,
@@ -1813,6 +1831,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let statusItemWidth: CGFloat = 232
     private let statusImageSize = NSSize(width: 226, height: 22)
     private let menuBarTemperatureChipRect = NSRect(x: 82, y: 4.9, width: 27, height: 12.2)
+    private let menuBarBatteryRect = NSRect(x: 198, y: 4.2, width: 24, height: 13.8)
     private let menuBarSystemMetricStripRect = NSRect(x: 170, y: 1.8, width: 52, height: 18.4)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
     private let quotaRailWidth: CGFloat = 28
@@ -2050,6 +2069,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 systemMetricHistory: retainedSystemMetricHistory,
                 cpuUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.cpuPercent),
                 ramUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.ramPercent),
+                batteryStatusText: batteryStatusText(status: batteryStatus),
+                powerSaverText: powerSaverStatusText(),
+                refreshCadenceText: refreshCadenceStatusText(),
                 reportFiveHourMovement: inlineReport.fiveHourMovement,
                 reportSevenDayMovement: inlineReport.sevenDayMovement,
                 reportTodaySummary: inlineReport.todaySummary,
@@ -2098,6 +2120,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             systemMetricHistory: retainedSystemMetricHistory,
             cpuUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.cpuPercent),
             ramUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.ramPercent),
+            batteryStatusText: batteryStatusText(status: batteryStatus),
+            powerSaverText: powerSaverStatusText(),
+            refreshCadenceText: refreshCadenceStatusText(),
             reportFiveHourMovement: inlineReport.fiveHourMovement,
             reportSevenDayMovement: inlineReport.sevenDayMovement,
             reportTodaySummary: inlineReport.todaySummary,
@@ -3074,6 +3099,33 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         return max(0, min(100, value))
     }
 
+    private func batteryStatusText(status: BatteryStatus?) -> String {
+        guard let status, status.hasBattery else {
+            return "Battery --"
+        }
+        guard let percent = status.percent else {
+            return "Battery --"
+        }
+        return "Battery \(percent)%"
+    }
+
+    private func powerSaverStatusText() -> String {
+        powerSaverActive() ? "Power Saver active" : "Power Saver off"
+    }
+
+    private func refreshCadenceStatusText() -> String {
+        let interval = nextRefreshInterval(for: snapshot?.codex)
+        let minutes = Int(round(interval / 60.0))
+        return "Refresh \(minutes)m"
+    }
+
+    private func batteryDisplayText(_ status: BatteryStatus?) -> String {
+        guard let status, status.hasBattery, let percent = status.percent else {
+            return "--"
+        }
+        return "\(percent)%"
+    }
+
     private func sampleSystemMetrics() {
         systemMetricsQueue.async { [weak self] in
             guard let self else {
@@ -3431,6 +3483,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 detail: notificationsAllowed ? "Quota alerts enabled" : "Optional, off by default"
             ),
             ssdTemperatureDoctorCheck(ssdTemperature),
+            batteryDoctorCheck(batteryStatus),
         ]
     }
 
@@ -3447,6 +3500,34 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         default:
             return DoctorCheck(title: "SSD temp", state: "green", detail: detail)
         }
+    }
+
+    private func batteryDoctorCheck(_ status: BatteryStatus?) -> DoctorCheck {
+        guard let status else {
+            return DoctorCheck(title: "Battery", state: "grey", detail: "Battery state unavailable")
+        }
+        guard status.hasBattery else {
+            return DoctorCheck(title: "Battery", state: "grey", detail: "No internal battery")
+        }
+        let detail = "\(batteryDisplayText(status)) · \(status.powerSaverActive ? "Power Saver active" : "plugged in")"
+        if let percent = status.percent, percent < 15 {
+            return DoctorCheck(title: "Battery", state: "red", detail: detail)
+        }
+        if status.powerSaverActive {
+            return DoctorCheck(title: "Battery", state: "amber", detail: detail)
+        }
+        return DoctorCheck(title: "Battery", state: "green", detail: detail)
+    }
+
+    private func batteryDiagnosticsText() -> String {
+        guard let batteryStatus else {
+            return "unavailable"
+        }
+        guard batteryStatus.hasBattery else {
+            return "no internal battery"
+        }
+        let power = batteryStatus.powerSaverActive ? "on battery" : "plugged in"
+        return "\(batteryDisplayText(batteryStatus)), \(power)"
     }
 
     private func doctorStatusColor(_ state: String) -> NSColor {
@@ -3596,12 +3677,13 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 sevenDayReset: status.sevenDayReset,
                 source: status.source,
                 ssdTemperature: ssdTemperatureForDisplay(),
-                systemMetric: systemMetricSampleForDisplay()
+                systemMetric: systemMetricSampleForDisplay(),
+                batteryStatus: batteryStatus
             )
         } else if let status, status.ok {
-            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: status.source, ssdTemperature: ssdTemperatureForDisplay(), systemMetric: systemMetricSampleForDisplay())
+            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: status.source, ssdTemperature: ssdTemperatureForDisplay(), systemMetric: systemMetricSampleForDisplay(), batteryStatus: batteryStatus)
         } else {
-            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: nil, ssdTemperature: ssdTemperatureForDisplay(), systemMetric: systemMetricSampleForDisplay())
+            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: nil, ssdTemperature: ssdTemperatureForDisplay(), systemMetric: systemMetricSampleForDisplay(), batteryStatus: batteryStatus)
         }
         button.toolTip = menuBarTooltipTitle(title: title, status: status)
         button.setAccessibilityLabel("Codex Gauge \(menuBarAccessibilitySummary(status))")
@@ -3621,6 +3703,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             parts.append("CPU \(systemMetricPercentText(metrics.cpuPercent))")
             parts.append("RAM \(systemMetricPercentText(metrics.ramPercent))")
         }
+        parts.append("Battery \(batteryDisplayText(batteryStatus))")
         return parts.joined(separator: " · ")
     }
 
@@ -3630,17 +3713,18 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             : ""
         let metrics = systemMetricSampleForDisplay()
         let systemSummary = ", CPU \(systemMetricPercentText(metrics?.cpuPercent)), RAM \(systemMetricPercentText(metrics?.ramPercent))"
+        let batterySummary = ", Battery \(batteryDisplayText(batteryStatus))"
         guard let status, status.ok, !isUnavailableStatus(status) else {
             return showSSDTemperatureInMenuBar()
-                ? "SSD \(ssdTemperatureDisplayText(ssdTemperatureForDisplay()))\(systemSummary)"
-                : "unavailable\(systemSummary)"
+                ? "SSD \(ssdTemperatureDisplayText(ssdTemperatureForDisplay()))\(systemSummary)\(batterySummary)"
+                : "unavailable\(systemSummary)\(batterySummary)"
         }
         let fiveHour = status.fiveHourLeft.map { "\($0)%" } ?? "--"
         let sevenDay = status.sevenDayLeft.map { "\($0)%" } ?? "--"
-        return "5h \(fiveHour), 7d \(sevenDay)\(temperatureSummary)\(systemSummary)"
+        return "5h \(fiveHour), 7d \(sevenDay)\(temperatureSummary)\(systemSummary)\(batterySummary)"
     }
 
-    private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?, ssdTemperature: SSDTemperatureStatus?, systemMetric: SystemMetricSample?) -> NSImage {
+    private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?, ssdTemperature: SSDTemperatureStatus?, systemMetric: SystemMetricSample?, batteryStatus: BatteryStatus?) -> NSImage {
         let image = NSImage(size: statusImageSize)
         image.lockFocus()
 
@@ -3671,6 +3755,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             drawMenuBarSSDTemperature(status: ssdTemperature, rect: menuBarTemperatureChipRect, palette: palette)
         }
         drawMenuBarSystemMetricStrip(sample: systemMetric, rect: menuBarSystemMetricStripRect, palette: palette)
+        drawMenuBarBattery(status: batteryStatus, rect: menuBarBatteryRect, palette: palette)
 
         image.unlockFocus()
         image.isTemplate = false
@@ -3834,6 +3919,53 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             .foregroundColor: textColor,
         ]
         (text as NSString).draw(at: NSPoint(x: rect.minX + 2.9, y: rect.minY + 2.45), withAttributes: attrs)
+    }
+
+    private func drawMenuBarBattery(status: BatteryStatus?, rect: NSRect, palette: GaugePalette) {
+        guard status?.hasBattery == true else {
+            return
+        }
+        let color = batteryMenuBarColor(status, palette: palette)
+        let shell = NSBezierPath(roundedRect: rect.insetBy(dx: 0.6, dy: 1.2), xRadius: 3.0, yRadius: 3.0)
+        color.withAlphaComponent(status?.isPluggedIn == true ? 0.22 : 0.36).setFill()
+        shell.fill()
+        color.withAlphaComponent(0.72).setStroke()
+        shell.lineWidth = 0.7
+        shell.stroke()
+        drawMenuBarBatteryTerminal(rect: rect, color: color)
+        drawMenuBarBatteryFill(status: status, rect: rect.insetBy(dx: 3.1, dy: 3.7), color: color)
+    }
+
+    private func drawMenuBarBatteryTerminal(rect: NSRect, color: NSColor) {
+        let terminal = NSBezierPath(roundedRect: NSRect(x: rect.maxX - 1.1, y: rect.midY - 2.8, width: 2.6, height: 5.6), xRadius: 1.1, yRadius: 1.1)
+        color.withAlphaComponent(0.72).setFill()
+        terminal.fill()
+    }
+
+    private func drawMenuBarBatteryFill(status: BatteryStatus?, rect: NSRect, color: NSColor) {
+        guard let percent = status?.percent else {
+            return
+        }
+        let fillWidth = max(1.0, rect.width * CGFloat(max(0, min(100, percent))) / 100.0)
+        let fill = NSBezierPath(roundedRect: NSRect(x: rect.minX, y: rect.minY, width: fillWidth, height: rect.height), xRadius: 1.8, yRadius: 1.8)
+        color.withAlphaComponent(0.88).setFill()
+        fill.fill()
+    }
+
+    private func batteryMenuBarColor(_ status: BatteryStatus?, palette: GaugePalette) -> NSColor {
+        guard let status, status.hasBattery else {
+            return palette.mutedText
+        }
+        guard let percent = status.percent else {
+            return palette.mutedText
+        }
+        if percent < 15 {
+            return criticalQuotaColor
+        }
+        if percent < 30 {
+            return warningQuotaColor
+        }
+        return status.powerSaverActive ? warningQuotaColor : normalQuotaColor
     }
 
     private func drawMenuBarSystemMetricStrip(sample: SystemMetricSample?, rect: NSRect, palette: GaugePalette) {
@@ -5039,6 +5171,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             "LaunchAgent state: \(launchState)",
             "Notifications permission: \(notificationState)",
             "SSD temperature: \(ssdTemperatureDiagnosticsText())",
+            "Battery state: \(batteryDiagnosticsText())",
+            "Power Saver state: \(powerSaverStatusText())",
             "Refresh mode: \(currentRefreshMode())",
             "Excludes: browser cookies, ~/.codex/auth.json, Session file contents, Runtime logs, prompts, responses",
         ].joined(separator: "\n")
