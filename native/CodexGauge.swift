@@ -1,6 +1,7 @@
 import Cocoa
 import Darwin
 import Foundation
+import IOKit.ps
 import UserNotifications
 
 private struct UsageSnapshot: Decodable {
@@ -47,6 +48,16 @@ private struct SystemMetricSample: Codable {
     let cpuPercent: Int?
     let ramPercent: Int?
     let ok: Bool
+}
+
+private struct BatteryStatus {
+    let percent: Int?
+    let isPluggedIn: Bool?
+    let isCharging: Bool?
+    let hasBattery: Bool
+    let powerSaverActive: Bool
+    let source: String
+    let error: String?
 }
 
 private func temperatureHistorySummaryText(_ samples: [TemperatureSample]) -> String {
@@ -1754,6 +1765,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var lastValidSSDTemperatureAt: Date?
     private var temperatureTimer: Timer?
     private var systemMetricsTimer: Timer?
+    private var batteryStatus: BatteryStatus?
+    private var batteryTimer: Timer?
+    private var batteryRunLoopSource: CFRunLoopSource?
     private var temperatureReadInFlight = false
     private var lastTemperaturePersistAt: Date?
     private var lastSystemMetricPersistAt: Date?
@@ -1784,6 +1798,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let temperaturePersistInterval: TimeInterval = 60
     private let maxTemperatureSamples = 24 * 60 * 60
     private let systemMetricSampleInterval: TimeInterval = 5
+    private let batterySampleInterval: TimeInterval = 60
     private let systemMetricGraphWindow: TimeInterval = 10 * 60
     private let systemMetricRetentionWindow: TimeInterval = 24 * 60 * 60
     private let systemMetricPersistInterval: TimeInterval = 60
@@ -1848,6 +1863,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         registerDefaultPreferences()
+        sampleBattery()
+        startBatterySampler()
         temperatureSamples = readTemperatureSamples()
         systemMetricSamples = readSystemMetricSamples()
         statusItem.autosaveName = "CodexGaugeStatusItem"
@@ -1881,6 +1898,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         timer?.invalidate()
         temperatureTimer?.invalidate()
         systemMetricsTimer?.invalidate()
+        batteryTimer?.invalidate()
+        if let batteryRunLoopSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), batteryRunLoopSource, .commonModes)
+        }
         animationTimer?.invalidate()
         popoverCountdownTimer?.invalidate()
         writeTemperatureSamples(temperatureSamples)
@@ -2906,6 +2927,91 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
         systemMetricsTimer = nextTimer
         RunLoop.main.add(nextTimer, forMode: .common)
+    }
+
+    private func startBatterySampler() {
+        batteryTimer?.invalidate()
+        let nextTimer = Timer(timeInterval: batterySampleInterval, repeats: true) { [weak self] _ in
+            self?.sampleBattery()
+        }
+        batteryTimer = nextTimer
+        RunLoop.main.add(nextTimer, forMode: .common)
+        startPowerSourceNotifications()
+    }
+
+    private func startPowerSourceNotifications() {
+        guard batteryRunLoopSource == nil else {
+            return
+        }
+        let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
+        guard let source = IOPSNotificationCreateRunLoopSource({ context in
+            guard let context else {
+                return
+            }
+            let app = Unmanaged<CodexGaugeApp>.fromOpaque(context).takeUnretainedValue()
+            DispatchQueue.main.async {
+                app.handlePowerSourceChanged()
+            }
+        }, context)?.takeRetainedValue() else {
+            appendLog("battery power source notification unavailable")
+            return
+        }
+        batteryRunLoopSource = source
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+    }
+
+    private func handlePowerSourceChanged() {
+        sampleBattery()
+        scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))
+        rebuildMenu()
+        if let snapshot {
+            setStatusImage(title: statusTooltipTitle(snapshot), status: snapshot.codex)
+        } else {
+            setStatusImage(title: "Codex quota")
+        }
+        refreshSignalPopoverIfNeeded()
+    }
+
+    private func sampleBattery() {
+        batteryStatus = readBatteryStatus()
+    }
+
+    private func readBatteryStatus() -> BatteryStatus {
+        guard let info = IOPSCopyPowerSourcesInfo()?.takeRetainedValue() else {
+            return BatteryStatus(percent: nil, isPluggedIn: nil, isCharging: nil, hasBattery: false, powerSaverActive: false, source: "IOPS", error: "Power source info unavailable")
+        }
+        guard let sources = IOPSCopyPowerSourcesList(info)?.takeRetainedValue() as? [CFTypeRef], !sources.isEmpty else {
+            return BatteryStatus(percent: nil, isPluggedIn: true, isCharging: nil, hasBattery: false, powerSaverActive: false, source: "IOPS", error: nil)
+        }
+
+        for source in sources {
+            guard
+                let description = IOPSGetPowerSourceDescription(info, source)?.takeUnretainedValue() as? [String: Any],
+                let type = description[kIOPSTypeKey as String] as? String,
+                type == kIOPSInternalBatteryType
+            else {
+                continue
+            }
+
+            let current = description[kIOPSCurrentCapacityKey as String] as? Int
+            let maximum = description[kIOPSMaxCapacityKey as String] as? Int
+            let state = description[kIOPSPowerSourceStateKey as String] as? String
+            let isCharging = description[kIOPSIsChargingKey as String] as? Bool
+            let percent = batteryPercent(current: current, maximum: maximum)
+            let pluggedIn = state == kIOPSACPowerValue ? true : (state == kIOPSBatteryPowerValue ? false : nil)
+            let active = pluggedIn == false
+            return BatteryStatus(percent: percent, isPluggedIn: pluggedIn, isCharging: isCharging, hasBattery: true, powerSaverActive: active, source: "IOPS", error: nil)
+        }
+
+        return BatteryStatus(percent: nil, isPluggedIn: true, isCharging: nil, hasBattery: false, powerSaverActive: false, source: "IOPS", error: nil)
+    }
+
+    private func batteryPercent(current: Int?, maximum: Int?) -> Int? {
+        guard let current, let maximum, maximum > 0 else {
+            return nil
+        }
+        let value = Int(round(Double(current) * 100.0 / Double(maximum)))
+        return max(0, min(100, value))
     }
 
     private func sampleSystemMetrics() {

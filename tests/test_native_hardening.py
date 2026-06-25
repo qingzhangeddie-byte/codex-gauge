@@ -111,6 +111,48 @@ class NativeHardeningTests(unittest.TestCase):
 
         self.assertIn("private func shouldPersistSystemMetricSamples(now: Date = Date()) -> Bool", source)
 
+    def test_battery_status_uses_native_iops_without_persisting_history(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+        build_script = pathlib.Path("script/build_and_run.sh").read_text()
+
+        for token in [
+            "import IOKit.ps",
+            "private struct BatteryStatus",
+            "let percent: Int?",
+            "let isPluggedIn: Bool?",
+            "let isCharging: Bool?",
+            "let hasBattery: Bool",
+            "let powerSaverActive: Bool",
+            "let source: String",
+            "let error: String?",
+            "private var batteryStatus: BatteryStatus?",
+            "private var batteryTimer: Timer?",
+            "private var batteryRunLoopSource: CFRunLoopSource?",
+            "private let batterySampleInterval: TimeInterval = 60",
+            "private func readBatteryStatus() -> BatteryStatus",
+            "IOPSCopyPowerSourcesInfo()",
+            "IOPSCopyPowerSourcesList",
+            "IOPSGetPowerSourceDescription",
+            "kIOPSInternalBatteryType",
+            "kIOPSCurrentCapacityKey",
+            "kIOPSMaxCapacityKey",
+            "kIOPSPowerSourceStateKey",
+            "kIOPSACPowerValue",
+            "kIOPSBatteryPowerValue",
+            "kIOPSIsChargingKey",
+            "IOPSNotificationCreateRunLoopSource",
+            "startBatterySampler()",
+            "sampleBattery()",
+        ]:
+            self.assertIn(token, source)
+
+        self.assertIn("-framework IOKit", build_script)
+        self.assertNotIn("pmset", source)
+        self.assertNotIn("ioreg", source)
+        self.assertNotIn("Battery-history", source)
+        self.assertNotIn("batteryHistoryPath", source)
+        self.assertNotIn("CodexGauge-battery", source)
+
     def test_build_script_stamps_public_version_metadata(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()
 

@@ -109,7 +109,7 @@ build_bundle() {
 
   SWIFT_MODULE_CACHE_PATH="$SWIFT_MODULE_CACHE" \
   CLANG_MODULE_CACHE_PATH="$CLANG_MODULE_CACHE" \
-    swiftc "$SOURCE_FILE" -o "$stage_binary" -framework Cocoa -framework UserNotifications
+    swiftc "$SOURCE_FILE" -o "$stage_binary" -framework Cocoa -framework UserNotifications -framework IOKit
   cat >"$stage_launcher" <<LAUNCHER
 #!/bin/zsh
 set -euo pipefail
