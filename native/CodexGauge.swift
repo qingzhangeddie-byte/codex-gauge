@@ -2965,6 +2965,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func handlePowerSourceChanged() {
         sampleBattery()
+        rescheduleNextRefreshIfEarlier(after: nextRefreshInterval(for: snapshot?.codex))
         rebuildMenu()
         if let snapshot {
             setStatusImage(title: statusTooltipTitle(snapshot), status: snapshot.codex)
@@ -4195,6 +4196,18 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return watchRefreshInterval
         }
         return normalRefreshInterval
+    }
+
+    private func rescheduleNextRefreshIfEarlier(after interval: TimeInterval) {
+        let desiredFireDate = Date().addingTimeInterval(interval)
+        guard let nextRefreshAt else {
+            scheduleNextRefresh(after: interval)
+            return
+        }
+        guard desiredFireDate < nextRefreshAt else {
+            return
+        }
+        scheduleNextRefresh(after: interval)
     }
 
     private func nextRefreshCountdownText(now: Date) -> String {

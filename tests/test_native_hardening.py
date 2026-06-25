@@ -150,7 +150,7 @@ class NativeHardeningTests(unittest.TestCase):
         notification_handler = source.split("private func handlePowerSourceChanged()", 1)[1].split(
             "private func sampleBattery()", 1
         )[0]
-        self.assertNotIn("scheduleNextRefresh", notification_handler)
+        self.assertNotIn("scheduleNextRefresh(after:", notification_handler)
         self.assertNotIn("pmset", source)
         self.assertNotIn("ioreg", source)
         self.assertNotIn("Battery-history", source)
@@ -174,8 +174,31 @@ class NativeHardeningTests(unittest.TestCase):
             "return powerSaverRefreshInterval(for: status)",
             "if let interval = fixedRefreshInterval()",
             "scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))",
+            "private func rescheduleNextRefreshIfEarlier(after interval: TimeInterval)",
+            "let desiredFireDate = Date().addingTimeInterval(interval)",
+            "guard desiredFireDate < nextRefreshAt else",
         ]:
             self.assertIn(token, source)
+
+        notification_handler = source.split("private func handlePowerSourceChanged()", 1)[1].split(
+            "private func sampleBattery()", 1
+        )[0]
+        self.assertIn(
+            "rescheduleNextRefreshIfEarlier(after: nextRefreshInterval(for: snapshot?.codex))",
+            notification_handler,
+        )
+        self.assertNotIn("scheduleNextRefresh(after:", notification_handler)
+
+        power_saver_body = source.split("private func powerSaverRefreshInterval(for status: ServiceStatus?)", 1)[1].split(
+            "private func nextRefreshInterval", 1
+        )[0]
+        for token in [
+            "guard let status, status.ok else",
+            "guard let lowest = minQuota",
+            "if lowest < 10",
+            "if lowest <= 40",
+        ]:
+            self.assertIn(token, power_saver_body)
 
         next_refresh_body = source.split("private func nextRefreshInterval(for status: ServiceStatus?)", 1)[1].split("private func nextRefreshCountdownText", 1)[0]
         self.assertLess(
