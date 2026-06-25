@@ -12,6 +12,9 @@ RELEASE_URL="https://github.com/qingzhangeddie-byte/codex-gauge/releases"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_FILE="$ROOT_DIR/native/CodexGauge.swift"
+SWIFT_SOURCES=(
+  "$ROOT_DIR/native/CodexGaugePowerPolicy.swift"
+)
 SSD_TEMPERATURE_SOURCE="$ROOT_DIR/native/ssd_temperature.m"
 DIST_DIR="$ROOT_DIR/native/dist"
 BUILD_DIR="$ROOT_DIR/native/build"
@@ -94,6 +97,8 @@ build_bundle() {
   local stage_launcher
   local stage_info_plist
   local SSD_TEMPERATURE_HELPER
+  local BUILD_MAIN
+  local SUPPORT_SWIFT_SOURCES
 
   rm -rf "$APP_BUNDLE"
   stage_parent="$(mktemp -d "${TMPDIR:-/tmp}/codex-gauge-build.XXXXXX")"
@@ -105,11 +110,14 @@ build_bundle() {
   stage_launcher="$stage_macos/$APP_NAME"
   stage_info_plist="$stage_contents/Info.plist"
   SSD_TEMPERATURE_HELPER="$stage_resources/ssd_temperature"
+  BUILD_MAIN="$stage_parent/main.swift"
+  SUPPORT_SWIFT_SOURCES=("${SWIFT_SOURCES[@]}")
   mkdir -p "$stage_macos" "$stage_resources" "$SWIFT_MODULE_CACHE" "$CLANG_MODULE_CACHE"
+  cp "$SOURCE_FILE" "$BUILD_MAIN"
 
   SWIFT_MODULE_CACHE_PATH="$SWIFT_MODULE_CACHE" \
   CLANG_MODULE_CACHE_PATH="$CLANG_MODULE_CACHE" \
-    swiftc "$SOURCE_FILE" -o "$stage_binary" -framework Cocoa -framework UserNotifications -framework IOKit
+    swiftc "$BUILD_MAIN" "${SUPPORT_SWIFT_SOURCES[@]}" -o "$stage_binary" -framework Cocoa -framework UserNotifications -framework IOKit
   cat >"$stage_launcher" <<LAUNCHER
 #!/bin/zsh
 set -euo pipefail

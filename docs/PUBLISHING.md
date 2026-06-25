@@ -36,6 +36,14 @@ The generated package is ad-hoc signed and not notarized until Developer ID sign
 
 The soak checker samples the same bundled helper with `--status-json`, writes JSONL under `~/Library/Application Support/CodexGauge`, and summarizes `source_counts` plus `unavailable_count`. For a release candidate, run a longer soak such as `--iterations 2016 --interval 300` to cover one week.
 
+For battery-drain review, unplug the Mac and run:
+
+```bash
+./script/soak_check.sh --battery-mode --iterations 6 --interval 10
+```
+
+Battery mode does not poll the Codex helper. It records power state, CodexGauge CPU, helper process count, runtime-log byte growth, and SSD temperature parse-failure count so repeated hardware sampling is easy to catch before release.
+
 ## Signing
 
 The local build uses ad-hoc `codesign --force --sign -` so it can run on the current Mac. Public distribution should use an Apple Developer ID certificate and notarization:

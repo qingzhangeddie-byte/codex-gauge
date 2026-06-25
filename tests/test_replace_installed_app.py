@@ -101,7 +101,7 @@ class ReplaceInstalledAppScriptTests(unittest.TestCase):
         self.assertIn('copy_verified_app "$tmp_target"', script)
         self.assertIn('install_launch_agent "$user_target"', script)
         self.assertIn("temporary non-persistent app", script)
-        self.assertLess(script.index('swiftc "$SOURCE_FILE"'), script.index('sign_app_bundle "$stage_bundle"'))
+        self.assertLess(script.index('swiftc "$BUILD_MAIN" "${SUPPORT_SWIFT_SOURCES[@]}"'), script.index('sign_app_bundle "$stage_bundle"'))
         self.assertLess(script.index('sign_app_bundle "$stage_bundle"'), script.index('ditto --norsrc --noextattr "$stage_bundle" "$APP_BUNDLE"'))
         self.assertLess(script.index('ditto --norsrc --noextattr "$stage_bundle" "$APP_BUNDLE"'), script.index('strip_macos_metadata "$APP_BUNDLE"'))
         self.assertLess(script.index('strip_macos_metadata "$APP_BUNDLE"'), script.index('verify_signed_bundle "$APP_BUNDLE"'))

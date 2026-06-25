@@ -66,8 +66,8 @@ Search phrases this project is designed to answer naturally: **check Codex usage
   每 5 秒采样一次本地 CPU/RAM，保留 10 分钟趋势视图和 24 小时本地 CPU/RAM 历史；写入本地历史文件最多每分钟一次
 - A native battery signal shows local charge and power-source state with a familiar battery glyph
   原生电池信号会用熟悉的电池图形显示本机电量和供电状态
-- Power Saver on battery slows quota refresh to 20 minutes normally on battery, 10 minutes when low, and 5 minutes when critical, while pausing background hardware history sampling until Signal Console is open
-  电池供电时 Power Saver 会把额度刷新降低到通常 20 分钟、额度偏低 10 分钟、严重偏低 5 分钟，并暂停后台硬件历史采样，直到打开 Signal Console
+- Power Saver on battery slows quota refresh to 20 minutes normally on battery, 10 minutes when low, and 5 minutes when critical; on battery it shows usage plus battery/Power Saver info only and stops SSD temperature plus CPU/RAM sampling until external power returns
+  电池供电时 Power Saver 会把额度刷新降低到通常 20 分钟、额度偏低 10 分钟、严重偏低 5 分钟；电池模式只显示用量和电池/Power Saver 信息，并停止 SSD 温度和 CPU/RAM 采样，直到重新接入外部电源
 - Custom Signal Console popover with status, quota, reset timing, trend, doctor checks, diagnostics, and actions
   自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口；下拉菜单显示额度重置时间和上次刷新时间
 - Signal Console shows the actual next-refresh countdown, not a static refresh label
@@ -306,6 +306,7 @@ python3 -m unittest discover -s tests -v
 ./script/build_and_run.sh --build-only
 ./script/release_check.sh
 ./script/soak_check.sh --iterations 3 --interval 0
+./script/soak_check.sh --battery-mode --iterations 3 --interval 5
 ```
 
 ## Public Release Notes

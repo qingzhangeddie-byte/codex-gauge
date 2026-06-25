@@ -2,6 +2,13 @@ import pathlib
 import unittest
 
 
+def native_swift_sources() -> str:
+    return "\n".join(
+        path.read_text()
+        for path in sorted(pathlib.Path("native").glob("CodexGauge*.swift"))
+    )
+
+
 class NativeHardeningTests(unittest.TestCase):
     def test_build_script_bundles_codex_helper_without_checkout_paths(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()
@@ -27,6 +34,37 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertNotIn("<string>$ROOT_DIR</string>", script)
         self.assertNotIn("<string>$ROOT_DIR/usage.py</string>", script)
         self.assertNotIn("<string>$VENV_PYTHON</string>", script)
+
+    def test_power_policy_lives_in_focused_swift_unit(self):
+        app_source = pathlib.Path("native/CodexGauge.swift").read_text()
+        policy_path = pathlib.Path("native/CodexGaugePowerPolicy.swift")
+        build_script = pathlib.Path("script/build_and_run.sh").read_text()
+
+        self.assertTrue(policy_path.exists())
+        policy_source = policy_path.read_text()
+        for token in [
+            "struct CodexGaugePowerPolicy",
+            "let normalRefreshInterval: TimeInterval = 5 * 60",
+            "let watchRefreshInterval: TimeInterval = 3 * 60",
+            "let criticalRefreshInterval: TimeInterval = 2 * 60",
+            "let failureRefreshInterval: TimeInterval = 60",
+            "let powerSaverHealthyRefreshInterval: TimeInterval = 20 * 60",
+            "let lowBatteryPowerSaverRefreshInterval: TimeInterval = 30 * 60",
+            "func hardwareSignalsVisible(powerSaverActive: Bool) -> Bool",
+            "func batteryPowerSaverRefreshInterval(percent: Int?) -> TimeInterval?",
+            "func powerSaverRefreshInterval(statusOK: Bool, fiveHourLeft: Int?, sevenDayLeft: Int?, batteryPercent: Int?) -> TimeInterval",
+            "func nextRefreshInterval(",
+        ]:
+            self.assertIn(token, policy_source)
+
+        self.assertIn("private let powerPolicy = CodexGaugePowerPolicy()", app_source)
+        self.assertIn("powerPolicy.hardwareSignalsVisible(powerSaverActive: powerSaverActive())", app_source)
+        self.assertIn("powerPolicy.batteryPowerSaverRefreshInterval(percent: batteryStatus?.percent)", app_source)
+        self.assertIn("powerPolicy.nextRefreshInterval(", app_source)
+        self.assertIn("SWIFT_SOURCES=(", build_script)
+        self.assertIn('"$ROOT_DIR/native/CodexGaugePowerPolicy.swift"', build_script)
+        self.assertIn('cp "$SOURCE_FILE" "$BUILD_MAIN"', build_script)
+        self.assertIn('"$BUILD_MAIN" "${SUPPORT_SWIFT_SOURCES[@]}"', build_script)
 
     def test_build_script_bundles_ssd_temperature_helper_without_privileged_tools(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()
@@ -158,14 +196,15 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertNotIn("CodexGauge-battery", source)
 
     def test_power_saver_refresh_policy_overrides_background_refresh_on_battery(self):
-        source = pathlib.Path("native/CodexGauge.swift").read_text()
+        app_source = pathlib.Path("native/CodexGauge.swift").read_text()
+        source = native_swift_sources()
 
         for token in [
-            "private let powerSaverHealthyRefreshInterval: TimeInterval = 20 * 60",
-            "private let powerSaverLowRefreshInterval: TimeInterval = 10 * 60",
-            "private let powerSaverCriticalRefreshInterval: TimeInterval = 5 * 60",
-            "private let lowBatteryPowerSaverRefreshInterval: TimeInterval = 30 * 60",
-            "private let criticalBatteryPowerSaverRefreshInterval: TimeInterval = 60 * 60",
+            "let powerSaverHealthyRefreshInterval: TimeInterval = 20 * 60",
+            "let powerSaverLowRefreshInterval: TimeInterval = 10 * 60",
+            "let powerSaverCriticalRefreshInterval: TimeInterval = 5 * 60",
+            "let lowBatteryPowerSaverRefreshInterval: TimeInterval = 30 * 60",
+            "let criticalBatteryPowerSaverRefreshInterval: TimeInterval = 60 * 60",
             "private func powerSaverActive() -> Bool",
             "batteryStatus?.powerSaverActive == true",
             "private func batteryPowerSaverRefreshInterval() -> TimeInterval?",
@@ -173,14 +212,14 @@ class NativeHardeningTests(unittest.TestCase):
             "return criticalBatteryPowerSaverRefreshInterval",
             "return lowBatteryPowerSaverRefreshInterval",
             "private func powerSaverRefreshInterval(for status: ServiceStatus?) -> TimeInterval",
-            "if let batteryInterval = batteryPowerSaverRefreshInterval()",
+            "if let batteryInterval = batteryPowerSaverRefreshInterval(percent: batteryPercent)",
             "return batteryInterval",
             "return powerSaverCriticalRefreshInterval",
             "return powerSaverLowRefreshInterval",
             "return powerSaverHealthyRefreshInterval",
             "if powerSaverActive() {",
             "return powerSaverRefreshInterval(for: status)",
-            "if let interval = fixedRefreshInterval()",
+            "fixedRefreshInterval: fixedRefreshInterval()",
             "scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))",
             "private func rescheduleNextRefreshIfEarlier(after interval: TimeInterval)",
             "let desiredFireDate = Date().addingTimeInterval(interval)",
@@ -188,7 +227,7 @@ class NativeHardeningTests(unittest.TestCase):
         ]:
             self.assertIn(token, source)
 
-        notification_handler = source.split("private func handlePowerSourceChanged()", 1)[1].split(
+        notification_handler = app_source.split("private func handlePowerSourceChanged()", 1)[1].split(
             "private func sampleBattery()", 1
         )[0]
         self.assertIn(
@@ -197,29 +236,30 @@ class NativeHardeningTests(unittest.TestCase):
         )
         self.assertNotIn("scheduleNextRefresh(after:", notification_handler)
 
-        power_saver_body = source.split("private func powerSaverRefreshInterval(for status: ServiceStatus?)", 1)[1].split(
+        power_saver_body = app_source.split("private func powerSaverRefreshInterval(for status: ServiceStatus?)", 1)[1].split(
             "private func nextRefreshInterval", 1
         )[0]
         for token in [
-            "guard let status, status.ok else",
-            "guard let lowest = minQuota",
-            "if lowest < 10",
-            "if lowest <= 40",
+            "powerPolicy.powerSaverRefreshInterval(",
+            "statusOK: status?.ok == true",
+            "fiveHourLeft: status?.fiveHourLeft",
+            "sevenDayLeft: status?.sevenDayLeft",
+            "batteryPercent: batteryStatus?.percent",
         ]:
             self.assertIn(token, power_saver_body)
 
-        next_refresh_body = source.split("private func nextRefreshInterval(for status: ServiceStatus?)", 1)[1].split("private func nextRefreshCountdownText", 1)[0]
+        next_refresh_body = app_source.split("private func nextRefreshInterval(for status: ServiceStatus?)", 1)[1].split("private func nextRefreshCountdownText", 1)[0]
         self.assertLess(
             next_refresh_body.index("if powerSaverActive() {"),
-            next_refresh_body.index("if let interval = fixedRefreshInterval()"),
+            next_refresh_body.index("powerPolicy.nextRefreshInterval("),
         )
 
-        power_saver_body = source.split("private func powerSaverRefreshInterval(for status: ServiceStatus?)", 1)[1].split(
-            "private func nextRefreshInterval(for status: ServiceStatus?)", 1
+        policy_power_saver_body = source.split("func powerSaverRefreshInterval(statusOK: Bool, fiveHourLeft: Int?, sevenDayLeft: Int?, batteryPercent: Int?) -> TimeInterval", 1)[1].split(
+            "func nextRefreshInterval(", 1
         )[0]
         self.assertLess(
-            power_saver_body.index("if let batteryInterval = batteryPowerSaverRefreshInterval()"),
-            power_saver_body.index("guard let status, status.ok else"),
+            policy_power_saver_body.index("if let batteryInterval = batteryPowerSaverRefreshInterval(percent: batteryPercent)"),
+            policy_power_saver_body.index("guard statusOK else"),
         )
 
     def test_privacy_docs_describe_battery_as_local_hardware_telemetry(self):
@@ -228,6 +268,7 @@ class NativeHardeningTests(unittest.TestCase):
         for phrase in [
             "battery percentage and power-source state",
             "Power Saver",
+            "stops SSD temperature and CPU/RAM sampling while on battery",
             "does not store battery history",
         ]:
             self.assertIn(phrase, privacy)
@@ -285,7 +326,7 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertNotIn("stopWatchdog", source)
 
     def test_native_app_shows_reset_timing_and_adaptive_refresh(self):
-        source = pathlib.Path("native/CodexGauge.swift").read_text()
+        source = native_swift_sources()
 
         self.assertIn("fiveHourReset", source)
         self.assertIn("sevenDayReset", source)

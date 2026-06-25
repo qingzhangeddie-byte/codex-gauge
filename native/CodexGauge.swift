@@ -41,6 +41,14 @@ private struct TemperatureSample: Codable {
     let time: String
     let temperatureC: Int?
     let ok: Bool
+    let timestamp: Double?
+
+    init(time: String, temperatureC: Int?, ok: Bool, timestamp: Double? = nil) {
+        self.time = time
+        self.temperatureC = temperatureC
+        self.ok = ok
+        self.timestamp = timestamp
+    }
 }
 
 private struct SystemMetricSample: Codable {
@@ -48,6 +56,15 @@ private struct SystemMetricSample: Codable {
     let cpuPercent: Int?
     let ramPercent: Int?
     let ok: Bool
+    let timestamp: Double?
+
+    init(time: String, cpuPercent: Int?, ramPercent: Int?, ok: Bool, timestamp: Double? = nil) {
+        self.time = time
+        self.cpuPercent = cpuPercent
+        self.ramPercent = ramPercent
+        self.ok = ok
+        self.timestamp = timestamp
+    }
 }
 
 private struct BatteryStatus {
@@ -1692,6 +1709,50 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             reportSeven: "-18%",
             todaySummary: "Today 18 · 5h -81% · 7d -18%"
         )),
+        ("plugged-in-full", signalConsolePreviewModel(
+            title: "Live",
+            detail: "Charging",
+            statusTitle: "Live data is current",
+            statusDetail: "Read from local Codex app-server",
+            fiveHourLeft: 82,
+            sevenDayLeft: 76,
+            fiveHourResetText: "4h",
+            sevenDayResetText: "5d22h",
+            fiveHourResetProgress: 18,
+            sevenDayResetProgress: 52,
+            source: "live",
+            unavailable: false,
+            reportFive: "-8%",
+            reportSeven: "-3%",
+            todaySummary: "Today 12 · 5h -8% · 7d -3%",
+            batteryPercent: 92,
+            batteryStatusText: "Battery 92%",
+            powerSaverText: "Power Saver off",
+            refreshCadenceText: "Refresh 5m",
+            hardwareSignalsVisible: true
+        )),
+        ("battery-mode", signalConsolePreviewModel(
+            title: "Live",
+            detail: "Battery",
+            statusTitle: "Live data is current",
+            statusDetail: "Battery mode keeps only usage and battery signals visible.",
+            fiveHourLeft: 80,
+            sevenDayLeft: 79,
+            fiveHourResetText: "4h",
+            sevenDayResetText: "5d21h",
+            fiveHourResetProgress: 22,
+            sevenDayResetProgress: 54,
+            source: "live",
+            unavailable: false,
+            reportFive: "-10%",
+            reportSeven: "-4%",
+            todaySummary: "Today 12 · 5h -10% · 7d -4%",
+            batteryPercent: 11,
+            batteryStatusText: "Battery 11%",
+            powerSaverText: "Power Saver active",
+            refreshCadenceText: "Refresh 60m",
+            hardwareSignalsVisible: false
+        )),
     ]
 
     return themes.flatMap { item in
@@ -1716,7 +1777,12 @@ private func signalConsolePreviewModel(
     unavailable: Bool,
     reportFive: String,
     reportSeven: String,
-    todaySummary: String
+    todaySummary: String,
+    batteryPercent: Int? = nil,
+    batteryStatusText: String? = nil,
+    powerSaverText: String? = nil,
+    refreshCadenceText: String? = nil,
+    hardwareSignalsVisible: Bool? = nil
 ) -> SignalConsoleModel {
     let temperatureHistory = previewTemperatureSamples(unavailable: unavailable)
     let systemMetricHistory = previewSystemMetricSamples(unavailable: unavailable)
@@ -1752,11 +1818,11 @@ private func signalConsolePreviewModel(
         systemMetricHistory: systemMetricHistory,
         cpuUsageText: systemMetricPercentText(systemMetricHistory.last?.cpuPercent),
         ramUsageText: systemMetricPercentText(systemMetricHistory.last?.ramPercent),
-        batteryStatusText: unavailable ? "Battery --" : "Battery 74%",
-        batteryPercent: unavailable ? nil : 74,
-        powerSaverText: unavailable ? "Power Saver unknown" : "Power Saver off",
-        refreshCadenceText: unavailable ? "Refresh --" : "Refresh 5m",
-        hardwareSignalsVisible: !unavailable,
+        batteryStatusText: batteryStatusText ?? (unavailable ? "Battery --" : "Battery 74%"),
+        batteryPercent: batteryPercent ?? (unavailable ? nil : 74),
+        powerSaverText: powerSaverText ?? (unavailable ? "Power Saver unknown" : "Power Saver off"),
+        refreshCadenceText: refreshCadenceText ?? (unavailable ? "Refresh --" : "Refresh 5m"),
+        hardwareSignalsVisible: hardwareSignalsVisible ?? !unavailable,
         reportFiveHourMovement: reportFive,
         reportSevenDayMovement: reportSeven,
         reportTodaySummary: todaySummary,
@@ -1854,15 +1920,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var liveUnavailableSince: Date?
     private var didNotifyLiveUnavailable = false
     private var resetHighlightUntil: Date?
-    private let normalRefreshInterval: TimeInterval = 5 * 60
-    private let watchRefreshInterval: TimeInterval = 3 * 60
-    private let criticalRefreshInterval: TimeInterval = 2 * 60
-    private let failureRefreshInterval: TimeInterval = 60
-    private let powerSaverHealthyRefreshInterval: TimeInterval = 20 * 60
-    private let powerSaverLowRefreshInterval: TimeInterval = 10 * 60
-    private let powerSaverCriticalRefreshInterval: TimeInterval = 5 * 60
-    private let lowBatteryPowerSaverRefreshInterval: TimeInterval = 30 * 60
-    private let criticalBatteryPowerSaverRefreshInterval: TimeInterval = 60 * 60
+    private let powerPolicy = CodexGaugePowerPolicy()
     private let moodAnimationFrameLimit = 8
     private let maxRuntimeLogBytes: UInt64 = 512 * 1024
     private let maxHistorySamples = 720
@@ -2244,8 +2302,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return "\(temperature)°C"
         }
         if let latest = samples.reversed().first(where: { $0.ok && $0.temperatureC != nil }),
-           let latestDate = isoDate(latest.time),
-           now.timeIntervalSince(latestDate) <= ssdTemperatureDisplayGraceInterval,
+           let latestTimestamp = temperatureSampleTimestamp(latest),
+           now.timeIntervalSince1970 - latestTimestamp <= ssdTemperatureDisplayGraceInterval,
            let temperature = latest.temperatureC {
             return "\(temperature)°C"
         }
@@ -2918,7 +2976,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func fixedRefreshInterval() -> TimeInterval? {
         switch currentRefreshMode() {
         case fiveMinuteRefreshMode:
-            return normalRefreshInterval
+            return powerPolicy.normalRefreshInterval
         case tenMinuteRefreshMode:
             return 10 * 60
         default:
@@ -4447,71 +4505,39 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         return max(0, min(10, Int((Double(value) / 10.0).rounded())))
     }
 
-    private func minQuota(_ first: Int?, _ second: Int?) -> Int? {
-        let values = [first, second].compactMap { $0 }
-        return values.min()
-    }
-
     private func powerSaverActive() -> Bool {
         batteryStatus?.powerSaverActive == true
     }
 
     private func hardwareSignalsVisible() -> Bool {
-        return !powerSaverActive()
+        powerPolicy.hardwareSignalsVisible(powerSaverActive: powerSaverActive())
     }
 
     private func batteryPowerSaverRefreshInterval() -> TimeInterval? {
-        guard let percent = batteryStatus?.percent else {
-            return nil
-        }
-        if percent <= 20 {
-            return criticalBatteryPowerSaverRefreshInterval
-        }
-        if percent <= 35 {
-            return lowBatteryPowerSaverRefreshInterval
-        }
-        return nil
+        powerPolicy.batteryPowerSaverRefreshInterval(percent: batteryStatus?.percent)
     }
 
     private func powerSaverRefreshInterval(for status: ServiceStatus?) -> TimeInterval {
-        if let batteryInterval = batteryPowerSaverRefreshInterval() {
-            return batteryInterval
-        }
-        guard let status, status.ok else {
-            return powerSaverCriticalRefreshInterval
-        }
-        guard let lowest = minQuota(status.fiveHourLeft, status.sevenDayLeft) else {
-            return powerSaverCriticalRefreshInterval
-        }
-        if lowest < 10 {
-            return powerSaverCriticalRefreshInterval
-        }
-        if lowest <= 40 {
-            return powerSaverLowRefreshInterval
-        }
-        return powerSaverHealthyRefreshInterval
+        powerPolicy.powerSaverRefreshInterval(
+            statusOK: status?.ok == true,
+            fiveHourLeft: status?.fiveHourLeft,
+            sevenDayLeft: status?.sevenDayLeft,
+            batteryPercent: batteryStatus?.percent
+        )
     }
 
     private func nextRefreshInterval(for status: ServiceStatus?) -> TimeInterval {
         if powerSaverActive() {
             return powerSaverRefreshInterval(for: status)
         }
-        guard let status, status.ok else {
-            return failureRefreshInterval
-        }
-        if let interval = fixedRefreshInterval() {
-            return interval
-        }
-        guard let lowest = minQuota(status.fiveHourLeft, status.sevenDayLeft) else {
-            return failureRefreshInterval
-        }
-        if lowest < 10 {
-            return criticalRefreshInterval
-        }
-        if lowest <= 40 {
-            return watchRefreshInterval
-        }
-        return normalRefreshInterval
+        return powerPolicy.nextRefreshInterval(
+            powerSaverActive: false,
+            fixedRefreshInterval: fixedRefreshInterval(),
+            statusOK: status?.ok == true,
+            fiveHourLeft: status?.fiveHourLeft,
+            sevenDayLeft: status?.sevenDayLeft,
+            batteryPercent: batteryStatus?.percent
+        )
     }
 
     private func rescheduleNextRefreshIfEarlier(after interval: TimeInterval) {
@@ -4610,7 +4636,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             time: formatter.string(from: now),
             cpuPercent: cpuPercent,
             ramPercent: ramPercent,
-            ok: cpuPercent != nil || ramPercent != nil
+            ok: cpuPercent != nil || ramPercent != nil,
+            timestamp: now.timeIntervalSince1970
         )
         systemMetricSamples.append(sample)
         systemMetricSamples = retainedSystemMetricSamples(systemMetricSamples)
@@ -4643,7 +4670,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func writeSystemMetricSamples(_ samples: [SystemMetricSample]) {
-        let retained = retainedSystemMetricSamples(samples)
+        let retained = retainedSystemMetricSamples(normalizedSystemMetricSamples(samples))
         do {
             let data = try JSONEncoder().encode(retained)
             try FileManager.default.createDirectory(
@@ -4663,36 +4690,60 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         else {
             return []
         }
-        return retainedSystemMetricSamples(samples)
+        return retainedSystemMetricSamples(normalizedSystemMetricSamples(samples))
     }
 
     private func retainedSystemMetricSamples(_ samples: [SystemMetricSample], now: Date = Date()) -> [SystemMetricSample] {
-        let cutoff = now.addingTimeInterval(-systemMetricRetentionWindow)
+        let cutoff = now.timeIntervalSince1970 - systemMetricRetentionWindow
         let recent = samples.filter { sample in
-            guard let date = isoDate(sample.time) else {
+            guard let timestamp = systemMetricSampleTimestamp(sample) else {
                 return false
             }
-            return date >= cutoff
+            return timestamp >= cutoff
         }
         return Array(recent.suffix(maxSystemMetricSamples))
     }
 
+    private func systemMetricSampleTimestamp(_ sample: SystemMetricSample) -> Double? {
+        if let timestamp = sample.timestamp {
+            return timestamp
+        }
+        return isoDate(sample.time)?.timeIntervalSince1970
+    }
+
+    private func normalizedSystemMetricSample(_ sample: SystemMetricSample) -> SystemMetricSample {
+        guard sample.timestamp == nil, let timestamp = systemMetricSampleTimestamp(sample) else {
+            return sample
+        }
+        return SystemMetricSample(
+            time: sample.time,
+            cpuPercent: sample.cpuPercent,
+            ramPercent: sample.ramPercent,
+            ok: sample.ok,
+            timestamp: timestamp
+        )
+    }
+
+    private func normalizedSystemMetricSamples(_ samples: [SystemMetricSample]) -> [SystemMetricSample] {
+        samples.map(normalizedSystemMetricSample)
+    }
+
     private func systemMetricGraphSamples(_ samples: [SystemMetricSample], now: Date = Date()) -> [SystemMetricSample] {
-        let cutoff = now.addingTimeInterval(-systemMetricGraphWindow)
+        let cutoff = now.timeIntervalSince1970 - systemMetricGraphWindow
         return samples.filter { sample in
-            guard let date = isoDate(sample.time) else {
+            guard let timestamp = systemMetricSampleTimestamp(sample) else {
                 return false
             }
-            return date >= cutoff
+            return timestamp >= cutoff
         }
     }
 
     private func systemMetricSampleForDisplay(now: Date = Date()) -> SystemMetricSample? {
         systemMetricSamples.reversed().first { sample in
-            guard sample.ok, let date = isoDate(sample.time) else {
+            guard sample.ok, let timestamp = systemMetricSampleTimestamp(sample) else {
                 return false
             }
-            return now.timeIntervalSince(date) <= systemMetricGraphWindow
+            return now.timeIntervalSince1970 - timestamp <= systemMetricGraphWindow
         }
     }
 
@@ -4703,7 +4754,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let sample = TemperatureSample(
             time: formatter.string(from: now),
             temperatureC: status?.ok == true ? status?.temperatureC : nil,
-            ok: status?.ok == true && status?.temperatureC != nil
+            ok: status?.ok == true && status?.temperatureC != nil,
+            timestamp: now.timeIntervalSince1970
         )
         temperatureSamples.append(sample)
         temperatureSamples = retainedTemperatureSamples(temperatureSamples)
@@ -4736,7 +4788,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func writeTemperatureSamples(_ samples: [TemperatureSample]) {
-        let retained = retainedTemperatureSamples(samples)
+        let retained = retainedTemperatureSamples(normalizedTemperatureSamples(samples))
         do {
             let data = try JSONEncoder().encode(retained)
             try FileManager.default.createDirectory(
@@ -4756,27 +4808,50 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         else {
             return []
         }
-        return retainedTemperatureSamples(samples)
+        return retainedTemperatureSamples(normalizedTemperatureSamples(samples))
     }
 
     private func retainedTemperatureSamples(_ samples: [TemperatureSample], now: Date = Date()) -> [TemperatureSample] {
-        let cutoff = now.addingTimeInterval(-temperatureHistoryRetentionWindow)
+        let cutoff = now.timeIntervalSince1970 - temperatureHistoryRetentionWindow
         let recent = samples.filter { sample in
-            guard let date = isoDate(sample.time) else {
+            guard let timestamp = temperatureSampleTimestamp(sample) else {
                 return false
             }
-            return date >= cutoff
+            return timestamp >= cutoff
         }
         return Array(recent.suffix(maxTemperatureSamples))
     }
 
+    private func temperatureSampleTimestamp(_ sample: TemperatureSample) -> Double? {
+        if let timestamp = sample.timestamp {
+            return timestamp
+        }
+        return isoDate(sample.time)?.timeIntervalSince1970
+    }
+
+    private func normalizedTemperatureSample(_ sample: TemperatureSample) -> TemperatureSample {
+        guard sample.timestamp == nil, let timestamp = temperatureSampleTimestamp(sample) else {
+            return sample
+        }
+        return TemperatureSample(
+            time: sample.time,
+            temperatureC: sample.temperatureC,
+            ok: sample.ok,
+            timestamp: timestamp
+        )
+    }
+
+    private func normalizedTemperatureSamples(_ samples: [TemperatureSample]) -> [TemperatureSample] {
+        samples.map(normalizedTemperatureSample)
+    }
+
     private func temperatureGraphSamples(_ samples: [TemperatureSample], now: Date = Date()) -> [TemperatureSample] {
-        let cutoff = now.addingTimeInterval(-temperatureGraphWindow)
+        let cutoff = now.timeIntervalSince1970 - temperatureGraphWindow
         return samples.filter { sample in
-            guard let date = isoDate(sample.time) else {
+            guard let timestamp = temperatureSampleTimestamp(sample) else {
                 return false
             }
-            return date >= cutoff
+            return timestamp >= cutoff
         }
     }
 

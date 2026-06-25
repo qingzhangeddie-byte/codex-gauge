@@ -590,7 +590,7 @@ class SignalConsoleUXTests(unittest.TestCase):
             "private func configureHardwareSamplersForPowerState()",
             "private func hardwareBackgroundSamplingAllowed() -> Bool",
             "return hardwareSignalsVisible()",
-            "return !powerSaverActive()",
+            "powerPolicy.hardwareSignalsVisible(powerSaverActive: powerSaverActive())",
             "private func sampleHardwareAfterRefreshIfAllowed()",
             "private func startTemporaryHardwareSamplerIfNeeded()",
             "private func stopTemporaryHardwareSampler()",
@@ -718,9 +718,11 @@ class SignalConsoleUXTests(unittest.TestCase):
 
         for token in [
             "private func hardwareSignalsVisible() -> Bool",
-            "return !powerSaverActive()",
+            "powerPolicy.hardwareSignalsVisible(powerSaverActive: powerSaverActive())",
             "if hardwareSignalsVisible() {",
             "drawBatteryModeStatusRow(in: card)",
+            "plugged-in-full",
+            "battery-mode",
         ]:
             self.assertIn(token, source)
 
@@ -760,6 +762,8 @@ class SignalConsoleUXTests(unittest.TestCase):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         self.assertIn("private struct TemperatureSample: Codable", source)
+        self.assertIn("let timestamp: Double?", source)
+        self.assertIn("timestamp: Double? = nil", source)
         self.assertIn('private let temperatureQueue = DispatchQueue(label: "app.codexgauge.temperature", qos: .utility)', source)
         self.assertIn("private var temperatureTimer: Timer?", source)
         self.assertIn("private var temperatureReadInFlight = false", source)
@@ -792,7 +796,12 @@ class SignalConsoleUXTests(unittest.TestCase):
         setup_doctor_body = source.split("private func runSetupDoctorChecks()", 1)[1].split("private func doctorCheck", 1)[0]
         append_body = source.split("private func appendTemperatureSample", 1)[1].split("private func persistTemperatureSamplesAsync", 1)[0]
         persist_body = source.split("private func persistTemperatureSamplesAsync", 1)[1].split("private func writeTemperatureSamples", 1)[0]
+        write_body = source.split("private func writeTemperatureSamples", 1)[1].split("private func readTemperatureSamples", 1)[0]
+        read_body = source.split("private func readTemperatureSamples", 1)[1].split("private func retainedTemperatureSamples", 1)[0]
         retained_body = source.split("private func retainedTemperatureSamples", 1)[1].split("private func retainedHistorySamples", 1)[0]
+        timestamp_body = source.split("private func temperatureSampleTimestamp", 1)[1].split("private func normalizedTemperatureSample", 1)[0]
+        normalize_body = source.split("private func normalizedTemperatureSample", 1)[1].split("private func normalizedTemperatureSamples", 1)[0]
+        normalize_many_body = source.split("private func normalizedTemperatureSamples", 1)[1].split("private func temperatureGraphSamples", 1)[0]
         diagnostics_body = source.split("private func ssdTemperatureDiagnosticsText()", 1)[1].split("private func safeDiagnosticsText", 1)[0]
         main_update_body = sample_body.split("DispatchQueue.main.async", 1)[1]
 
@@ -811,12 +820,24 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("temperatureSamples = retainedTemperatureSamples(temperatureSamples)", append_body)
         self.assertIn("let samplesSnapshot = temperatureSamples", append_body)
         self.assertIn("persistTemperatureSamplesAsync(samplesSnapshot)", append_body)
+        self.assertIn("timestamp: now.timeIntervalSince1970", append_body)
         self.assertIn("temperatureC: status?.ok == true ? status?.temperatureC : nil", append_body)
         self.assertIn("ok: status?.ok == true && status?.temperatureC != nil", append_body)
         self.assertNotIn("writeTemperatureSamples", append_body)
+        self.assertNotIn("isoDate(", append_body)
         self.assertIn("shouldPersistTemperatureSamples(now: now)", append_body)
         self.assertIn("temperatureQueue.async", persist_body)
         self.assertIn("self.writeTemperatureSamples(samples)", persist_body)
+        self.assertIn("let retained = retainedTemperatureSamples(normalizedTemperatureSamples(samples))", write_body)
+        self.assertIn("return retainedTemperatureSamples(normalizedTemperatureSamples(samples))", read_body)
+        self.assertIn("if let timestamp = sample.timestamp", timestamp_body)
+        self.assertIn("isoDate(sample.time)?.timeIntervalSince1970", timestamp_body)
+        self.assertIn("sample.timestamp == nil", normalize_body)
+        self.assertIn("TemperatureSample(", normalize_body)
+        self.assertIn("timestamp: timestamp", normalize_body)
+        self.assertIn("samples.map(normalizedTemperatureSample)", normalize_many_body)
+        self.assertIn("let cutoff = now.timeIntervalSince1970 - temperatureHistoryRetentionWindow", retained_body)
+        self.assertIn("temperatureSampleTimestamp(sample)", retained_body)
         self.assertIn("isoDate(sample.time)", retained_body)
         self.assertIn("temperatureHistoryRetentionWindow", retained_body)
         self.assertIn("suffix(maxTemperatureSamples)", retained_body)
@@ -862,6 +883,8 @@ class SignalConsoleUXTests(unittest.TestCase):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         self.assertIn("private struct SystemMetricSample: Codable", source)
+        self.assertIn("let timestamp: Double?", source)
+        self.assertIn("timestamp: Double? = nil", source)
         self.assertIn("private var systemMetricsTimer: Timer?", source)
         self.assertIn("private var systemMetricSamples: [SystemMetricSample] = []", source)
         self.assertIn("private let systemMetricSampleInterval: TimeInterval = 5", source)
@@ -886,11 +909,32 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("systemMetricGraphSamples", source)
         self.assertIn("writeSystemMetricSamples", source)
         self.assertIn("readSystemMetricSamples", source)
+        self.assertIn("private func systemMetricSampleTimestamp", source)
+        self.assertIn("private func normalizedSystemMetricSample", source)
+        self.assertIn("private func normalizedSystemMetricSamples", source)
 
         clear_data_body = source.split("private func performClearLocalData()", 1)[1].split("private func clearTemperatureHistoryAsync", 1)[0]
+        append_body = source.split("private func appendSystemMetricSample", 1)[1].split("private func shouldPersistSystemMetricSamples", 1)[0]
+        write_body = source.split("private func writeSystemMetricSamples", 1)[1].split("private func readSystemMetricSamples", 1)[0]
+        read_body = source.split("private func readSystemMetricSamples", 1)[1].split("private func retainedSystemMetricSamples", 1)[0]
         retained_body = source.split("private func retainedSystemMetricSamples", 1)[1].split("private func retainedTemperatureSamples", 1)[0]
+        timestamp_body = source.split("private func systemMetricSampleTimestamp", 1)[1].split("private func normalizedSystemMetricSample", 1)[0]
+        normalize_body = source.split("private func normalizedSystemMetricSample", 1)[1].split("private func normalizedSystemMetricSamples", 1)[0]
+        normalize_many_body = source.split("private func normalizedSystemMetricSamples", 1)[1].split("private func systemMetricGraphSamples", 1)[0]
         self.assertIn("systemMetricSamples = []", clear_data_body)
         self.assertIn("systemMetricsHistoryPath,", source)
+        self.assertIn("timestamp: now.timeIntervalSince1970", append_body)
+        self.assertNotIn("isoDate(", append_body)
+        self.assertIn("let retained = retainedSystemMetricSamples(normalizedSystemMetricSamples(samples))", write_body)
+        self.assertIn("return retainedSystemMetricSamples(normalizedSystemMetricSamples(samples))", read_body)
+        self.assertIn("if let timestamp = sample.timestamp", timestamp_body)
+        self.assertIn("isoDate(sample.time)?.timeIntervalSince1970", timestamp_body)
+        self.assertIn("sample.timestamp == nil", normalize_body)
+        self.assertIn("SystemMetricSample(", normalize_body)
+        self.assertIn("timestamp: timestamp", normalize_body)
+        self.assertIn("samples.map(normalizedSystemMetricSample)", normalize_many_body)
+        self.assertIn("let cutoff = now.timeIntervalSince1970 - systemMetricRetentionWindow", retained_body)
+        self.assertIn("systemMetricSampleTimestamp(sample)", retained_body)
         self.assertIn("systemMetricRetentionWindow", retained_body)
         self.assertIn("suffix(maxSystemMetricSamples)", retained_body)
 

@@ -136,6 +136,12 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("source_counts", script)
         self.assertIn("unavailable_count", script)
         self.assertIn("--status-json", script)
+        self.assertIn("--battery-mode", script)
+        self.assertIn("CodexGauge-battery-soak", script)
+        self.assertIn("ssd_parse_failures_before", script)
+        self.assertIn("ssd_parse_failures_after", script)
+        self.assertIn("pmset -g batt", script)
+        self.assertIn("pgrep -f", script)
         self.assertIn("native/codex_status.py", script)
         self.assertNotIn("browser-cookie", script)
 
@@ -214,6 +220,8 @@ class PublicReleaseHygieneTests(unittest.TestCase):
             "mono-graphite-codex-closed.png",
             "mono-graphite-last-live.png",
             "mono-graphite-low-quota.png",
+            "paper-console-plugged-in-full.png",
+            "paper-console-battery-mode.png",
         ]
 
         self.assertTrue(script.exists())

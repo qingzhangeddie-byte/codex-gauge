@@ -2,6 +2,13 @@ import pathlib
 import unittest
 
 
+def native_swift_sources() -> str:
+    return "\n".join(
+        path.read_text()
+        for path in sorted(pathlib.Path("native").glob("CodexGauge*.swift"))
+    )
+
+
 class NativeCodexOnlyTests(unittest.TestCase):
     def test_native_app_uses_codex_only_status_command(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -47,7 +54,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("/Applications/Codex.app/Contents/Resources", source)
 
     def test_native_app_auto_refreshes_adaptively(self):
-        source = pathlib.Path("native/CodexGauge.swift").read_text()
+        source = native_swift_sources()
 
         self.assertIn("normalRefreshInterval: TimeInterval = 5 * 60", source)
         self.assertIn("watchRefreshInterval: TimeInterval = 3 * 60", source)
