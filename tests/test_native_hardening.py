@@ -164,9 +164,17 @@ class NativeHardeningTests(unittest.TestCase):
             "private let powerSaverHealthyRefreshInterval: TimeInterval = 20 * 60",
             "private let powerSaverLowRefreshInterval: TimeInterval = 10 * 60",
             "private let powerSaverCriticalRefreshInterval: TimeInterval = 5 * 60",
+            "private let lowBatteryPowerSaverRefreshInterval: TimeInterval = 30 * 60",
+            "private let criticalBatteryPowerSaverRefreshInterval: TimeInterval = 60 * 60",
             "private func powerSaverActive() -> Bool",
             "batteryStatus?.powerSaverActive == true",
+            "private func batteryPowerSaverRefreshInterval() -> TimeInterval?",
+            "batteryStatus?.percent",
+            "return criticalBatteryPowerSaverRefreshInterval",
+            "return lowBatteryPowerSaverRefreshInterval",
             "private func powerSaverRefreshInterval(for status: ServiceStatus?) -> TimeInterval",
+            "if let batteryInterval = batteryPowerSaverRefreshInterval()",
+            "return batteryInterval",
             "return powerSaverCriticalRefreshInterval",
             "return powerSaverLowRefreshInterval",
             "return powerSaverHealthyRefreshInterval",
@@ -204,6 +212,14 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertLess(
             next_refresh_body.index("if powerSaverActive() {"),
             next_refresh_body.index("if let interval = fixedRefreshInterval()"),
+        )
+
+        power_saver_body = source.split("private func powerSaverRefreshInterval(for status: ServiceStatus?)", 1)[1].split(
+            "private func nextRefreshInterval(for status: ServiceStatus?)", 1
+        )[0]
+        self.assertLess(
+            power_saver_body.index("if let batteryInterval = batteryPowerSaverRefreshInterval()"),
+            power_saver_body.index("guard let status, status.ok else"),
         )
 
     def test_privacy_docs_describe_battery_as_local_hardware_telemetry(self):

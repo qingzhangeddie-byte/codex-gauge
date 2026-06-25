@@ -1781,6 +1781,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var ssdTemperature: SSDTemperatureStatus?
     private var lastValidSSDTemperature: SSDTemperatureStatus?
     private var lastValidSSDTemperatureAt: Date?
+    private var temperatureFailureBackoffUntil: Date?
     private var temperatureTimer: Timer?
     private var systemMetricsTimer: Timer?
     private var temporaryHardwareSamplerTimer: Timer?
@@ -1810,11 +1811,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let powerSaverHealthyRefreshInterval: TimeInterval = 20 * 60
     private let powerSaverLowRefreshInterval: TimeInterval = 10 * 60
     private let powerSaverCriticalRefreshInterval: TimeInterval = 5 * 60
+    private let lowBatteryPowerSaverRefreshInterval: TimeInterval = 30 * 60
+    private let criticalBatteryPowerSaverRefreshInterval: TimeInterval = 60 * 60
     private let moodAnimationFrameLimit = 8
     private let maxRuntimeLogBytes: UInt64 = 512 * 1024
     private let maxHistorySamples = 720
     private let historyRetentionWindow: TimeInterval = 48 * 60 * 60
     private let temperatureSampleInterval: TimeInterval = 1
+    private let temperatureFailureBackoffInterval: TimeInterval = 5 * 60
     private let temperatureGraphWindow: TimeInterval = 10 * 60
     private let temperatureHistoryRetentionWindow: TimeInterval = 24 * 60 * 60
     private let temperaturePersistInterval: TimeInterval = 60
@@ -3257,6 +3261,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func sampleTemperature() {
+        guard temperatureReadAllowed() else {
+            return
+        }
         guard !temperatureReadInFlight else {
             return
         }
@@ -3271,6 +3278,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                     return
                 }
                 self.temperatureReadInFlight = false
+                self.recordTemperatureReadResult(status)
                 self.ssdTemperature = status
                 self.updateLastValidSSDTemperature(status)
                 self.appendTemperatureSample(status)
@@ -3281,6 +3289,21 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 }
             }
         }
+    }
+
+    private func temperatureReadAllowed(now: Date = Date()) -> Bool {
+        guard let temperatureFailureBackoffUntil else {
+            return true
+        }
+        return now >= temperatureFailureBackoffUntil
+    }
+
+    private func recordTemperatureReadResult(_ status: SSDTemperatureStatus?, at date: Date = Date()) {
+        guard status?.ok == true else {
+            temperatureFailureBackoffUntil = date.addingTimeInterval(temperatureFailureBackoffInterval)
+            return
+        }
+        temperatureFailureBackoffUntil = nil
     }
 
     private func finishRefresh(status: Int32, output: String, errorOutput: String) {
@@ -4360,7 +4383,23 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         batteryStatus?.powerSaverActive == true
     }
 
+    private func batteryPowerSaverRefreshInterval() -> TimeInterval? {
+        guard let percent = batteryStatus?.percent else {
+            return nil
+        }
+        if percent <= 20 {
+            return criticalBatteryPowerSaverRefreshInterval
+        }
+        if percent <= 35 {
+            return lowBatteryPowerSaverRefreshInterval
+        }
+        return nil
+    }
+
     private func powerSaverRefreshInterval(for status: ServiceStatus?) -> TimeInterval {
+        if let batteryInterval = batteryPowerSaverRefreshInterval() {
+            return batteryInterval
+        }
         guard let status, status.ok else {
             return powerSaverCriticalRefreshInterval
         }

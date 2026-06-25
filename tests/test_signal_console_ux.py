@@ -768,6 +768,40 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertNotIn("readSSDTemperature()", setup_doctor_body)
         self.assertNotIn("readSSDTemperature()", diagnostics_body)
 
+    def test_failed_ssd_temperature_reads_back_off_to_avoid_battery_drain(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "private var temperatureFailureBackoffUntil: Date?",
+            "private let temperatureFailureBackoffInterval: TimeInterval = 5 * 60",
+            "private func temperatureReadAllowed(now: Date = Date()) -> Bool",
+            "private func recordTemperatureReadResult(_ status: SSDTemperatureStatus?, at date: Date = Date())",
+            "temperatureFailureBackoffUntil = date.addingTimeInterval(temperatureFailureBackoffInterval)",
+            "temperatureFailureBackoffUntil = nil",
+        ]:
+            self.assertIn(token, source)
+
+        sample_body = self._swift_function_body(source, "private func sampleTemperature()")
+        self.assertIn("guard temperatureReadAllowed() else", sample_body)
+        self.assertLess(
+            sample_body.index("guard temperatureReadAllowed() else"),
+            sample_body.index("temperatureReadInFlight = true"),
+        )
+        self.assertIn("self.recordTemperatureReadResult(status)", sample_body)
+        self.assertLess(
+            sample_body.index("self.recordTemperatureReadResult(status)"),
+            sample_body.index("self.appendTemperatureSample(status)"),
+        )
+
+        allowed_body = self._swift_function_body(source, "private func temperatureReadAllowed(now: Date = Date()) -> Bool")
+        self.assertIn("guard let temperatureFailureBackoffUntil else", allowed_body)
+        self.assertIn("return now >= temperatureFailureBackoffUntil", allowed_body)
+
+        record_body = self._swift_function_body(source, "private func recordTemperatureReadResult(_ status: SSDTemperatureStatus?, at date: Date = Date())")
+        self.assertIn("guard status?.ok == true else", record_body)
+        self.assertIn("temperatureFailureBackoffUntil = date.addingTimeInterval(temperatureFailureBackoffInterval)", record_body)
+        self.assertIn("temperatureFailureBackoffUntil = nil", record_body)
+
     def test_system_metrics_sample_every_five_seconds_and_are_bounded(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
