@@ -1765,6 +1765,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var lastValidSSDTemperatureAt: Date?
     private var temperatureTimer: Timer?
     private var systemMetricsTimer: Timer?
+    private var temporaryHardwareSamplerTimer: Timer?
     private var batteryStatus: BatteryStatus?
     private var batteryTimer: Timer?
     private var batteryRunLoopSource: CFRunLoopSource?
@@ -1802,6 +1803,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let maxTemperatureSamples = 24 * 60 * 60
     private let systemMetricSampleInterval: TimeInterval = 5
     private let batterySampleInterval: TimeInterval = 60
+    private let powerSaverHardwareSampleInterval: TimeInterval = 10
     private let systemMetricGraphWindow: TimeInterval = 10 * 60
     private let systemMetricRetentionWindow: TimeInterval = 24 * 60 * 60
     private let systemMetricPersistInterval: TimeInterval = 60
@@ -1889,8 +1891,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
         setStatusImage(title: "Codex quota")
         rebuildMenu()
-        startTemperatureSampler()
-        startSystemMetricsSampler()
+        configureHardwareSamplersForPowerState()
         refresh()
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
             self?.showFirstRunSetupIfNeeded()
@@ -1901,6 +1902,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         timer?.invalidate()
         temperatureTimer?.invalidate()
         systemMetricsTimer?.invalidate()
+        temporaryHardwareSamplerTimer?.invalidate()
         batteryTimer?.invalidate()
         if let batteryRunLoopSource {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), batteryRunLoopSource, .commonModes)
@@ -1919,6 +1921,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         if let signalPopover, signalPopover.isShown {
             signalPopover.performClose(sender)
             stopPopoverCountdownTimer()
+            stopTemporaryHardwareSampler()
             return
         }
         showSignalConsolePopover()
@@ -1937,6 +1940,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         signalPopover = popover
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         startPopoverCountdownTimer()
+        startTemporaryHardwareSamplerIfNeeded()
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -1957,6 +1961,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             guard let signalPopover = self.signalPopover, signalPopover.isShown else {
                 timer.invalidate()
                 self.popoverCountdownTimer = nil
+                self.stopTemporaryHardwareSampler()
                 return
             }
             self.refreshSignalPopoverIfNeeded()
@@ -2909,6 +2914,50 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func configureHardwareSamplersForPowerState() {
+        if hardwareBackgroundSamplingAllowed() {
+            startTemperatureSampler()
+            startSystemMetricsSampler()
+            stopTemporaryHardwareSampler()
+            return
+        }
+        temperatureTimer?.invalidate()
+        temperatureTimer = nil
+        systemMetricsTimer?.invalidate()
+        systemMetricsTimer = nil
+        startTemporaryHardwareSamplerIfNeeded()
+    }
+
+    private func hardwareBackgroundSamplingAllowed() -> Bool {
+        return !powerSaverActive()
+    }
+
+    private func startTemporaryHardwareSamplerIfNeeded() {
+        guard powerSaverActive(), signalPopover?.isShown == true else {
+            stopTemporaryHardwareSampler()
+            return
+        }
+        guard temporaryHardwareSamplerTimer == nil else {
+            return
+        }
+        sampleHardwareForOpenSignalConsole()
+        let nextTimer = Timer(timeInterval: powerSaverHardwareSampleInterval, repeats: true) { [weak self] _ in
+            self?.sampleHardwareForOpenSignalConsole()
+        }
+        temporaryHardwareSamplerTimer = nextTimer
+        RunLoop.main.add(nextTimer, forMode: .common)
+    }
+
+    private func sampleHardwareForOpenSignalConsole() {
+        sampleTemperature()
+        sampleSystemMetrics()
+    }
+
+    private func stopTemporaryHardwareSampler() {
+        temporaryHardwareSamplerTimer?.invalidate()
+        temporaryHardwareSamplerTimer = nil
+    }
+
     private func startTemperatureSampler() {
         temperatureTimer?.invalidate()
         _ = ssdTemperaturePath
@@ -2966,6 +3015,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func handlePowerSourceChanged() {
         sampleBattery()
         rescheduleNextRefreshIfEarlier(after: nextRefreshInterval(for: snapshot?.codex))
+        configureHardwareSamplersForPowerState()
         rebuildMenu()
         if let snapshot {
             setStatusImage(title: statusTooltipTitle(snapshot), status: snapshot.codex)

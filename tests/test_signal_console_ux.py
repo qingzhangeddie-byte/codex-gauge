@@ -553,6 +553,41 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("model.cpuUsageText", movement_body)
         self.assertIn("model.ramUsageText", movement_body)
 
+    def test_power_saver_pauses_background_hardware_sampling_on_battery(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "private var temporaryHardwareSamplerTimer: Timer?",
+            "private let powerSaverHardwareSampleInterval: TimeInterval = 10",
+            "configureHardwareSamplersForPowerState()",
+            "private func configureHardwareSamplersForPowerState()",
+            "private func hardwareBackgroundSamplingAllowed() -> Bool",
+            "return !powerSaverActive()",
+            "private func startTemporaryHardwareSamplerIfNeeded()",
+            "Timer(timeInterval: powerSaverHardwareSampleInterval, repeats: true)",
+            "sampleHardwareForOpenSignalConsole()",
+            "private func sampleHardwareForOpenSignalConsole()",
+            "sampleTemperature()",
+            "sampleSystemMetrics()",
+            "private func stopTemporaryHardwareSampler()",
+            "temporaryHardwareSamplerTimer?.invalidate()",
+            "startTemporaryHardwareSamplerIfNeeded()",
+            "stopTemporaryHardwareSampler()",
+        ]:
+            self.assertIn(token, source)
+
+        launch_body = source.split("func applicationDidFinishLaunching", 1)[1].split("func applicationWillTerminate", 1)[0]
+        self.assertIn("configureHardwareSamplersForPowerState()", launch_body)
+        self.assertNotIn("startTemperatureSampler()", launch_body)
+        self.assertNotIn("startSystemMetricsSampler()", launch_body)
+
+        configure_body = source.split("private func configureHardwareSamplersForPowerState()", 1)[1].split("private func hardwareBackgroundSamplingAllowed", 1)[0]
+        self.assertIn("if hardwareBackgroundSamplingAllowed()", configure_body)
+        self.assertIn("startTemperatureSampler()", configure_body)
+        self.assertIn("startSystemMetricsSampler()", configure_body)
+        self.assertIn("temperatureTimer?.invalidate()", configure_body)
+        self.assertIn("systemMetricsTimer?.invalidate()", configure_body)
+
     def test_ssd_temperature_history_samples_every_second_and_is_bounded(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
