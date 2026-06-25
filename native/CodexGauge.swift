@@ -510,8 +510,10 @@ private struct SignalConsoleModel {
     let cpuUsageText: String
     let ramUsageText: String
     let batteryStatusText: String
+    let batteryPercent: Int?
     let powerSaverText: String
     let refreshCadenceText: String
+    let hardwareSignalsVisible: Bool
     let reportFiveHourMovement: String
     let reportSevenDayMovement: String
     let reportTodaySummary: String
@@ -749,9 +751,17 @@ private final class SignalConsolePanelView: NSView {
         drawTrendContext()
         drawTrendRow(label: "5h", text: model.fiveHourTrendText, values: model.fiveHourHistory, y: 326)
         drawTrendRow(label: "7d", text: model.sevenDayTrendText, values: model.sevenDayHistory, y: 348)
-        drawSystemMetricMovementRows(in: card)
-        drawTemperatureMovementRow(in: card)
-        drawBatteryStatusRow(in: card)
+        if hardwareSignalsVisible() {
+            drawSystemMetricMovementRows(in: card)
+            drawTemperatureMovementRow(in: card)
+            drawBatteryStatusRow(in: card)
+        } else {
+            drawBatteryModeStatusRow(in: card)
+        }
+    }
+
+    private func hardwareSignalsVisible() -> Bool {
+        model.hardwareSignalsVisible
     }
 
     private func drawTrendContext() {
@@ -862,6 +872,44 @@ private final class SignalConsolePanelView: NSView {
         drawText(model.batteryStatusText, x: row.minX + 58, y: row.minY + 16, width: 78, height: 12, size: 8.4, weight: .semibold, color: textPrimary, mono: true)
         drawText(model.refreshCadenceText, x: row.maxX - 76, y: row.minY + 16, width: 76, height: 12, size: 7.8, weight: .medium, color: textMuted, mono: true)
         drawText(model.powerSaverText, x: row.minX, y: row.minY + 2, width: row.width, height: 12, size: 8.1, weight: .medium, color: color)
+    }
+
+    private func drawBatteryModeStatusRow(in card: NSRect) {
+        let row = NSRect(x: card.minX + 16, y: card.maxY - 82, width: card.width - 32, height: 44)
+        let color = amberAccent
+        drawRoundedGradient(
+            row,
+            radius: 12,
+            gradient: NSGradient(colors: [
+                amberAccent.withAlphaComponent(0.20),
+                theme.commandButtonBackground,
+            ]),
+            stroke: amberAccent.withAlphaComponent(0.34)
+        )
+        drawSignalConsoleBatteryIcon(percent: model.batteryPercent, rect: NSRect(x: row.minX + 12, y: row.minY + 10, width: 46, height: 24), color: color)
+        drawText("Battery mode", x: row.minX + 68, y: row.minY + 9, width: 96, height: 13, size: 9.2, weight: .bold, color: color)
+        drawText(model.powerSaverText, x: row.minX + 68, y: row.minY + 25, width: 128, height: 12, size: 8.1, weight: .medium, color: textPrimary)
+        drawText(model.batteryStatusText, x: row.maxX - 92, y: row.minY + 9, width: 82, height: 13, size: 9.2, weight: .bold, color: textPrimary, mono: true)
+        drawText(model.refreshCadenceText, x: row.maxX - 92, y: row.minY + 25, width: 82, height: 12, size: 7.7, weight: .medium, color: textMuted, mono: true)
+    }
+
+    private func drawSignalConsoleBatteryIcon(percent: Int?, rect: NSRect, color: NSColor) {
+        let shellRect = rect.insetBy(dx: 1.4, dy: 4.2)
+        drawRoundedRect(shellRect, radius: 4.5, fill: panelBackground.withAlphaComponent(0.34), stroke: color.withAlphaComponent(0.66))
+        drawRoundedRect(
+            NSRect(x: shellRect.maxX - 0.4, y: shellRect.midY - 4.2, width: 3.8, height: 8.4),
+            radius: 1.7,
+            fill: color.withAlphaComponent(0.66),
+            stroke: nil
+        )
+        let fillRect = shellRect.insetBy(dx: 3.4, dy: 3.5)
+        let fillWidth = max(2.0, fillRect.width * clamped(percent))
+        drawRoundedRect(
+            NSRect(x: fillRect.minX, y: fillRect.minY, width: fillWidth, height: fillRect.height),
+            radius: 2.2,
+            fill: color.withAlphaComponent(0.86),
+            stroke: nil
+        )
     }
 
     private func drawTemperatureCurve(samples: [TemperatureSample], rect: NSRect) {
@@ -1705,8 +1753,10 @@ private func signalConsolePreviewModel(
         cpuUsageText: systemMetricPercentText(systemMetricHistory.last?.cpuPercent),
         ramUsageText: systemMetricPercentText(systemMetricHistory.last?.ramPercent),
         batteryStatusText: unavailable ? "Battery --" : "Battery 74%",
-        powerSaverText: unavailable ? "Power Saver unknown" : "Power Saver active",
-        refreshCadenceText: unavailable ? "Refresh --" : "Refresh 20m",
+        batteryPercent: unavailable ? nil : 74,
+        powerSaverText: unavailable ? "Power Saver unknown" : "Power Saver off",
+        refreshCadenceText: unavailable ? "Refresh --" : "Refresh 5m",
+        hardwareSignalsVisible: !unavailable,
         reportFiveHourMovement: reportFive,
         reportSevenDayMovement: reportSeven,
         reportTodaySummary: todaySummary,
@@ -1825,7 +1875,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let maxTemperatureSamples = 24 * 60 * 60
     private let systemMetricSampleInterval: TimeInterval = 5
     private let batterySampleInterval: TimeInterval = 60
-    private let powerSaverHardwareSampleInterval: TimeInterval = 10
     private let systemMetricGraphWindow: TimeInterval = 10 * 60
     private let systemMetricRetentionWindow: TimeInterval = 24 * 60 * 60
     private let systemMetricPersistInterval: TimeInterval = 60
@@ -1836,6 +1885,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let statusImageSize = NSSize(width: 230, height: 22)
     private let menuBarTemperatureChipRect = NSRect(x: 82, y: 4.9, width: 27, height: 12.2)
     private let menuBarSystemMetricStripRect = NSRect(x: 168, y: 1.8, width: 34, height: 18.4)
+    private let menuBarBatteryModeInfoRect = NSRect(x: 168, y: 4.9, width: 34, height: 12.2)
     private let menuBarBatteryRect = NSRect(x: 204, y: 4.2, width: 24, height: 13.8)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
     private let quotaRailWidth: CGFloat = 28
@@ -2074,8 +2124,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 cpuUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.cpuPercent),
                 ramUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.ramPercent),
                 batteryStatusText: batteryStatusText(status: batteryStatus),
+                batteryPercent: batteryStatus?.percent,
                 powerSaverText: powerSaverStatusText(),
                 refreshCadenceText: refreshCadenceStatusText(),
+                hardwareSignalsVisible: hardwareSignalsVisible(),
                 reportFiveHourMovement: inlineReport.fiveHourMovement,
                 reportSevenDayMovement: inlineReport.sevenDayMovement,
                 reportTodaySummary: inlineReport.todaySummary,
@@ -2125,8 +2177,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             cpuUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.cpuPercent),
             ramUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.ramPercent),
             batteryStatusText: batteryStatusText(status: batteryStatus),
+            batteryPercent: batteryStatus?.percent,
             powerSaverText: powerSaverStatusText(),
             refreshCadenceText: refreshCadenceStatusText(),
+            hardwareSignalsVisible: hardwareSignalsVisible(),
             reportFiveHourMovement: inlineReport.fiveHourMovement,
             reportSevenDayMovement: inlineReport.sevenDayMovement,
             reportTodaySummary: inlineReport.todaySummary,
@@ -2954,36 +3008,19 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         temperatureTimer = nil
         systemMetricsTimer?.invalidate()
         systemMetricsTimer = nil
-        startTemporaryHardwareSamplerIfNeeded()
+        stopTemporaryHardwareSampler()
     }
 
     private func hardwareBackgroundSamplingAllowed() -> Bool {
-        return !powerSaverActive()
+        return hardwareSignalsVisible()
     }
 
     private func startTemporaryHardwareSamplerIfNeeded() {
-        guard powerSaverActive(), signalPopover?.isShown == true else {
-            stopTemporaryHardwareSampler()
-            return
-        }
-        guard temporaryHardwareSamplerTimer == nil else {
-            return
-        }
-        sampleHardwareForOpenSignalConsole()
-        let nextTimer = Timer(timeInterval: powerSaverHardwareSampleInterval, repeats: true) { [weak self] _ in
-            self?.sampleHardwareForOpenSignalConsole()
-        }
-        temporaryHardwareSamplerTimer = nextTimer
-        RunLoop.main.add(nextTimer, forMode: .common)
-    }
-
-    private func sampleHardwareForOpenSignalConsole() {
-        sampleTemperature()
-        sampleSystemMetrics()
+        stopTemporaryHardwareSampler()
     }
 
     private func sampleHardwareAfterRefreshIfAllowed() {
-        guard hardwareBackgroundSamplingAllowed() || signalPopover?.isShown == true else {
+        guard hardwareSignalsVisible(), hardwareBackgroundSamplingAllowed() || signalPopover?.isShown == true else {
             return
         }
         sampleTemperature()
@@ -3671,9 +3708,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             addDisabled("\(sevenDayMenuLabel)     \(percent(status.sevenDayLeft))  \(barString(status.sevenDayLeft))", monospaced: true)
             addDisabled("\(fiveHourResetMenuLabel) \(resetCountdown(status.fiveHourReset))")
             addDisabled("\(sevenDayResetMenuLabel) \(resetCountdown(status.sevenDayReset))")
-            addDisabled("SSD temperature \(ssdTemperatureStatusText(ssdTemperature))")
+            if hardwareSignalsVisible() {
+                addDisabled("SSD temperature \(ssdTemperatureStatusText(ssdTemperature))")
+            }
             addDisabled("Battery \(batteryDisplayText(batteryStatus))")
             addDisabled(powerSaverStatusText())
+            if !hardwareSignalsVisible() {
+                addDisabled(refreshCadenceStatusText())
+            }
             if let resetHighlightUntil, resetHighlightUntil > Date() {
                 addDisabled("5h refreshed")
             }
@@ -3729,27 +3771,34 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             parts.append("5h resets \(fiveHourResetCountdown(status.fiveHourReset))")
             parts.append("7d resets \(sevenDayResetCountdown(status.sevenDayReset))")
         }
-        let temperature = ssdTemperatureDisplayText(ssdTemperatureForDisplay())
-        if temperature != "--°" {
-            parts.append("SSD \(temperature)")
-        }
-        if let metrics = systemMetricSampleForDisplay() {
-            parts.append("CPU \(systemMetricPercentText(metrics.cpuPercent))")
-            parts.append("RAM \(systemMetricPercentText(metrics.ramPercent))")
+        if hardwareSignalsVisible() {
+            let temperature = ssdTemperatureDisplayText(ssdTemperatureForDisplay())
+            if temperature != "--°" {
+                parts.append("SSD \(temperature)")
+            }
+            if let metrics = systemMetricSampleForDisplay() {
+                parts.append("CPU \(systemMetricPercentText(metrics.cpuPercent))")
+                parts.append("RAM \(systemMetricPercentText(metrics.ramPercent))")
+            }
+        } else {
+            parts.append(powerSaverStatusText())
+            parts.append(refreshCadenceStatusText())
         }
         parts.append("Battery \(batteryDisplayText(batteryStatus))")
         return parts.joined(separator: " · ")
     }
 
     private func menuBarAccessibilitySummary(_ status: ServiceStatus?) -> String {
-        let temperatureSummary = showSSDTemperatureInMenuBar()
+        let temperatureSummary = hardwareSignalsVisible() && showSSDTemperatureInMenuBar()
             ? ", SSD \(ssdTemperatureDisplayText(ssdTemperatureForDisplay()))"
             : ""
-        let metrics = systemMetricSampleForDisplay()
-        let systemSummary = ", CPU \(systemMetricPercentText(metrics?.cpuPercent)), RAM \(systemMetricPercentText(metrics?.ramPercent))"
+        let metrics = hardwareSignalsVisible() ? systemMetricSampleForDisplay() : nil
+        let systemSummary = hardwareSignalsVisible()
+            ? ", CPU \(systemMetricPercentText(metrics?.cpuPercent)), RAM \(systemMetricPercentText(metrics?.ramPercent))"
+            : ", \(powerSaverStatusText()), \(refreshCadenceStatusText())"
         let batterySummary = ", Battery \(batteryDisplayText(batteryStatus))"
         guard let status, status.ok, !isUnavailableStatus(status) else {
-            return showSSDTemperatureInMenuBar()
+            return hardwareSignalsVisible() && showSSDTemperatureInMenuBar()
                 ? "SSD \(ssdTemperatureDisplayText(ssdTemperatureForDisplay()))\(systemSummary)\(batterySummary)"
                 : "unavailable\(systemSummary)\(batterySummary)"
         }
@@ -3785,10 +3834,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 palette: palette
             )
         }
-        if showSSDTemperatureInMenuBar() {
-            drawMenuBarSSDTemperature(status: ssdTemperature, rect: menuBarTemperatureChipRect, palette: palette)
+        if hardwareSignalsVisible() {
+            if showSSDTemperatureInMenuBar() {
+                drawMenuBarSSDTemperature(status: ssdTemperature, rect: menuBarTemperatureChipRect, palette: palette)
+            }
+            drawMenuBarSystemMetricStrip(sample: systemMetric, rect: menuBarSystemMetricStripRect, palette: palette)
+        } else {
+            drawMenuBarBatteryModeInfo(status: batteryStatus, rect: menuBarBatteryModeInfoRect, palette: palette)
         }
-        drawMenuBarSystemMetricStrip(sample: systemMetric, rect: menuBarSystemMetricStripRect, palette: palette)
         drawMenuBarBattery(status: batteryStatus, rect: menuBarBatteryRect, palette: palette)
 
         image.unlockFocus()
@@ -3968,6 +4021,26 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         shell.stroke()
         drawMenuBarBatteryTerminal(rect: rect, color: color)
         drawMenuBarBatteryFill(status: status, rect: rect.insetBy(dx: 3.1, dy: 3.7), color: color)
+    }
+
+    private func drawMenuBarBatteryModeInfo(status: BatteryStatus?, rect: NSRect, palette: GaugePalette) {
+        guard status?.hasBattery == true else {
+            return
+        }
+        let color = batteryMenuBarColor(status, palette: palette)
+        let chip = NSBezierPath(roundedRect: rect, xRadius: 4.0, yRadius: 4.0)
+        color.withAlphaComponent(isDarkMenuBar() ? 0.24 : 0.18).setFill()
+        chip.fill()
+        color.withAlphaComponent(0.58).setStroke()
+        chip.lineWidth = 0.55
+        chip.stroke()
+
+        let text = batteryDisplayText(status)
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: text.count > 3 ? 6.3 : 6.9, weight: .bold),
+            .foregroundColor: palette.primaryText,
+        ]
+        (text as NSString).draw(at: NSPoint(x: rect.minX + 4.2, y: rect.minY + 2.5), withAttributes: attrs)
     }
 
     private func drawMenuBarBatteryTerminal(rect: NSRect, color: NSColor) {
@@ -4381,6 +4454,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func powerSaverActive() -> Bool {
         batteryStatus?.powerSaverActive == true
+    }
+
+    private func hardwareSignalsVisible() -> Bool {
+        return !powerSaverActive()
     }
 
     private func batteryPowerSaverRefreshInterval() -> TimeInterval? {

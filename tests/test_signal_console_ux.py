@@ -586,18 +586,13 @@ class SignalConsoleUXTests(unittest.TestCase):
 
         for token in [
             "private var temporaryHardwareSamplerTimer: Timer?",
-            "private let powerSaverHardwareSampleInterval: TimeInterval = 10",
             "configureHardwareSamplersForPowerState()",
             "private func configureHardwareSamplersForPowerState()",
             "private func hardwareBackgroundSamplingAllowed() -> Bool",
+            "return hardwareSignalsVisible()",
             "return !powerSaverActive()",
             "private func sampleHardwareAfterRefreshIfAllowed()",
             "private func startTemporaryHardwareSamplerIfNeeded()",
-            "Timer(timeInterval: powerSaverHardwareSampleInterval, repeats: true)",
-            "sampleHardwareForOpenSignalConsole()",
-            "private func sampleHardwareForOpenSignalConsole()",
-            "sampleTemperature()",
-            "sampleSystemMetrics()",
             "private func stopTemporaryHardwareSampler()",
             "temporaryHardwareSamplerTimer?.invalidate()",
             "startTemporaryHardwareSamplerIfNeeded()",
@@ -616,14 +611,23 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("startSystemMetricsSampler()", configure_body)
         self.assertIn("temperatureTimer?.invalidate()", configure_body)
         self.assertIn("systemMetricsTimer?.invalidate()", configure_body)
+        self.assertIn("stopTemporaryHardwareSampler()", configure_body)
 
         finish_body = self._swift_function_body(source, "private func finishRefresh(status: Int32, output: String, errorOutput: String)")
         self.assertIn("sampleHardwareAfterRefreshIfAllowed()", finish_body)
         self.assertNotIn("sampleTemperature()", finish_body)
 
         post_refresh_sample_body = self._swift_function_body(source, "private func sampleHardwareAfterRefreshIfAllowed()")
-        self.assertIn("hardwareBackgroundSamplingAllowed() || signalPopover?.isShown == true", post_refresh_sample_body)
+        self.assertIn("guard hardwareSignalsVisible(), hardwareBackgroundSamplingAllowed() || signalPopover?.isShown == true else", post_refresh_sample_body)
         self.assertIn("sampleTemperature()", post_refresh_sample_body)
+
+        temporary_sampler_body = self._swift_function_body(source, "private func startTemporaryHardwareSamplerIfNeeded()")
+        self.assertIn("stopTemporaryHardwareSampler()", temporary_sampler_body)
+        self.assertNotIn("Timer(timeInterval:", temporary_sampler_body)
+        self.assertNotIn("sampleTemperature()", temporary_sampler_body)
+        self.assertNotIn("sampleSystemMetrics()", temporary_sampler_body)
+        self.assertNotIn("private func sampleHardwareForOpenSignalConsole", source)
+        self.assertNotIn("powerSaverHardwareSampleInterval", source)
 
         show_popover_body = self._swift_function_body(source, "private func showSignalConsolePopover()")
         self.assertIn("startTemporaryHardwareSamplerIfNeeded()", show_popover_body)
@@ -663,16 +667,22 @@ class SignalConsoleUXTests(unittest.TestCase):
 
         for token in [
             "batteryStatusText: String",
+            "batteryPercent: Int?",
             "powerSaverText: String",
             "refreshCadenceText: String",
             "batteryStatusText(status: batteryStatus)",
+            "batteryPercent: batteryStatus?.percent",
             "powerSaverStatusText()",
             "refreshCadenceStatusText()",
             "batteryStatus: batteryStatus",
             "drawBatteryStatusRow(in: card)",
             "drawMenuBarBattery(status: batteryStatus, rect: menuBarBatteryRect, palette: palette)",
+            "drawMenuBarBatteryModeInfo(status: batteryStatus, rect: menuBarBatteryModeInfoRect, palette: palette)",
             "private let menuBarBatteryRect",
+            "private let menuBarBatteryModeInfoRect",
             "private func drawMenuBarBattery",
+            "private func drawMenuBarBatteryModeInfo",
+            "private func drawSignalConsoleBatteryIcon",
             "drawMenuBarBatteryTerminal",
             "drawMenuBarBatteryFill",
             "private func batteryMenuBarColor",
@@ -692,6 +702,9 @@ class SignalConsoleUXTests(unittest.TestCase):
         codex_detail_body = self._swift_function_body(source, "private func addCodexDetail(_ snapshot: UsageSnapshot)")
         self.assertIn('addDisabled("Battery \\(batteryDisplayText(batteryStatus))")', codex_detail_body)
         self.assertIn("addDisabled(powerSaverStatusText())", codex_detail_body)
+        self.assertIn("if hardwareSignalsVisible() {", codex_detail_body)
+        self.assertIn("if !hardwareSignalsVisible() {", codex_detail_body)
+        self.assertIn("addDisabled(refreshCadenceStatusText())", codex_detail_body)
 
         battery_row_body = self._swift_function_body(source, "private func drawBatteryStatusRow(in card: NSRect)")
         self.assertIn("height: 30", battery_row_body)
@@ -699,6 +712,49 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("width: 78", battery_row_body)
         self.assertIn("width: 76", battery_row_body)
         self.assertIn("width: row.width", battery_row_body)
+
+    def test_battery_mode_shows_only_usage_and_battery_signals(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "private func hardwareSignalsVisible() -> Bool",
+            "return !powerSaverActive()",
+            "if hardwareSignalsVisible() {",
+            "drawBatteryModeStatusRow(in: card)",
+        ]:
+            self.assertIn(token, source)
+
+        make_status_body = self._swift_function_body(
+            source,
+            "private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?, ssdTemperature: SSDTemperatureStatus?, systemMetric: SystemMetricSample?, batteryStatus: BatteryStatus?) -> NSImage",
+        )
+        hardware_branch = make_status_body.split("if hardwareSignalsVisible() {", 1)[1].split("drawMenuBarBattery", 1)[0]
+        self.assertIn("drawMenuBarSSDTemperature", hardware_branch)
+        self.assertIn("drawMenuBarSystemMetricStrip", hardware_branch)
+        self.assertNotIn("drawMenuBarBattery", hardware_branch)
+        self.assertIn("drawMenuBarBatteryModeInfo", make_status_body)
+
+        trend_body = self._swift_function_body(source, "private func drawTrendSection()")
+        hardware_branch = trend_body.split("if hardwareSignalsVisible() {", 1)[1].split("} else {", 1)[0]
+        battery_branch = trend_body.split("if hardwareSignalsVisible() {", 1)[1].split("} else {", 1)[1]
+        self.assertIn("drawSystemMetricMovementRows(in: card)", hardware_branch)
+        self.assertIn("drawTemperatureMovementRow(in: card)", hardware_branch)
+        self.assertIn("drawBatteryStatusRow(in: card)", hardware_branch)
+        self.assertIn("drawBatteryModeStatusRow(in: card)", battery_branch)
+        self.assertNotIn("drawSystemMetricMovementRows(in: card)", battery_branch)
+        self.assertNotIn("drawTemperatureMovementRow(in: card)", battery_branch)
+
+        temp_sampler_body = self._swift_function_body(source, "private func startTemporaryHardwareSamplerIfNeeded()")
+        self.assertIn("stopTemporaryHardwareSampler()", temp_sampler_body)
+        self.assertNotIn("sampleTemperature()", temp_sampler_body)
+
+        tooltip_body = self._swift_function_body(source, "private func menuBarTooltipTitle(title: String, status: ServiceStatus?) -> String")
+        tooltip_hardware_branch = tooltip_body.split("if hardwareSignalsVisible() {", 1)[1].split("} else {", 1)[0]
+        tooltip_battery_branch = tooltip_body.split("if hardwareSignalsVisible() {", 1)[1].split("} else {", 1)[1]
+        self.assertIn('parts.append("SSD \\(temperature)")', tooltip_hardware_branch)
+        self.assertIn('parts.append("CPU \\(systemMetricPercentText(metrics.cpuPercent))")', tooltip_hardware_branch)
+        self.assertIn("parts.append(powerSaverStatusText())", tooltip_battery_branch)
+        self.assertIn("parts.append(refreshCadenceStatusText())", tooltip_battery_branch)
 
     def test_ssd_temperature_history_samples_every_second_and_is_bounded(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
