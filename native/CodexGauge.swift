@@ -3649,6 +3649,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             addDisabled("\(fiveHourResetMenuLabel) \(resetCountdown(status.fiveHourReset))")
             addDisabled("\(sevenDayResetMenuLabel) \(resetCountdown(status.sevenDayReset))")
             addDisabled("SSD temperature \(ssdTemperatureStatusText(ssdTemperature))")
+            addDisabled("Battery \(batteryDisplayText(batteryStatus))")
+            addDisabled(powerSaverStatusText())
             if let resetHighlightUntil, resetHighlightUntil > Date() {
                 addDisabled("5h refreshed")
             }

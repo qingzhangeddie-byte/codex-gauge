@@ -689,6 +689,10 @@ class SignalConsoleUXTests(unittest.TestCase):
         make_status_signature = source.split("private func makeStatusImage(", 1)[1].split(") -> NSImage", 1)[0]
         self.assertIn("batteryStatus: BatteryStatus?", make_status_signature)
 
+        codex_detail_body = self._swift_function_body(source, "private func addCodexDetail(_ snapshot: UsageSnapshot)")
+        self.assertIn('addDisabled("Battery \\(batteryDisplayText(batteryStatus))")', codex_detail_body)
+        self.assertIn("addDisabled(powerSaverStatusText())", codex_detail_body)
+
         battery_row_body = self._swift_function_body(source, "private func drawBatteryStatusRow(in card: NSRect)")
         self.assertIn("height: 30", battery_row_body)
         self.assertIn("width: 52", battery_row_body)
