@@ -25,6 +25,13 @@ class SignalConsoleUXTests(unittest.TestCase):
                     return source[brace_start + 1:index]
         self.fail(f"Could not extract Swift function body for {signature}")
 
+    def _swift_rect_constant(self, source, name):
+        pattern = rf"{name} = NSRect\(x: ([0-9.]+), y: ([0-9.]+), width: ([0-9.]+), height: ([0-9.]+)\)"
+        match = re.search(pattern, source)
+        self.assertIsNotNone(match, name)
+        x, y, width, height = (float(value) for value in match.groups())
+        return {"x": x, "y": y, "width": width, "height": height, "max_x": x + width}
+
     def test_native_app_has_signal_console_source_state_copy(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
@@ -488,8 +495,8 @@ class SignalConsoleUXTests(unittest.TestCase):
     def test_menu_bar_integrates_ssd_temperature_without_removing_current_quota_info(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("statusItemWidth: CGFloat = 232", source)
-        self.assertIn("statusImageSize = NSSize(width: 226", source)
+        self.assertIn("statusItemWidth: CGFloat = 236", source)
+        self.assertIn("statusImageSize = NSSize(width: 230", source)
         self.assertIn("private let quotaRailWidth: CGFloat = 28", source)
         self.assertIn("private let resetRailWidth: CGFloat = 18", source)
         self.assertIn("makeStatusImage(", source)
@@ -559,9 +566,14 @@ class SignalConsoleUXTests(unittest.TestCase):
         ]:
             self.assertIn(token, source)
 
-        self.assertIn("statusItemWidth: CGFloat = 232", source)
-        self.assertIn("statusImageSize = NSSize(width: 226", source)
-        self.assertIn("private let menuBarSystemMetricStripRect = NSRect(x: 170, y: 1.8, width: 52, height: 18.4)", source)
+        self.assertIn("statusItemWidth: CGFloat = 236", source)
+        self.assertIn("statusImageSize = NSSize(width: 230", source)
+        system_rect = self._swift_rect_constant(source, "menuBarSystemMetricStripRect")
+        battery_rect = self._swift_rect_constant(source, "menuBarBatteryRect")
+        self.assertLessEqual(system_rect["max_x"], battery_rect["x"])
+        self.assertLessEqual(battery_rect["max_x"], 230)
+        self.assertGreaterEqual(system_rect["x"], 168)
+        self.assertGreaterEqual(system_rect["width"], 34)
         self.assertIn("let fontSize: CGFloat = 7.2", source)
         self.assertNotIn("text.count > 3 ? 5.1 : 5.6", source)
 
@@ -624,8 +636,27 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("self.stopTemporaryHardwareSampler()", countdown_body)
 
         power_source_body = self._swift_function_body(source, "private func handlePowerSourceChanged()")
+        self.assertIn("sampleBattery()", power_source_body)
         self.assertIn("rescheduleNextRefreshIfEarlier(after: nextRefreshInterval(for: snapshot?.codex))", power_source_body)
         self.assertIn("configureHardwareSamplersForPowerState()", power_source_body)
+        self.assertIn("updateBatteryStatusUI()", power_source_body)
+        self.assertIn("private func refreshBatteryStatus()", source)
+        self.assertIn("private func updateBatteryStatusUI()", source)
+
+        refresh_battery_body = self._swift_function_body(source, "private func refreshBatteryStatus()")
+        self.assertIn("sampleBattery()", refresh_battery_body)
+        self.assertIn("updateBatteryStatusUI()", refresh_battery_body)
+        self.assertNotIn("rescheduleNextRefreshIfEarlier", refresh_battery_body)
+
+        update_battery_ui_body = self._swift_function_body(source, "private func updateBatteryStatusUI()")
+        self.assertIn("rebuildMenu()", update_battery_ui_body)
+        self.assertIn("setStatusImage(title: statusTooltipTitle(snapshot), status: snapshot.codex)", update_battery_ui_body)
+        self.assertIn('setStatusImage(title: "Codex quota")', update_battery_ui_body)
+        self.assertIn("refreshSignalPopoverIfNeeded()", update_battery_ui_body)
+        self.assertNotIn("rescheduleNextRefreshIfEarlier", update_battery_ui_body)
+
+        start_battery_body = self._swift_function_body(source, "private func startBatterySampler()")
+        self.assertIn("self?.refreshBatteryStatus()", start_battery_body)
 
     def test_battery_signal_appears_in_menu_bar_console_diagnostics_and_doctor(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -657,6 +688,13 @@ class SignalConsoleUXTests(unittest.TestCase):
 
         make_status_signature = source.split("private func makeStatusImage(", 1)[1].split(") -> NSImage", 1)[0]
         self.assertIn("batteryStatus: BatteryStatus?", make_status_signature)
+
+        battery_row_body = self._swift_function_body(source, "private func drawBatteryStatusRow(in card: NSRect)")
+        self.assertIn("height: 30", battery_row_body)
+        self.assertIn("width: 52", battery_row_body)
+        self.assertIn("width: 78", battery_row_body)
+        self.assertIn("width: 76", battery_row_body)
+        self.assertIn("width: row.width", battery_row_body)
 
     def test_ssd_temperature_history_samples_every_second_and_is_bounded(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()

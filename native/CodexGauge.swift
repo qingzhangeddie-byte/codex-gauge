@@ -856,12 +856,12 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawBatteryStatusRow(in card: NSRect) {
-        let row = NSRect(x: card.minX + 16, y: card.maxY - 62, width: card.width - 32, height: 18)
+        let row = NSRect(x: card.minX + 16, y: card.maxY - 68, width: card.width - 32, height: 30)
         let color = model.powerSaverText.contains("active") ? amberAccent : textSecondary
-        drawText("Battery", x: row.minX, y: row.minY + 1, width: 54, height: 12, size: 8.6, weight: .bold, color: color)
-        drawText(model.batteryStatusText, x: row.minX + 68, y: row.minY + 1, width: 92, height: 12, size: 8.6, weight: .semibold, color: textPrimary, mono: true)
-        drawText(model.powerSaverText, x: row.minX + 168, y: row.minY + 1, width: 116, height: 12, size: 8.2, weight: .medium, color: color)
-        drawText(model.refreshCadenceText, x: row.maxX - 82, y: row.minY + 1, width: 82, height: 12, size: 8.2, weight: .medium, color: textMuted, mono: true)
+        drawText("Battery", x: row.minX, y: row.minY + 16, width: 52, height: 12, size: 8.6, weight: .bold, color: color)
+        drawText(model.batteryStatusText, x: row.minX + 58, y: row.minY + 16, width: 78, height: 12, size: 8.4, weight: .semibold, color: textPrimary, mono: true)
+        drawText(model.refreshCadenceText, x: row.maxX - 76, y: row.minY + 16, width: 76, height: 12, size: 7.8, weight: .medium, color: textMuted, mono: true)
+        drawText(model.powerSaverText, x: row.minX, y: row.minY + 2, width: row.width, height: 12, size: 8.1, weight: .medium, color: color)
     }
 
     private func drawTemperatureCurve(samples: [TemperatureSample], rect: NSRect) {
@@ -1828,11 +1828,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let maxSystemMetricSamples = 24 * 60 * 60 / 5
     private let ssdTemperatureReadTimeout: TimeInterval = 0.8
     private let ssdTemperatureDisplayGraceInterval: TimeInterval = 10 * 60
-    private let statusItemWidth: CGFloat = 232
-    private let statusImageSize = NSSize(width: 226, height: 22)
+    private let statusItemWidth: CGFloat = 236
+    private let statusImageSize = NSSize(width: 230, height: 22)
     private let menuBarTemperatureChipRect = NSRect(x: 82, y: 4.9, width: 27, height: 12.2)
-    private let menuBarBatteryRect = NSRect(x: 198, y: 4.2, width: 24, height: 13.8)
-    private let menuBarSystemMetricStripRect = NSRect(x: 170, y: 1.8, width: 52, height: 18.4)
+    private let menuBarSystemMetricStripRect = NSRect(x: 168, y: 1.8, width: 34, height: 18.4)
+    private let menuBarBatteryRect = NSRect(x: 204, y: 4.2, width: 24, height: 13.8)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
     private let quotaRailWidth: CGFloat = 28
     private let resetRailWidth: CGFloat = 18
@@ -3016,7 +3016,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func startBatterySampler() {
         batteryTimer?.invalidate()
         let nextTimer = Timer(timeInterval: batterySampleInterval, repeats: true) { [weak self] _ in
-            self?.sampleBattery()
+            self?.refreshBatteryStatus()
         }
         batteryTimer = nextTimer
         RunLoop.main.add(nextTimer, forMode: .common)
@@ -3048,6 +3048,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         sampleBattery()
         rescheduleNextRefreshIfEarlier(after: nextRefreshInterval(for: snapshot?.codex))
         configureHardwareSamplersForPowerState()
+        updateBatteryStatusUI()
+    }
+
+    private func refreshBatteryStatus() {
+        sampleBattery()
+        updateBatteryStatusUI()
+    }
+
+    private func updateBatteryStatusUI() {
         rebuildMenu()
         if let snapshot {
             setStatusImage(title: statusTooltipTitle(snapshot), status: snapshot.codex)

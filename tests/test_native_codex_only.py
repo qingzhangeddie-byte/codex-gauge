@@ -80,8 +80,8 @@ class NativeCodexOnlyTests(unittest.TestCase):
     def test_native_app_draws_plan_b_four_bar_status_image(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("statusItemWidth: CGFloat = 232", source)
-        self.assertIn("statusImageSize = NSSize(width: 226, height: 22)", source)
+        self.assertIn("statusItemWidth: CGFloat = 236", source)
+        self.assertIn("statusImageSize = NSSize(width: 230, height: 22)", source)
         self.assertIn("resetRailWidth: CGFloat = 18", source)
         self.assertIn("makeStatusImage", source)
         self.assertIn("fiveHourReset: status.fiveHourReset", source)
