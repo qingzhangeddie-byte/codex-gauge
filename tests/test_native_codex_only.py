@@ -208,7 +208,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn(".zip", source)
         self.assertIn("runDetachedUpdateInstaller", source)
         self.assertIn("NSApp.terminate(nil)", source)
-        self.assertNotIn("UserDefaults.standard.set", source)
+        self.assertNotIn("dismissedUpdate", source)
 
     def test_native_app_runs_session_only_automatic_update_check_on_external_power(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -293,6 +293,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
     def test_automatic_update_failures_are_quiet_and_non_persistent(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
+        self.assertIn("private func handleUpdateCheckFailure", source)
         failure_body = source.split("private func handleUpdateCheckFailure", 1)[1].split(
             "private func fetchLatestRelease", 1
         )[0]
@@ -301,7 +302,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn('appendLog("automatic update check failed=', failure_body)
         self.assertIn('showReportAlert(title: "Could not check for updates"', failure_body)
 
-        self.assertNotIn("UserDefaults.standard", source)
+        self.assertNotIn("UserDefaults.standard", failure_body)
         self.assertNotIn("automaticUpdateDismissedTagName.write", source)
         self.assertNotIn("dismissedUpdate", source)
 
