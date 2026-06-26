@@ -20,7 +20,7 @@ ditto --norsrc --noextattr native/dist/CodexGauge.app "$TMP_PARENT/CodexGauge.ap
 codesign --verify --deep --strict "$TMP_PARENT/CodexGauge.app"
 
 INFO_PLIST="$TMP_PARENT/CodexGauge.app/Contents/Info.plist"
-[[ "$(plutil -extract CFBundleShortVersionString raw -o - "$INFO_PLIST")" == "0.9.0" ]]
+[[ "$(plutil -extract CFBundleShortVersionString raw -o - "$INFO_PLIST")" == "0.9.1" ]]
 [[ "$(plutil -extract CFBundleVersion raw -o - "$INFO_PLIST")" == "1" ]]
 [[ "$(plutil -extract CodexGaugeUsagePath raw -o - "$INFO_PLIST")" == "codex_status.py" ]]
 [[ "$(plutil -extract CodexGaugeReleaseURL raw -o - "$INFO_PLIST")" == "https://github.com/qingzhangeddie-byte/codex-gauge/releases" ]]

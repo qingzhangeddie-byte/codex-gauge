@@ -4,6 +4,14 @@
 
 - Nothing yet.
 
+## v0.9.1 - 2026-06-27
+
+- Added a native battery signal and on-battery Power Saver mode that slows quota refresh and pauses background SSD, CPU, and RAM sampling.
+- Switched the app to zero persistence mode: no saved preferences, LaunchAgent, runtime logs, local histories, caches, reports, or support-folder storage.
+- Added session-only GitHub update checks that run only while plugged in, stay quiet on failure, and do not persist dismissed versions.
+- Refreshed the Signal Console with the Porcelain Lab default theme, updated rendered previews, and clearer battery-mode surfaces.
+- Hardened packaging, replacement, and update install checks around temporary files, checksums, and publisher validation.
+
 ## v0.9.0 - 2026-06-17
 
 - Added a first-run setup surface that explains the local-only model and links to Codex and Setup Doctor.
