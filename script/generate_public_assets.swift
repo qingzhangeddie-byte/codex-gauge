@@ -3,7 +3,7 @@ import AppKit
 import Foundation
 
 let canvasSize = NSSize(width: 1280, height: 640)
-let paperFixturePath = "docs/design/app-rendered-signal-console/paper-console-live.png"
+let porcelainFixturePath = "docs/design/app-rendered-signal-console/porcelain-lab-live.png"
 let darkFixturePath = "docs/design/app-rendered-signal-console/signal-dark-live.png"
 let menuBarPath = "docs/assets/codex-gauge-menubar-live.png"
 let consoleOutputPath = "docs/assets/codex-gauge-signal-console.png"
@@ -116,27 +116,27 @@ func writePNG(_ path: String, drawing: () -> Void) throws {
     print("Wrote \(path)")
 }
 
-let paperPanel = loadImage(paperFixturePath)
+let porcelainPanel = loadImage(porcelainFixturePath)
 let darkPanel = loadImage(darkFixturePath)
 let menuBar = loadImage(menuBarPath)
 
 try writePNG(consoleOutputPath) {
-    fillCanvas(NSColor(calibratedRed: 0.94, green: 0.92, blue: 0.86, alpha: 1.0))
+    fillCanvas(NSColor(calibratedRed: 0.91, green: 0.95, blue: 0.98, alpha: 1.0))
     NSGradient(colors: [
-        NSColor(calibratedRed: 0.99, green: 0.98, blue: 0.94, alpha: 1.0),
-        NSColor(calibratedRed: 0.89, green: 0.93, blue: 0.88, alpha: 1.0),
+        NSColor(calibratedRed: 0.96, green: 0.985, blue: 1.00, alpha: 1.0),
+        NSColor(calibratedRed: 0.84, green: 0.91, blue: 0.96, alpha: 1.0),
     ])?.draw(in: NSBezierPath(rect: NSRect(origin: .zero, size: canvasSize)), angle: 25)
 
-    drawText("Actual app-rendered Signal Console", in: NSRect(x: 72, y: 72, width: 440, height: 92), size: 37, weight: .bold, color: NSColor(calibratedRed: 0.08, green: 0.13, blue: 0.12, alpha: 1.0))
-    drawText("The same native view used by the menu bar popover. Public screenshot uses sample quota values, plus sample reset, SSD, CPU, and RAM signals.", in: NSRect(x: 74, y: 176, width: 430, height: 74), size: 18, weight: .regular, color: NSColor(calibratedRed: 0.26, green: 0.32, blue: 0.30, alpha: 0.92))
+    drawText("Actual app-rendered Signal Console", in: NSRect(x: 72, y: 72, width: 440, height: 92), size: 37, weight: .bold, color: NSColor(calibratedRed: 0.08, green: 0.13, blue: 0.15, alpha: 1.0))
+    drawText("The same native view used by the menu bar popover. Public screenshot uses sample quota values, plus sample reset, SSD, CPU, and RAM signals.", in: NSRect(x: 74, y: 176, width: 430, height: 74), size: 18, weight: .regular, color: NSColor(calibratedRed: 0.19, green: 0.28, blue: 0.31, alpha: 0.92))
 
-    drawPill("Live source", rect: NSRect(x: 74, y: 280, width: 132, height: 38), fill: NSColor(calibratedRed: 0.12, green: 0.68, blue: 0.49, alpha: 0.13), stroke: NSColor(calibratedRed: 0.12, green: 0.68, blue: 0.49, alpha: 0.30), text: NSColor(calibratedRed: 0.08, green: 0.24, blue: 0.19, alpha: 1.0), dot: NSColor(calibratedRed: 0.12, green: 0.68, blue: 0.49, alpha: 1.0))
-    drawPill("5h + 7d", rect: NSRect(x: 220, y: 280, width: 118, height: 38), fill: NSColor(calibratedRed: 0.95, green: 0.69, blue: 0.30, alpha: 0.15), stroke: NSColor(calibratedRed: 0.95, green: 0.69, blue: 0.30, alpha: 0.34), text: NSColor(calibratedRed: 0.25, green: 0.20, blue: 0.10, alpha: 1.0))
-    drawPill("Local report", rect: NSRect(x: 352, y: 280, width: 144, height: 38), fill: NSColor(calibratedRed: 0.12, green: 0.18, blue: 0.16, alpha: 0.08), stroke: NSColor(calibratedRed: 0.12, green: 0.18, blue: 0.16, alpha: 0.18), text: NSColor(calibratedRed: 0.10, green: 0.15, blue: 0.14, alpha: 1.0))
+    drawPill("Live source", rect: NSRect(x: 74, y: 280, width: 132, height: 38), fill: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 0.13), stroke: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 0.30), text: NSColor(calibratedRed: 0.06, green: 0.22, blue: 0.21, alpha: 1.0), dot: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 1.0))
+    drawPill("5h + 7d", rect: NSRect(x: 220, y: 280, width: 118, height: 38), fill: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.15), stroke: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.34), text: NSColor(calibratedRed: 0.28, green: 0.20, blue: 0.08, alpha: 1.0))
+    drawPill("Local report", rect: NSRect(x: 352, y: 280, width: 144, height: 38), fill: NSColor(calibratedRed: 0.24, green: 0.37, blue: 0.92, alpha: 0.09), stroke: NSColor(calibratedRed: 0.24, green: 0.37, blue: 0.92, alpha: 0.18), text: NSColor(calibratedRed: 0.10, green: 0.14, blue: 0.30, alpha: 1.0))
 
-    drawRoundedRect(NSRect(x: 72, y: 382, width: 468, height: 84), radius: 26, fill: NSColor.white.withAlphaComponent(0.48), stroke: NSColor(calibratedRed: 0.13, green: 0.20, blue: 0.18, alpha: 0.16))
+    drawRoundedRect(NSRect(x: 72, y: 382, width: 468, height: 84), radius: 26, fill: NSColor.white.withAlphaComponent(0.48), stroke: NSColor(calibratedRed: 0.10, green: 0.19, blue: 0.23, alpha: 0.16))
     drawImage(menuBar, in: NSRect(x: 92, y: 405, width: 395, height: 48))
-    drawText("Menu bar first. Details only when you click.", in: NSRect(x: 78, y: 490, width: 420, height: 24), size: 16, weight: .medium, color: NSColor(calibratedRed: 0.34, green: 0.40, blue: 0.37, alpha: 0.90))
+    drawText("Menu bar first. Details only when you click.", in: NSRect(x: 78, y: 490, width: 420, height: 24), size: 16, weight: .medium, color: NSColor(calibratedRed: 0.42, green: 0.50, blue: 0.53, alpha: 0.90))
 
     let shadow = NSShadow()
     shadow.shadowColor = NSColor.black.withAlphaComponent(0.18)
@@ -146,7 +146,7 @@ try writePNG(consoleOutputPath) {
     shadow.set()
     drawRoundedRect(NSRect(x: 604, y: 34, width: 604, height: 604), radius: 30, fill: NSColor.black.withAlphaComponent(0.08))
     NSGraphicsContext.restoreGraphicsState()
-    drawImage(paperPanel, in: NSRect(x: 604, y: 34, width: 604, height: 604))
+    drawImage(porcelainPanel, in: NSRect(x: 604, y: 34, width: 604, height: 604))
 }
 
 try writePNG(socialOutputPath) {
@@ -162,8 +162,8 @@ try writePNG(socialOutputPath) {
 
     drawPill("No browser cookies", rect: NSRect(x: 78, y: 328, width: 174, height: 40), fill: NSColor.white.withAlphaComponent(0.08), stroke: NSColor.white.withAlphaComponent(0.17), text: NSColor.white.withAlphaComponent(0.88))
     drawPill("No auth-file reads", rect: NSRect(x: 266, y: 328, width: 174, height: 40), fill: NSColor.white.withAlphaComponent(0.08), stroke: NSColor.white.withAlphaComponent(0.17), text: NSColor.white.withAlphaComponent(0.88))
-    drawPill("Native menu bar", rect: NSRect(x: 78, y: 382, width: 174, height: 40), fill: NSColor(calibratedRed: 0.31, green: 0.94, blue: 0.68, alpha: 0.14), stroke: NSColor(calibratedRed: 0.31, green: 0.94, blue: 0.68, alpha: 0.34), text: NSColor(calibratedRed: 0.74, green: 1.00, blue: 0.88, alpha: 1.0), dot: NSColor(calibratedRed: 0.31, green: 0.94, blue: 0.68, alpha: 1.0))
-    drawPill("sample app data", rect: NSRect(x: 266, y: 382, width: 164, height: 40), fill: NSColor(calibratedRed: 1.00, green: 0.78, blue: 0.35, alpha: 0.13), stroke: NSColor(calibratedRed: 1.00, green: 0.78, blue: 0.35, alpha: 0.28), text: NSColor(calibratedRed: 1.00, green: 0.88, blue: 0.62, alpha: 1.0))
+    drawPill("Native menu bar", rect: NSRect(x: 78, y: 382, width: 174, height: 40), fill: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 0.14), stroke: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 0.34), text: NSColor(calibratedRed: 0.70, green: 1.00, blue: 0.94, alpha: 1.0), dot: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 1.0))
+    drawPill("sample app data", rect: NSRect(x: 266, y: 382, width: 164, height: 40), fill: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.13), stroke: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.28), text: NSColor(calibratedRed: 1.00, green: 0.86, blue: 0.58, alpha: 1.0))
 
     drawText("Actual app-rendered Signal Console", in: NSRect(x: 80, y: 520, width: 440, height: 24), size: 16, weight: .medium, color: NSColor.white.withAlphaComponent(0.56))
 

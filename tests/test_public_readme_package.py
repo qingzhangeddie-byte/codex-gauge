@@ -88,19 +88,20 @@ class PublicReadmePackageTests(unittest.TestCase):
             "Adaptive refresh",
             "Optional SSD temperature",
             "Normal, Warm, or Hot",
-            "1-second local SSD temperature history",
-            "smooth 10-minute temperature curve",
+            "1-second SSD temperature samples",
+            "smooth 10-minute Movement curve",
             "local CPU and RAM percentages",
             "CPU/RAM system strip",
-            "24-hour local CPU/RAM history",
-            "24-hour local retention",
-            "Clear local data removes temperature history",
-            "Clear local data removes CPU/RAM history",
+            "10-minute in-memory movement view",
+            "Zero persistence mode",
+            "native battery signal",
+            "Power Saver on battery",
+            "20 minutes normally on battery",
+            "Clear legacy data removes old Codex Gauge history",
             "actual next-refresh countdown",
             "Codex closed",
             "Reset timing",
-            "About a minute",
-            "LaunchAgent",
+            "directly and removes any old Codex Gauge LaunchAgent plist",
         ]:
             self.assertIn(phrase, readme)
 
@@ -112,7 +113,7 @@ class PublicReadmePackageTests(unittest.TestCase):
             "## Uninstall",
             "launchctl bootout",
             "app.codexgauge.menubar",
-            "Application Support/CodexGauge",
+            "legacy support files",
             "[NOTICE](NOTICE)",
         ]:
             self.assertIn(phrase, readme)
@@ -121,7 +122,7 @@ class PublicReadmePackageTests(unittest.TestCase):
             "## 卸载",
             "launchctl bootout",
             "app.codexgauge.menubar",
-            "Application Support/CodexGauge",
+            "旧版本可能留下的本地支持文件",
             "[NOTICE](NOTICE)",
         ]:
             self.assertIn(phrase, zh_readme)
@@ -193,9 +194,9 @@ class PublicReadmePackageTests(unittest.TestCase):
 
         self.assertTrue(readme.startswith("# Codex Gauge\n"))
         self.assertIn("简单、安全的 Codex 菜单栏额度仪表", readme)
-        self.assertIn("1 秒本地 SSD 温度历史", readme)
+        self.assertIn("1 秒 SSD 温度采样", readme)
         self.assertIn("10 分钟温度曲线", readme)
-        self.assertIn("24 小时本地保留", readme)
+        self.assertIn("只保存在内存中", readme)
         self.assertIn("git clone https://github.com/qingzhangeddie-byte/codex-gauge.git", readme)
         for phrase in [
             "## FAQ",
@@ -215,10 +216,10 @@ class PublicReadmePackageTests(unittest.TestCase):
         self.assertIn("Codex Gauge Privacy Notes", privacy)
         self.assertIn("does not read browser cookies", privacy)
         self.assertIn("does not read `~/.codex/auth.json`", privacy)
-        self.assertIn("bounded recent Codex session `rate_limits` metadata", privacy)
-        self.assertIn("labels that data as Snapshot", privacy)
+        self.assertIn("zero persistence", privacy)
+        self.assertIn("Snapshot fallback is disabled in app mode", privacy)
         self.assertIn("Codex app-server", privacy)
-        self.assertIn("~/Library/LaunchAgents/app.codexgauge.menubar.plist", privacy)
+        self.assertIn("does not install a LaunchAgent", privacy)
 
 
 if __name__ == "__main__":

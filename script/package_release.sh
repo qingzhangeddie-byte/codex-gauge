@@ -27,7 +27,7 @@ APP_NAME="CodexGauge"
 LEGACY_APP_NAME="AiLimitStatus"
 AGENT_LABEL="app.codexgauge.menubar"
 AGENT_PLIST="$HOME/Library/LaunchAgents/app.codexgauge.menubar.plist"
-SUPPORT_DIR="$HOME/Library/Application Support/CodexGauge"
+LEGACY_SUPPORT_DIR="$HOME/Library/Application Support/CodexGauge"
 PACKAGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_SRC="$PACKAGE_DIR/$APP_NAME.app"
 
@@ -39,38 +39,9 @@ unload_launch_agent() {
   /bin/launchctl bootout "$(launchctl_domain)/$AGENT_LABEL" >/dev/null 2>&1 || true
 }
 
-install_launch_agent() {
+launch_app_binary() {
   local app_path="$1"
-  local binary_path="$app_path/Contents/MacOS/$APP_NAME-bin"
-  mkdir -p "$(dirname "$AGENT_PLIST")" "$SUPPORT_DIR"
-  cat >"$AGENT_PLIST" <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>$AGENT_LABEL</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>$binary_path</string>
-  </array>
-  <key>RunAtLoad</key>
-  <true/>
-  <key>KeepAlive</key>
-  <true/>
-  <key>LimitLoadToSessionType</key>
-  <string>Aqua</string>
-  <key>ProcessType</key>
-  <string>Interactive</string>
-  <key>StandardOutPath</key>
-  <string>$SUPPORT_DIR/launchd.out.log</string>
-  <key>StandardErrorPath</key>
-  <string>$SUPPORT_DIR/launchd.err.log</string>
-</dict>
-</plist>
-PLIST
-  /bin/launchctl bootstrap "$(launchctl_domain)" "$AGENT_PLIST" >/dev/null 2>&1 || true
-  /bin/launchctl kickstart -k "$(launchctl_domain)/$AGENT_LABEL" >/dev/null 2>&1 || true
+  /usr/bin/open -na "$app_path"
 }
 
 copy_app() {
@@ -87,18 +58,20 @@ if [[ ! -d "$APP_SRC" ]]; then
 fi
 
 unload_launch_agent
+rm -f "$AGENT_PLIST" >/dev/null 2>&1 || true
+rm -rf "$LEGACY_SUPPORT_DIR" >/dev/null 2>&1 || true
 pkill -x "$APP_NAME" >/dev/null 2>&1 || true
 pkill -x "$APP_NAME-bin" >/dev/null 2>&1 || true
 rm -rf "/Applications/AiLimitStatus.app" "$HOME/Applications/AiLimitStatus.app" >/dev/null 2>&1 || true
 
 if copy_app "/Applications/$APP_NAME.app"; then
-  install_launch_agent "/Applications/$APP_NAME.app"
+  launch_app_binary "/Applications/$APP_NAME.app"
   printf "Installed /Applications/%s.app\n" "$APP_NAME"
   exit 0
 fi
 
 if copy_app "$HOME/Applications/$APP_NAME.app"; then
-  install_launch_agent "$HOME/Applications/$APP_NAME.app"
+  launch_app_binary "$HOME/Applications/$APP_NAME.app"
   printf "Installed %s/Applications/%s.app\n" "$HOME" "$APP_NAME"
   exit 0
 fi
@@ -123,6 +96,7 @@ After install:
 - Codex Gauge appears in the macOS menu bar.
 - Preferences lets you choose Adaptive, 5 minutes, or 10 minutes refresh.
 - Notifications are opt-in.
+- Zero persistence mode keeps no LaunchAgent, support-folder logs, caches, histories, reports, or saved preferences.
 README
 
 (

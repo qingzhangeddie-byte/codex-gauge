@@ -1,6 +1,7 @@
 import Cocoa
 import Darwin
 import Foundation
+import IOKit.ps
 import UserNotifications
 
 private struct UsageSnapshot: Decodable {
@@ -40,6 +41,14 @@ private struct TemperatureSample: Codable {
     let time: String
     let temperatureC: Int?
     let ok: Bool
+    let timestamp: Double?
+
+    init(time: String, temperatureC: Int?, ok: Bool, timestamp: Double? = nil) {
+        self.time = time
+        self.temperatureC = temperatureC
+        self.ok = ok
+        self.timestamp = timestamp
+    }
 }
 
 private struct SystemMetricSample: Codable {
@@ -47,6 +56,76 @@ private struct SystemMetricSample: Codable {
     let cpuPercent: Int?
     let ramPercent: Int?
     let ok: Bool
+    let timestamp: Double?
+
+    init(time: String, cpuPercent: Int?, ramPercent: Int?, ok: Bool, timestamp: Double? = nil) {
+        self.time = time
+        self.cpuPercent = cpuPercent
+        self.ramPercent = ramPercent
+        self.ok = ok
+        self.timestamp = timestamp
+    }
+}
+
+private struct BatteryStatus: Equatable {
+    let percent: Int?
+    let isPluggedIn: Bool?
+    let isCharging: Bool?
+    let hasBattery: Bool
+    let powerSaverActive: Bool
+    let source: String
+    let error: String?
+}
+
+private struct GitHubRelease: Decodable {
+    let tagName: String
+    let name: String?
+    let body: String?
+    let htmlURL: String
+    let publishedAt: String?
+    let prerelease: Bool
+    let draft: Bool
+    let assets: [GitHubReleaseAsset]
+
+    enum CodingKeys: String, CodingKey {
+        case tagName = "tag_name"
+        case name
+        case body
+        case htmlURL = "html_url"
+        case publishedAt = "published_at"
+        case prerelease
+        case draft
+        case assets
+    }
+}
+
+private struct GitHubReleaseAsset: Decodable {
+    let name: String
+    let browserDownloadURL: String
+    let size: Int?
+    let contentType: String?
+    let digest: String?
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case browserDownloadURL = "browser_download_url"
+        case size
+        case contentType = "content_type"
+        case digest
+    }
+}
+
+private enum UpdateCheckMode {
+    case manual
+    case automatic
+}
+
+private struct PreparedUpdate {
+    let release: GitHubRelease
+    let asset: GitHubReleaseAsset
+    let latestVersion: String
+    let appURL: URL
+    let workDirectory: URL
 }
 
 private func temperatureHistorySummaryText(_ samples: [TemperatureSample]) -> String {
@@ -210,12 +289,12 @@ private struct SignalConsoleLayout {
 
     var copyReportButtonRect: NSRect {
         let card = reportCardRect
-        return NSRect(x: card.minX + 18, y: card.maxY - 32, width: 96, height: 30)
+        return NSRect(x: card.minX + 18, y: card.maxY - 32, width: 108, height: 30)
     }
 
     var clearDataButtonRect: NSRect {
         let card = reportCardRect
-        return NSRect(x: card.minX + 122, y: card.maxY - 32, width: 120, height: 30)
+        return NSRect(x: card.minX + 136, y: card.maxY - 32, width: 106, height: 30)
     }
 
     var healthRibbonRect: NSRect {
@@ -252,7 +331,7 @@ private struct GaugePalette {
     let mutedText: NSColor
 }
 
-private let themePreferenceKey = "signalConsoleTheme"
+private let porcelainLabThemeKey = "porcelainLab"
 private let paperConsoleThemeKey = "paperConsole"
 private let signalDarkThemeKey = "signalDark"
 private let monoGraphiteThemeKey = "monoGraphite"
@@ -343,54 +422,58 @@ private func signalDarkTheme() -> SignalConsoleTheme {
     )
 }
 
-private func paperConsoleTheme() -> SignalConsoleTheme {
+private func porcelainLabTheme() -> SignalConsoleTheme {
     SignalConsoleTheme(
-        key: paperConsoleThemeKey,
-        name: "Paper Console",
+        key: porcelainLabThemeKey,
+        name: "Porcelain Lab",
         appearance: .aqua,
         material: .popover,
-        panelBackground: NSColor(calibratedRed: 0.94, green: 0.92, blue: 0.86, alpha: 1.0),
-        panelStrongBackground: NSColor(calibratedRed: 0.99, green: 0.98, blue: 0.94, alpha: 1.0),
-        panelSoftBackground: NSColor(calibratedRed: 0.15, green: 0.20, blue: 0.18, alpha: 0.055),
-        panelBorder: NSColor(calibratedRed: 0.10, green: 0.16, blue: 0.14, alpha: 0.18),
-        textPrimary: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.96),
-        textSecondary: NSColor(calibratedRed: 0.22, green: 0.27, blue: 0.25, alpha: 0.96),
-        textMuted: NSColor(calibratedRed: 0.40, green: 0.45, blue: 0.42, alpha: 0.92),
-        buttonPrimaryText: NSColor(calibratedRed: 0.03, green: 0.08, blue: 0.06, alpha: 1.0),
-        secondaryButtonBackground: NSColor(calibratedRed: 0.11, green: 0.16, blue: 0.14, alpha: 0.07),
-        commandButtonBackground: NSColor(calibratedRed: 0.11, green: 0.16, blue: 0.14, alpha: 0.055),
-        trackFill: NSColor(calibratedRed: 0.11, green: 0.16, blue: 0.14, alpha: 0.13),
-        baselineStroke: NSColor(calibratedRed: 0.11, green: 0.16, blue: 0.14, alpha: 0.15),
-        mintAccent: NSColor(calibratedRed: 0.11, green: 0.65, blue: 0.46, alpha: 0.96),
-        amberAccent: NSColor(calibratedRed: 0.95, green: 0.68, blue: 0.25, alpha: 0.96),
-        coralAccent: NSColor(calibratedRed: 0.84, green: 0.29, blue: 0.25, alpha: 0.96),
-        blueAccent: NSColor(calibratedRed: 0.23, green: 0.45, blue: 0.72, alpha: 0.96),
-        mintSoft: NSColor(calibratedRed: 0.11, green: 0.65, blue: 0.46, alpha: 0.16),
-        amberSoft: NSColor(calibratedRed: 0.95, green: 0.68, blue: 0.25, alpha: 0.18),
-        coralSoft: NSColor(calibratedRed: 0.84, green: 0.29, blue: 0.25, alpha: 0.16),
-        blueSoft: NSColor(calibratedRed: 0.23, green: 0.45, blue: 0.72, alpha: 0.14),
-        quotaLowEnd: NSColor(calibratedRed: 0.95, green: 0.45, blue: 0.28, alpha: 0.96),
-        quotaHighEnd: NSColor(calibratedRed: 0.62, green: 0.78, blue: 0.36, alpha: 0.96),
-        resetMidAccent: NSColor(calibratedRed: 0.94, green: 0.50, blue: 0.22, alpha: 0.96),
+        panelBackground: NSColor(calibratedRed: 0.96, green: 0.985, blue: 1.00, alpha: 1.0),
+        panelStrongBackground: NSColor(calibratedRed: 0.89, green: 0.94, blue: 0.97, alpha: 1.0),
+        panelSoftBackground: NSColor(calibratedRed: 0.09, green: 0.18, blue: 0.24, alpha: 0.065),
+        panelBorder: NSColor(calibratedRed: 0.10, green: 0.19, blue: 0.23, alpha: 0.20),
+        textPrimary: NSColor(calibratedRed: 0.08, green: 0.13, blue: 0.15, alpha: 0.96),
+        textSecondary: NSColor(calibratedRed: 0.19, green: 0.28, blue: 0.31, alpha: 0.96),
+        textMuted: NSColor(calibratedRed: 0.42, green: 0.50, blue: 0.53, alpha: 0.92),
+        buttonPrimaryText: NSColor(calibratedRed: 0.06, green: 0.11, blue: 0.12, alpha: 1.0),
+        secondaryButtonBackground: NSColor(calibratedRed: 0.09, green: 0.18, blue: 0.24, alpha: 0.075),
+        commandButtonBackground: NSColor(calibratedRed: 0.09, green: 0.18, blue: 0.24, alpha: 0.055),
+        trackFill: NSColor(calibratedRed: 0.09, green: 0.18, blue: 0.24, alpha: 0.13),
+        baselineStroke: NSColor(calibratedRed: 0.09, green: 0.18, blue: 0.24, alpha: 0.15),
+        mintAccent: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 0.96),
+        amberAccent: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.96),
+        coralAccent: NSColor(calibratedRed: 0.93, green: 0.27, blue: 0.31, alpha: 0.96),
+        blueAccent: NSColor(calibratedRed: 0.24, green: 0.37, blue: 0.92, alpha: 0.96),
+        mintSoft: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 0.16),
+        amberSoft: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.20),
+        coralSoft: NSColor(calibratedRed: 0.93, green: 0.27, blue: 0.31, alpha: 0.16),
+        blueSoft: NSColor(calibratedRed: 0.24, green: 0.37, blue: 0.92, alpha: 0.13),
+        quotaLowEnd: NSColor(calibratedRed: 0.93, green: 0.27, blue: 0.31, alpha: 0.96),
+        quotaHighEnd: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 0.96),
+        resetMidAccent: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.96),
         menuDarkPalette: GaugePalette(
-            background: NSColor(calibratedRed: 0.05, green: 0.12, blue: 0.14, alpha: 0.88),
-            border: NSColor(calibratedRed: 0.60, green: 0.86, blue: 0.80, alpha: 0.52),
+            background: NSColor(calibratedRed: 0.04, green: 0.10, blue: 0.13, alpha: 0.90),
+            border: NSColor(calibratedRed: 0.36, green: 0.86, blue: 0.82, alpha: 0.58),
             track: NSColor.white.withAlphaComponent(0.18),
-            resetTrack: NSColor(calibratedRed: 0.95, green: 0.68, blue: 0.25, alpha: 0.28),
+            resetTrack: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.30),
             primaryText: NSColor.white.withAlphaComponent(0.95),
             secondaryText: NSColor.white.withAlphaComponent(0.70),
             mutedText: NSColor.white.withAlphaComponent(0.42)
         ),
         menuLightPalette: GaugePalette(
-            background: NSColor(calibratedRed: 0.06, green: 0.15, blue: 0.17, alpha: 0.82),
-            border: NSColor(calibratedRed: 0.48, green: 0.78, blue: 0.72, alpha: 0.50),
+            background: NSColor(calibratedRed: 0.05, green: 0.12, blue: 0.16, alpha: 0.84),
+            border: NSColor(calibratedRed: 0.32, green: 0.72, blue: 0.82, alpha: 0.54),
             track: NSColor.white.withAlphaComponent(0.20),
-            resetTrack: NSColor(calibratedRed: 0.95, green: 0.68, blue: 0.25, alpha: 0.30),
+            resetTrack: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.30),
             primaryText: NSColor.white.withAlphaComponent(0.96),
             secondaryText: NSColor.white.withAlphaComponent(0.72),
             mutedText: NSColor.white.withAlphaComponent(0.44)
         )
     )
+}
+
+private func paperConsoleTheme() -> SignalConsoleTheme {
+    porcelainLabTheme()
 }
 
 private func monoGraphiteTheme() -> SignalConsoleTheme {
@@ -498,6 +581,11 @@ private struct SignalConsoleModel {
     let systemMetricHistory: [SystemMetricSample]
     let cpuUsageText: String
     let ramUsageText: String
+    let batteryStatusText: String
+    let batteryPercent: Int?
+    let powerSaverText: String
+    let refreshCadenceText: String
+    let hardwareSignalsVisible: Bool
     let reportFiveHourMovement: String
     let reportSevenDayMovement: String
     let reportTodaySummary: String
@@ -572,8 +660,8 @@ private final class SignalConsolePanelView: NSView {
     private func addSignalConsoleButtons() {
         let layout = SignalConsoleLayout(bounds: bounds)
         let commandRects = layout.bottomCommandButtonRects
-        addButton(title: "Copy report", frame: layout.copyReportButtonRect, action: generateReportAction, style: .primary)
-        addButton(title: "Clear data", frame: layout.clearDataButtonRect, action: clearDataAction, style: .secondary)
+        addButton(title: "Copy summary", frame: layout.copyReportButtonRect, action: generateReportAction, style: .primary)
+        addButton(title: "Clear legacy", frame: layout.clearDataButtonRect, action: clearDataAction, style: .secondary)
         addButton(title: "Run Check", frame: layout.runCheckButtonRect, action: runCheckAction, style: .secondary)
         addButton(title: "Open Codex", frame: commandRects[0], action: openCodexAction, style: .command)
         addButton(title: "Refresh Now", frame: commandRects[1], action: refreshAction, style: .command)
@@ -647,6 +735,23 @@ private final class SignalConsolePanelView: NSView {
         panelBorder.setStroke()
         background.lineWidth = 1
         background.stroke()
+        drawPanelAccentRail()
+    }
+
+    private func drawPanelAccentRail() {
+        let layout = SignalConsoleLayout(bounds: bounds)
+        let rect = layout.panelRect
+        let rail = NSRect(x: rect.minX + 38, y: rect.minY + 8, width: rect.width - 76, height: 2.4)
+        drawRoundedGradient(
+            rail,
+            radius: 1.2,
+            gradient: NSGradient(colors: [
+                blueAccent.withAlphaComponent(0.22),
+                mintAccent.withAlphaComponent(0.48),
+                amberAccent.withAlphaComponent(0.30),
+            ]),
+            stroke: nil
+        )
     }
 
     private func drawHeader() {
@@ -730,33 +835,48 @@ private final class SignalConsolePanelView: NSView {
         let card = layout.trendCardRect
         drawRoundedRect(card, radius: 15, fill: panelSoftBackground, stroke: panelBorder.withAlphaComponent(0.50))
         drawText("Movement", x: card.minX + 16, y: card.minY + 14, width: 86, height: 18, size: 12, weight: .bold, color: textPrimary)
-        drawText("last 24h", x: card.maxX - 62, y: card.minY + 14, width: 46, height: 18, size: 10, weight: .regular, color: textMuted)
+        drawText("last 24h", x: card.minX + 104, y: card.minY + 16, width: 44, height: 14, size: 8.6, weight: .regular, color: textMuted)
         drawText("Quota movement", x: card.minX + 16, y: card.minY + 33, width: 78, height: 12, size: 8.2, weight: .bold, color: textMuted)
         drawTrendContext()
-        drawTrendRow(label: "5h", text: model.fiveHourTrendText, values: model.fiveHourHistory, y: 326)
-        drawTrendRow(label: "7d", text: model.sevenDayTrendText, values: model.sevenDayHistory, y: 348)
-        drawSystemMetricMovementRows(in: card)
-        drawTemperatureMovementRow(in: card)
+        drawTrendRow(label: "5h", text: model.fiveHourTrendText, values: model.fiveHourHistory, y: card.minY + 52)
+        drawTrendRow(label: "7d", text: model.sevenDayTrendText, values: model.sevenDayHistory, y: card.minY + 73)
+        if hardwareSignalsVisible() {
+            drawSystemMetricMovementRows(in: card)
+            drawTemperatureMovementRow(in: card)
+            drawBatteryStatusRow(in: card)
+        } else {
+            drawBatteryModeStatusRow(in: card)
+        }
+    }
+
+    private func hardwareSignalsVisible() -> Bool {
+        model.hardwareSignalsVisible
     }
 
     private func drawTrendContext() {
         let layout = SignalConsoleLayout(bounds: bounds)
         let card = layout.trendCardRect
-        drawText(model.trendContextText, x: card.minX + 96, y: card.minY + 33, width: card.width - 112, height: 12, size: 7.2, weight: .regular, color: textMuted)
+        drawText(model.trendContextText, x: card.minX + 96, y: card.minY + 33, width: card.width - 176, height: 12, size: 7.2, weight: .regular, color: textMuted)
     }
 
     private func drawTrendRow(label: String, text: String, values: [Int], y: CGFloat) {
+        let layout = SignalConsoleLayout(bounds: bounds)
+        let card = layout.trendCardRect
         let signalText = "\(label) \(trendSignalText(values: values, fallback: text))"
-        drawText(signalText, x: 36, y: y - 2, width: 56, height: 16, size: 9.5, weight: .bold, color: trendSignalColor(values: values), mono: true)
-        drawTrendSparkline(values: values, rect: NSRect(x: 94, y: y - 4, width: 52, height: 18))
+        let labelX = card.minX + 16
+        let sparklineRect = NSRect(x: card.minX + 84, y: y - 4, width: 46, height: 18)
+        drawText(signalText, x: labelX, y: y - 2, width: 52, height: 16, size: 9.2, weight: .bold, color: trendSignalColor(values: values), mono: true)
+        drawTrendSparkline(values: values, rect: sparklineRect)
         drawTrendDeltaText(values: values, y: y)
     }
 
     private func drawTrendDeltaText(values: [Int], y: CGFloat) {
+        let layout = SignalConsoleLayout(bounds: bounds)
+        let card = layout.trendCardRect
         let text = trendDeltaText(values)
         drawText(
             text,
-            x: 150,
+            x: card.minX + 136,
             y: y,
             width: 36,
             height: 16,
@@ -772,13 +892,13 @@ private final class SignalConsolePanelView: NSView {
         let ramValues = model.systemMetricHistory.compactMap { $0.ramPercent }
         let cpuColor = systemMetricLineColor(label: "CPU")
         let ramColor = systemMetricLineColor(label: "RAM")
-        drawSystemMetricMovementRow(label: "CPU", valueText: model.cpuUsageText, values: cpuValues, color: cpuColor, rect: NSRect(x: card.maxX - 76, y: card.minY + 47, width: 60, height: 17))
-        drawSystemMetricMovementRow(label: "RAM", valueText: model.ramUsageText, values: ramValues, color: ramColor, rect: NSRect(x: card.maxX - 76, y: card.minY + 68, width: 60, height: 17))
+        drawSystemMetricMovementRow(label: "CPU", valueText: model.cpuUsageText, values: cpuValues, color: cpuColor, rect: NSRect(x: card.maxX - 66, y: card.minY + 52, width: 50, height: 17))
+        drawSystemMetricMovementRow(label: "RAM", valueText: model.ramUsageText, values: ramValues, color: ramColor, rect: NSRect(x: card.maxX - 66, y: card.minY + 73, width: 50, height: 17))
     }
 
     private func drawSystemMetricMovementRow(label: String, valueText: String, values: [Int], color: NSColor, rect: NSRect) {
-        drawText(label, x: rect.minX, y: rect.minY, width: 24, height: 10, size: 7.2, weight: .bold, color: color)
-        drawText(valueText, x: rect.maxX - 28, y: rect.minY, width: 28, height: 10, size: 7.2, weight: .bold, color: valueText == "--" ? textMuted : textPrimary, mono: true)
+        drawText(label, x: rect.minX, y: rect.minY, width: 22, height: 10, size: 7.0, weight: .bold, color: color)
+        drawText(valueText, x: rect.maxX - 26, y: rect.minY, width: 26, height: 10, size: 7.0, weight: .bold, color: valueText == "--" ? textMuted : textPrimary, mono: true)
         drawSystemMetricSparkline(values: values, rect: NSRect(x: rect.minX, y: rect.minY + 10, width: rect.width, height: 6), color: color)
     }
 
@@ -825,7 +945,7 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawTemperatureMovementRow(in card: NSRect) {
-        let row = NSRect(x: card.minX + 16, y: card.maxY - 35, width: card.width - 32, height: 25)
+        let row = NSRect(x: card.minX + 16, y: card.minY + 92, width: card.width - 32, height: 24)
         let curveRect = NSRect(x: row.minX + 86, y: row.minY + 4, width: row.width - 134, height: 19)
         let color = temperatureCurveColor(samples: model.temperatureHistory)
         drawText("SSD temp", x: row.minX, y: row.minY + 1, width: 58, height: 12, size: 8.6, weight: .bold, color: color)
@@ -838,6 +958,67 @@ private final class SignalConsolePanelView: NSView {
         }
         drawText("10m", x: curveRect.minX, y: row.minY + 16, width: 20, height: 8, size: 5.8, weight: .regular, color: textMuted)
         drawText("now", x: curveRect.maxX - 18, y: row.minY + 16, width: 20, height: 8, size: 5.8, weight: .regular, color: textMuted)
+    }
+
+    private func drawBatteryStatusRow(in card: NSRect) {
+        let chip = NSRect(x: card.maxX - 96, y: card.minY + 13, width: 80, height: 20)
+        let color = model.powerSaverText.contains("active") ? amberAccent : textSecondary
+        drawRoundedRect(chip, radius: 10, fill: color.withAlphaComponent(0.10), stroke: color.withAlphaComponent(0.30))
+        drawSignalConsoleBatteryIcon(percent: model.batteryPercent, rect: NSRect(x: chip.minX + 7, y: chip.minY + 2, width: 26, height: 16), color: color)
+        drawText(compactSignalConsoleBatteryText(), x: chip.minX + 38, y: chip.minY + 4, width: 34, height: 12, size: 8.2, weight: .semibold, color: textPrimary, mono: true)
+        drawText(model.refreshCadenceText, x: card.maxX - 72, y: card.minY + 33, width: 56, height: 12, size: 7.2, weight: .medium, color: textMuted, mono: true)
+        if model.powerSaverText.contains("active") {
+            drawText("Saver on", x: card.minX + 160, y: card.minY + 33, width: 36, height: 12, size: 7.0, weight: .bold, color: color)
+        }
+    }
+
+    private func drawBatteryModeStatusRow(in card: NSRect) {
+        let row = NSRect(x: card.minX + 16, y: card.minY + 90, width: card.width - 32, height: 26)
+        let color = amberAccent
+        drawRoundedGradient(
+            row,
+            radius: 12,
+            gradient: NSGradient(colors: [
+                amberAccent.withAlphaComponent(0.20),
+                theme.commandButtonBackground,
+            ]),
+            stroke: amberAccent.withAlphaComponent(0.34)
+        )
+        drawSignalConsoleBatteryIcon(percent: model.batteryPercent, rect: NSRect(x: row.minX + 8, y: row.minY + 4, width: 34, height: 18), color: color)
+        drawText("Battery mode", x: row.minX + 50, y: row.minY + 4, width: 84, height: 12, size: 8.7, weight: .bold, color: color)
+        drawText(model.powerSaverText, x: row.minX + 50, y: row.minY + 15, width: 92, height: 10, size: 7.0, weight: .medium, color: textPrimary)
+        drawText(model.batteryStatusText, x: row.maxX - 70, y: row.minY + 4, width: 62, height: 12, size: 8.4, weight: .bold, color: textPrimary, mono: true)
+        drawText(model.refreshCadenceText, x: row.maxX - 70, y: row.minY + 15, width: 62, height: 10, size: 7.0, weight: .medium, color: textMuted, mono: true)
+    }
+
+    private func compactSignalConsoleBatteryText() -> String {
+        if let percent = model.batteryPercent {
+            return "\(percent)%"
+        }
+        let prefix = "Battery "
+        if model.batteryStatusText.hasPrefix(prefix) {
+            return String(model.batteryStatusText.dropFirst(prefix.count))
+        }
+        return model.batteryStatusText.count > 5 ? "--" : model.batteryStatusText
+    }
+
+    private func drawSignalConsoleBatteryIcon(percent: Int?, rect: NSRect, color: NSColor) {
+        let shellRect = rect.insetBy(dx: 1.4, dy: 4.2)
+        drawRoundedRect(shellRect, radius: 4.5, fill: panelBackground.withAlphaComponent(0.34), stroke: color.withAlphaComponent(0.66))
+        drawRoundedRect(
+            NSRect(x: shellRect.maxX - 0.4, y: shellRect.midY - 4.2, width: 3.8, height: 8.4),
+            radius: 1.7,
+            fill: color.withAlphaComponent(0.66),
+            stroke: nil
+        )
+        let fillRect = shellRect.insetBy(dx: 3.4, dy: 3.5)
+        let fillWidth = max(2.0, fillRect.width * clamped(percent))
+        drawRoundedRect(
+            NSRect(x: fillRect.minX, y: fillRect.minY, width: fillWidth, height: fillRect.height),
+            radius: 2.2,
+            fill: color.withAlphaComponent(0.86),
+            stroke: nil
+        )
     }
 
     private func drawTemperatureCurve(samples: [TemperatureSample], rect: NSRect) {
@@ -1399,14 +1580,14 @@ private final class SignalConsolePanelView: NSView {
             return "Helper"
         case "Live data available":
             return "Live"
-        case "LaunchAgent":
-            return "Login"
-        case "LaunchAgent running":
-            return "Login"
+        case "Session storage":
+            return "Store"
         case "Notifications permission":
             return "Alerts"
         case "SSD temp":
             return "SSD"
+        case "Battery":
+            return "Batt"
         default:
             return title
         }
@@ -1545,7 +1726,7 @@ private func renderSignalConsolePanel(model: SignalConsoleModel, theme: SignalCo
 
 private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
     let themes: [(slug: String, theme: SignalConsoleTheme)] = [
-        ("paper-console", paperConsoleTheme()),
+        ("porcelain-lab", porcelainLabTheme()),
         ("signal-dark", signalDarkTheme()),
         ("mono-graphite", monoGraphiteTheme()),
     ]
@@ -1587,8 +1768,8 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
         ("last-live", signalConsolePreviewModel(
             title: "Last live",
             detail: "Cached",
-            statusTitle: "Showing last live cache",
-            statusDetail: "Codex not reachable - showing last live",
+            statusTitle: "Non-live fallback disabled in app",
+            statusDetail: "Zero persistence keeps no cached fallback",
             fiveHourLeft: 58,
             sevenDayLeft: 63,
             fiveHourResetText: "2h",
@@ -1618,6 +1799,50 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             reportSeven: "-18%",
             todaySummary: "Today 18 · 5h -81% · 7d -18%"
         )),
+        ("plugged-in-full", signalConsolePreviewModel(
+            title: "Live",
+            detail: "Charging",
+            statusTitle: "Live data is current",
+            statusDetail: "Read from local Codex app-server",
+            fiveHourLeft: 82,
+            sevenDayLeft: 76,
+            fiveHourResetText: "4h",
+            sevenDayResetText: "5d22h",
+            fiveHourResetProgress: 18,
+            sevenDayResetProgress: 52,
+            source: "live",
+            unavailable: false,
+            reportFive: "-8%",
+            reportSeven: "-3%",
+            todaySummary: "Today 12 · 5h -8% · 7d -3%",
+            batteryPercent: 92,
+            batteryStatusText: "Battery 92%",
+            powerSaverText: "Power Saver off",
+            refreshCadenceText: "Refresh 5m",
+            hardwareSignalsVisible: true
+        )),
+        ("battery-mode", signalConsolePreviewModel(
+            title: "Live",
+            detail: "Battery",
+            statusTitle: "Live data is current",
+            statusDetail: "Battery mode keeps only usage and battery signals visible.",
+            fiveHourLeft: 80,
+            sevenDayLeft: 79,
+            fiveHourResetText: "4h",
+            sevenDayResetText: "5d21h",
+            fiveHourResetProgress: 22,
+            sevenDayResetProgress: 54,
+            source: "live",
+            unavailable: false,
+            reportFive: "-10%",
+            reportSeven: "-4%",
+            todaySummary: "Today 12 · 5h -10% · 7d -4%",
+            batteryPercent: 11,
+            batteryStatusText: "Battery 11%",
+            powerSaverText: "Power Saver active",
+            refreshCadenceText: "Refresh 60m",
+            hardwareSignalsVisible: false
+        )),
     ]
 
     return themes.flatMap { item in
@@ -1642,15 +1867,19 @@ private func signalConsolePreviewModel(
     unavailable: Bool,
     reportFive: String,
     reportSeven: String,
-    todaySummary: String
+    todaySummary: String,
+    batteryPercent: Int? = nil,
+    batteryStatusText: String? = nil,
+    powerSaverText: String? = nil,
+    refreshCadenceText: String? = nil,
+    hardwareSignalsVisible: Bool? = nil
 ) -> SignalConsoleModel {
     let temperatureHistory = previewTemperatureSamples(unavailable: unavailable)
     let systemMetricHistory = previewSystemMetricSamples(unavailable: unavailable)
     let doctorChecks = [
         DoctorCheck(title: "Codex process", state: unavailable ? "yellow" : "green", detail: unavailable ? "Closed" : "Open"),
         DoctorCheck(title: "Menu bar source", state: "green", detail: "OK"),
-        DoctorCheck(title: "Cache age", state: source == "last_live" ? "blue" : "green", detail: source == "last_live" ? "Cached" : "Fresh"),
-        DoctorCheck(title: "LaunchAgent", state: "green", detail: "Loaded"),
+        DoctorCheck(title: "Session storage", state: "green", detail: "Zero persistence"),
         DoctorCheck(title: "Last fetch", state: unavailable ? "grey" : "green", detail: unavailable ? "--" : "OK"),
         DoctorCheck(title: "SSD temp", state: unavailable ? "grey" : "green", detail: unavailable ? "Unavailable" : "42°C · Normal"),
     ]
@@ -1678,6 +1907,11 @@ private func signalConsolePreviewModel(
         systemMetricHistory: systemMetricHistory,
         cpuUsageText: systemMetricPercentText(systemMetricHistory.last?.cpuPercent),
         ramUsageText: systemMetricPercentText(systemMetricHistory.last?.ramPercent),
+        batteryStatusText: batteryStatusText ?? (unavailable ? "Battery --" : "Battery 74%"),
+        batteryPercent: batteryPercent ?? (unavailable ? nil : 74),
+        powerSaverText: powerSaverText ?? (unavailable ? "Power Saver unknown" : "Power Saver off"),
+        refreshCadenceText: refreshCadenceText ?? (unavailable ? "Refresh --" : "Refresh 5m"),
+        hardwareSignalsVisible: hardwareSignalsVisible ?? !unavailable,
         reportFiveHourMovement: reportFive,
         reportSevenDayMovement: reportSeven,
         reportTodaySummary: todaySummary,
@@ -1734,6 +1968,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let temperatureQueue = DispatchQueue(label: "app.codexgauge.temperature", qos: .utility)
     private let systemMetricsQueue = DispatchQueue(label: "app.codexgauge.system-metrics", qos: .utility)
+    private let runtimeLogQueue = DispatchQueue(label: "app.codexgauge.runtime-log", qos: .utility)
     private let menu = NSMenu()
     private var signalPopover: NSPopover?
     private var timer: Timer?
@@ -1752,11 +1987,13 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var ssdTemperature: SSDTemperatureStatus?
     private var lastValidSSDTemperature: SSDTemperatureStatus?
     private var lastValidSSDTemperatureAt: Date?
+    private var temperatureFailureBackoffUntil: Date?
     private var temperatureTimer: Timer?
     private var systemMetricsTimer: Timer?
+    private var batteryStatus: BatteryStatus?
+    private var batteryTimer: Timer?
+    private var batteryRunLoopSource: CFRunLoopSource?
     private var temperatureReadInFlight = false
-    private var lastTemperaturePersistAt: Date?
-    private var lastSystemMetricPersistAt: Date?
     private var temperatureSamples: [TemperatureSample] = []
     private var systemMetricSamples: [SystemMetricSample] = []
     private var lastCPUTicks: [UInt64]?
@@ -1770,30 +2007,42 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var liveUnavailableSince: Date?
     private var didNotifyLiveUnavailable = false
     private var resetHighlightUntil: Date?
-    private let normalRefreshInterval: TimeInterval = 5 * 60
-    private let watchRefreshInterval: TimeInterval = 3 * 60
-    private let criticalRefreshInterval: TimeInterval = 2 * 60
-    private let failureRefreshInterval: TimeInterval = 60
+    private var isCheckingForUpdates = false
+    private var isInstallingUpdate = false
+    private var lastUpdateSummary: String?
+    private var automaticUpdateTimer: Timer?
+    private var automaticUpdateCheckDidRun = false
+    private var automaticUpdateCheckPendingForPower = false
+    private var automaticUpdateDismissedTagName: String?
+    private var runtimeLogMessages: [String] = []
+    private var sessionSignalConsoleThemeKey = porcelainLabThemeKey
+    private var sessionRefreshMode = "adaptive"
+    private var sessionNotificationsEnabled = false
+    private var sessionShowSSDTemperatureInMenuBar = true
+    private let powerPolicy = CodexGaugePowerPolicy()
+    private let persistentStorageEnabled = false
     private let moodAnimationFrameLimit = 8
-    private let maxRuntimeLogBytes: UInt64 = 512 * 1024
     private let maxHistorySamples = 720
     private let historyRetentionWindow: TimeInterval = 48 * 60 * 60
     private let temperatureSampleInterval: TimeInterval = 1
+    private let temperatureFailureBackoffInterval: TimeInterval = 5 * 60
     private let temperatureGraphWindow: TimeInterval = 10 * 60
     private let temperatureHistoryRetentionWindow: TimeInterval = 24 * 60 * 60
-    private let temperaturePersistInterval: TimeInterval = 60
     private let maxTemperatureSamples = 24 * 60 * 60
     private let systemMetricSampleInterval: TimeInterval = 5
+    private let batteryVisibleSampleInterval: TimeInterval = 60
+    private let batteryIdleSampleInterval: TimeInterval = 5 * 60
     private let systemMetricGraphWindow: TimeInterval = 10 * 60
     private let systemMetricRetentionWindow: TimeInterval = 24 * 60 * 60
-    private let systemMetricPersistInterval: TimeInterval = 60
     private let maxSystemMetricSamples = 24 * 60 * 60 / 5
     private let ssdTemperatureReadTimeout: TimeInterval = 0.8
     private let ssdTemperatureDisplayGraceInterval: TimeInterval = 10 * 60
-    private let statusItemWidth: CGFloat = 232
-    private let statusImageSize = NSSize(width: 226, height: 22)
+    private let statusItemWidth: CGFloat = 236
+    private let statusImageSize = NSSize(width: 230, height: 22)
     private let menuBarTemperatureChipRect = NSRect(x: 82, y: 4.9, width: 27, height: 12.2)
-    private let menuBarSystemMetricStripRect = NSRect(x: 170, y: 1.8, width: 52, height: 18.4)
+    private let menuBarSystemMetricStripRect = NSRect(x: 168, y: 1.8, width: 34, height: 18.4)
+    private let menuBarBatteryModeInfoRect = NSRect(x: 168, y: 4.9, width: 34, height: 12.2)
+    private let menuBarBatteryRect = NSRect(x: 204, y: 4.2, width: 24, height: 13.8)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
     private let quotaRailWidth: CGFloat = 28
     private let resetRailWidth: CGFloat = 18
@@ -1817,6 +2066,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let legacyUsageReportFileName = "CodexGauge-usage-report.md"
     private let launchAgentLabel = "app.codexgauge.menubar"
     private let launchAgentPlistName = "app.codexgauge.menubar.plist"
+    private let latestReleaseAPIURL = "https://api.github.com/repos/qingzhangeddie-byte/codex-gauge/releases/latest"
     private let refreshModeKey = "refreshMode"
     private let notificationsEnabledKey = "notificationsEnabled"
     private let launchAtLoginKey = "launchAtLogin"
@@ -1829,12 +2079,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let fiveHourRestoredNotification = "fiveHourRestoredNotification"
     private let liveUnavailableNotification = "liveUnavailableNotification"
     private let liveUnavailableNotificationDelay: TimeInterval = 900
+    private let automaticUpdateCheckDelay: TimeInterval = 2 * 60
+    private let maxRuntimeLogMessages = 64
 
     private lazy var resourcesDir = Bundle.main.resourcePath ?? FileManager.default.currentDirectoryPath
     private lazy var supportDir = applicationSupportDirectory()
     private lazy var pythonPath = infoString("CodexGaugePythonPath", fallback: "/usr/bin/python3")
     private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.9.0")
     private lazy var releaseURL = infoString("CodexGaugeReleaseURL", fallback: "https://github.com/qingzhangeddie-byte/codex-gauge/releases")
+    private lazy var expectedUpdateSigningTeamID = infoString("CodexGaugeUpdateTeamID", fallback: "").trimmingCharacters(in: .whitespacesAndNewlines)
     private lazy var usagePath = resolveUsagePath()
     private lazy var ssdTemperaturePath = URL(fileURLWithPath: resourcesDir, isDirectory: true)
         .appendingPathComponent("ssd_temperature")
@@ -1848,9 +2101,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         registerDefaultPreferences()
-        temperatureSamples = readTemperatureSamples()
-        systemMetricSamples = readSystemMetricSamples()
-        statusItem.autosaveName = "CodexGaugeStatusItem"
+        _ = sampleBattery()
+        startBatterySampler()
+        removePersistentAppStorage()
         ProcessInfo.processInfo.disableAutomaticTermination("Codex Gauge menu bar status item")
         ProcessInfo.processInfo.disableSuddenTermination()
         activity = ProcessInfo.processInfo.beginActivity(
@@ -1869,22 +2122,22 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
         setStatusImage(title: "Codex quota")
         rebuildMenu()
-        startTemperatureSampler()
-        startSystemMetricsSampler()
+        configureHardwareSamplersForPowerState()
         refresh()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
-            self?.showFirstRunSetupIfNeeded()
-        }
+        scheduleAutomaticUpdateCheck()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         timer?.invalidate()
         temperatureTimer?.invalidate()
         systemMetricsTimer?.invalidate()
+        batteryTimer?.invalidate()
+        automaticUpdateTimer?.invalidate()
+        if let batteryRunLoopSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), batteryRunLoopSource, .commonModes)
+        }
         animationTimer?.invalidate()
         popoverCountdownTimer?.invalidate()
-        writeTemperatureSamples(temperatureSamples)
-        writeSystemMetricSamples(systemMetricSamples)
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -1895,6 +2148,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         if let signalPopover, signalPopover.isShown {
             signalPopover.performClose(sender)
             stopPopoverCountdownTimer()
+            stopVisibleTemperatureSampler()
+            startBatterySampler()
             return
         }
         showSignalConsolePopover()
@@ -1913,6 +2168,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         signalPopover = popover
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         startPopoverCountdownTimer()
+        startVisibleTemperatureSamplerIfNeeded()
+        startBatterySampler()
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -1921,6 +2178,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return
         }
         signalPopover.contentViewController = makeSignalConsoleViewController()
+    }
+
+    private func applyTimerTolerance(_ timer: Timer, interval: TimeInterval) {
+        timer.tolerance = min(max(interval * 0.2, 0.05), max(0.2, min(interval * 0.5, 60)))
     }
 
     private func startPopoverCountdownTimer() {
@@ -1933,10 +2194,13 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             guard let signalPopover = self.signalPopover, signalPopover.isShown else {
                 timer.invalidate()
                 self.popoverCountdownTimer = nil
+                self.stopVisibleTemperatureSampler()
+                self.startBatterySampler()
                 return
             }
             self.refreshSignalPopoverIfNeeded()
         }
+        applyTimerTolerance(nextTimer, interval: 1.0)
         popoverCountdownTimer = nextTimer
         RunLoop.main.add(nextTimer, forMode: .common)
     }
@@ -2021,6 +2285,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 systemMetricHistory: retainedSystemMetricHistory,
                 cpuUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.cpuPercent),
                 ramUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.ramPercent),
+                batteryStatusText: batteryStatusText(status: batteryStatus),
+                batteryPercent: batteryStatus?.percent,
+                powerSaverText: powerSaverStatusText(),
+                refreshCadenceText: refreshCadenceStatusText(),
+                hardwareSignalsVisible: hardwareSignalsVisible(),
                 reportFiveHourMovement: inlineReport.fiveHourMovement,
                 reportSevenDayMovement: inlineReport.sevenDayMovement,
                 reportTodaySummary: inlineReport.todaySummary,
@@ -2069,6 +2338,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             systemMetricHistory: retainedSystemMetricHistory,
             cpuUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.cpuPercent),
             ramUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.ramPercent),
+            batteryStatusText: batteryStatusText(status: batteryStatus),
+            batteryPercent: batteryStatus?.percent,
+            powerSaverText: powerSaverStatusText(),
+            refreshCadenceText: refreshCadenceStatusText(),
+            hardwareSignalsVisible: hardwareSignalsVisible(),
             reportFiveHourMovement: inlineReport.fiveHourMovement,
             reportSevenDayMovement: inlineReport.sevenDayMovement,
             reportTodaySummary: inlineReport.todaySummary,
@@ -2132,8 +2406,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return "\(temperature)°C"
         }
         if let latest = samples.reversed().first(where: { $0.ok && $0.temperatureC != nil }),
-           let latestDate = isoDate(latest.time),
-           now.timeIntervalSince(latestDate) <= ssdTemperatureDisplayGraceInterval,
+           let latestTimestamp = temperatureSampleTimestamp(latest),
+           now.timeIntervalSince1970 - latestTimestamp <= ssdTemperatureDisplayGraceInterval,
            let temperature = latest.temperatureC {
             return "\(temperature)°C"
         }
@@ -2172,6 +2446,511 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         openURL(releaseURL)
     }
 
+    private func scheduleAutomaticUpdateCheck() {
+        automaticUpdateTimer?.invalidate()
+        let nextTimer = Timer(timeInterval: automaticUpdateCheckDelay, repeats: false) { [weak self] _ in
+            self?.performAutomaticUpdateCheckIfAllowed()
+        }
+        applyTimerTolerance(nextTimer, interval: automaticUpdateCheckDelay)
+        automaticUpdateTimer = nextTimer
+        RunLoop.main.add(nextTimer, forMode: .common)
+    }
+
+    private func performAutomaticUpdateCheckIfAllowed() {
+        automaticUpdateTimer?.invalidate()
+        automaticUpdateTimer = nil
+        guard !automaticUpdateCheckDidRun else {
+            return
+        }
+        guard !powerSaverActive() else {
+            automaticUpdateCheckPendingForPower = true
+            return
+        }
+        guard !isCheckingForUpdates, !isInstallingUpdate else {
+            automaticUpdateCheckDidRun = true
+            automaticUpdateCheckPendingForPower = false
+            return
+        }
+        automaticUpdateCheckDidRun = true
+        automaticUpdateCheckPendingForPower = false
+        performUpdateCheck(mode: .automatic)
+    }
+
+    private func resumeAutomaticUpdateCheckAfterPowerReturns() {
+        guard automaticUpdateCheckPendingForPower else {
+            return
+        }
+        guard !powerSaverActive() else {
+            return
+        }
+        performAutomaticUpdateCheckIfAllowed()
+    }
+
+    @objc private func checkForUpdates() {
+        automaticUpdateTimer?.invalidate()
+        automaticUpdateTimer = nil
+        automaticUpdateCheckDidRun = true
+        automaticUpdateCheckPendingForPower = false
+        performUpdateCheck(mode: .manual)
+    }
+
+    private func performUpdateCheck(mode: UpdateCheckMode) {
+        guard !isCheckingForUpdates, !isInstallingUpdate else {
+            if mode == .manual {
+                showReportAlert(title: "Update already in progress", detail: lastUpdateSummary ?? "Codex Gauge is already checking or installing an update.")
+            }
+            return
+        }
+        if mode == .automatic {
+            guard !powerSaverActive() else {
+                automaticUpdateCheckPendingForPower = true
+                return
+            }
+        }
+        isCheckingForUpdates = true
+        lastUpdateSummary = "Update: checking GitHub Releases..."
+        rebuildMenu()
+        fetchLatestRelease { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self else {
+                    return
+                }
+                self.isCheckingForUpdates = false
+                switch result {
+                case .success(let release):
+                    self.handleLatestRelease(release, mode: mode)
+                case .failure(let error):
+                    self.handleUpdateCheckFailure(error, mode: mode)
+                }
+            }
+        }
+    }
+
+    private func handleUpdateCheckFailure(_ error: Error, mode: UpdateCheckMode) {
+        guard mode == .manual else {
+            lastUpdateSummary = "Update check unavailable"
+            rebuildMenu()
+            appendLog("automatic update check failed=\(error.localizedDescription)")
+            return
+        }
+        lastUpdateSummary = "Update check failed"
+        rebuildMenu()
+        showReportAlert(title: "Could not check for updates", detail: clipped(error.localizedDescription, limit: 220))
+    }
+
+    private func fetchLatestRelease(completion: @escaping (Result<GitHubRelease, Error>) -> Void) {
+        guard let url = URL(string: latestReleaseAPIURL) else {
+            completion(.failure(updateError("The GitHub Releases API URL is invalid.")))
+            return
+        }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 12
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.setValue("CodexGauge/\(appVersion)", forHTTPHeaderField: "User-Agent")
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error {
+                completion(.failure(error))
+                return
+            }
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                completion(.failure(self.updateError("GitHub returned an unexpected response.")))
+                return
+            }
+            guard let data else {
+                completion(.failure(self.updateError("GitHub returned no release data.")))
+                return
+            }
+            do {
+                completion(.success(try JSONDecoder().decode(GitHubRelease.self, from: data)))
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+
+    private func handleLatestRelease(_ release: GitHubRelease, mode: UpdateCheckMode) {
+        let latestVersion = normalizedVersion(release.tagName)
+        guard appVersionIsNewer(latestVersion, than: appVersion), !release.draft else {
+            lastUpdateSummary = "Update: current v\(appVersion)"
+            rebuildMenu()
+            if mode == .manual {
+                showUpdateInfo(title: "Codex Gauge is up to date", release: release, asset: updateAsset(in: release), latestVersion: latestVersion)
+            }
+            return
+        }
+        guard let asset = updateAsset(in: release) else {
+            lastUpdateSummary = "Update available: \(release.tagName)"
+            rebuildMenu()
+            if mode == .manual {
+                showReportAlert(title: "Update available", detail: "Codex Gauge \(release.tagName) is available, but this release does not include a downloadable CodexGauge zip asset. The release page will open instead.")
+                openURL(release.htmlURL)
+            }
+            return
+        }
+        lastUpdateSummary = "Update available: \(release.tagName)"
+        rebuildMenu()
+        if mode == .automatic, automaticUpdateDismissedTagName == release.tagName {
+            return
+        }
+        showUpdatePrompt(release: release, asset: asset, latestVersion: latestVersion, mode: mode)
+    }
+
+    private func showUpdateInfo(title: String, release: GitHubRelease, asset: GitHubReleaseAsset?, latestVersion: String) {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = releaseInfoText(release: release, asset: asset, latestVersion: latestVersion)
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Release Page")
+        if alert.runModal() == .alertSecondButtonReturn {
+            openURL(release.htmlURL)
+        }
+    }
+
+    private func showUpdatePrompt(release: GitHubRelease, asset: GitHubReleaseAsset, latestVersion: String, mode: UpdateCheckMode) {
+        let alert = NSAlert()
+        alert.messageText = "Codex Gauge \(release.tagName) is available"
+        alert.informativeText = releaseInfoText(release: release, asset: asset, latestVersion: latestVersion)
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Download & Install")
+        alert.addButton(withTitle: "Release Page")
+        alert.addButton(withTitle: "Not Now")
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            downloadAndInstallUpdate(release: release, asset: asset, latestVersion: latestVersion)
+        case .alertSecondButtonReturn:
+            if mode == .automatic {
+                automaticUpdateDismissedTagName = release.tagName
+            }
+            openURL(release.htmlURL)
+        default:
+            if mode == .automatic {
+                automaticUpdateDismissedTagName = release.tagName
+            }
+        }
+    }
+
+    private func downloadAndInstallUpdate(release: GitHubRelease, asset: GitHubReleaseAsset, latestVersion: String) {
+        guard let url = URL(string: asset.browserDownloadURL), url.host == "github.com" else {
+            showReportAlert(title: "Update download blocked", detail: "Codex Gauge only downloads release assets from github.com.")
+            return
+        }
+        isInstallingUpdate = true
+        lastUpdateSummary = "Update: downloading \(release.tagName)..."
+        rebuildMenu()
+        URLSession.shared.downloadTask(with: url) { [weak self] temporaryURL, response, error in
+            guard let self else {
+                return
+            }
+            do {
+                if let error {
+                    throw error
+                }
+                guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                    throw self.updateError("GitHub returned an unexpected download response.")
+                }
+                guard let temporaryURL else {
+                    throw self.updateError("The update download did not produce a file.")
+                }
+                let prepared = try self.prepareDownloadedUpdate(
+                    downloadedZipURL: temporaryURL,
+                    release: release,
+                    asset: asset,
+                    latestVersion: latestVersion
+                )
+                DispatchQueue.main.async {
+                    self.installPreparedUpdate(prepared)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.isInstallingUpdate = false
+                    self.lastUpdateSummary = "Update failed"
+                    self.rebuildMenu()
+                    self.showReportAlert(title: "Update failed", detail: self.clipped(error.localizedDescription, limit: 240))
+                }
+            }
+        }.resume()
+    }
+
+    private func prepareDownloadedUpdate(downloadedZipURL: URL, release: GitHubRelease, asset: GitHubReleaseAsset, latestVersion: String) throws -> PreparedUpdate {
+        let manager = FileManager.default
+        let workDirectory = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent("CodexGauge-update-\(UUID().uuidString)", isDirectory: true)
+        let zipURL = workDirectory.appendingPathComponent(asset.name)
+        let extractDirectory = workDirectory.appendingPathComponent("extracted", isDirectory: true)
+        try manager.createDirectory(at: workDirectory, withIntermediateDirectories: true)
+        try manager.createDirectory(at: extractDirectory, withIntermediateDirectories: true)
+        try manager.copyItem(at: downloadedZipURL, to: zipURL)
+        try verifyDownloadedUpdateChecksum(zipURL, release: release, asset: asset)
+        try runProcess("/usr/bin/ditto", arguments: ["-x", "-k", zipURL.path, extractDirectory.path])
+        let appURL = try findDownloadedCodexGaugeApp(in: extractDirectory)
+        try verifyDownloadedUpdateApp(appURL, expectedVersion: latestVersion)
+        return PreparedUpdate(release: release, asset: asset, latestVersion: latestVersion, appURL: appURL, workDirectory: workDirectory)
+    }
+
+    private func findDownloadedCodexGaugeApp(in directory: URL) throws -> URL {
+        let manager = FileManager.default
+        guard let enumerator = manager.enumerator(at: directory, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles]) else {
+            throw updateError("The update archive could not be inspected.")
+        }
+        for case let candidate as URL in enumerator {
+            if candidate.lastPathComponent == "CodexGauge.app" {
+                return candidate
+            }
+        }
+        throw updateError("The update archive did not contain CodexGauge.app.")
+    }
+
+    private func verifyDownloadedUpdateChecksum(_ zipURL: URL, release: GitHubRelease, asset: GitHubReleaseAsset) throws {
+        let expectedSHA256 = try expectedSHA256(for: asset, in: release)
+        let actualSHA256 = try sha256OfFile(zipURL)
+        guard actualSHA256 == expectedSHA256 else {
+            throw updateError("The downloaded update checksum did not match the release checksum.")
+        }
+    }
+
+    private func expectedSHA256(for asset: GitHubReleaseAsset, in release: GitHubRelease) throws -> String {
+        if let digest = asset.digest?.trimmingCharacters(in: .whitespacesAndNewlines),
+           digest.lowercased().hasPrefix("sha256:") {
+            return try parseSHA256(String(digest.dropFirst("sha256:".count)), expectedFileName: nil)
+        }
+
+        guard let checksumAsset = matchingChecksumAsset(for: asset, in: release) else {
+            throw updateError("The release is missing a SHA-256 checksum asset for \(asset.name).")
+        }
+        guard let url = URL(string: checksumAsset.browserDownloadURL), url.host == "github.com" else {
+            throw updateError("The update checksum must be downloaded from github.com.")
+        }
+        let data = try Data(contentsOf: url)
+        guard let checksumText = String(data: data, encoding: .utf8) else {
+            throw updateError("The update checksum file was not valid UTF-8.")
+        }
+        return try parseSHA256(checksumText, expectedFileName: asset.name)
+    }
+
+    private func matchingChecksumAsset(for asset: GitHubReleaseAsset, in release: GitHubRelease) -> GitHubReleaseAsset? {
+        let expectedName = "\(asset.name).sha256".lowercased()
+        return release.assets.first { candidate in
+            candidate.name.lowercased() == expectedName
+        }
+    }
+
+    private func sha256OfFile(_ zipURL: URL) throws -> String {
+        let output = try runProcess("/usr/bin/shasum", arguments: ["-a", "256", zipURL.path])
+        return try parseSHA256(output, expectedFileName: zipURL.lastPathComponent)
+    }
+
+    private func parseSHA256(_ text: String, expectedFileName: String?) throws -> String {
+        let hexCharacters = CharacterSet(charactersIn: "0123456789abcdef")
+        for line in text.split(whereSeparator: \.isNewline) {
+            let fields = line.split { $0 == " " || $0 == "\t" }.map(String.init)
+            guard let candidate = fields.first?.lowercased(),
+                  candidate.count == 64,
+                  candidate.rangeOfCharacter(from: hexCharacters.inverted) == nil else {
+                continue
+            }
+            if let expectedFileName, fields.count > 1 {
+                let fileFields = fields.dropFirst().map { $0.trimmingCharacters(in: CharacterSet(charactersIn: " *")) }
+                guard fileFields.contains(where: { $0 == expectedFileName || $0.hasSuffix("/\(expectedFileName)") }) else {
+                    continue
+                }
+            }
+            return candidate
+        }
+        throw updateError("The release checksum did not contain a SHA-256 value for \(expectedFileName ?? "the update asset").")
+    }
+
+    private func verifyDownloadedUpdateApp(_ appURL: URL, expectedVersion: String) throws {
+        guard let bundle = Bundle(url: appURL) else {
+            throw updateError("The downloaded app bundle is invalid.")
+        }
+        let bundleIdentifier = (bundle.object(forInfoDictionaryKey: "CFBundleIdentifier") as? String) ?? bundle.bundleIdentifier
+        guard bundleIdentifier == "app.codexgauge.menubar" else {
+            throw updateError("The downloaded app bundle identifier did not match Codex Gauge.")
+        }
+        let version = (bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "0.0.0"
+        guard compareVersionStrings(version, expectedVersion) != .orderedAscending else {
+            throw updateError("The downloaded app version \(version) is older than \(expectedVersion).")
+        }
+        let binary = appURL.appendingPathComponent("Contents/MacOS/CodexGauge-bin")
+        let helper = appURL.appendingPathComponent("Contents/Resources/codex_status.py")
+        let temperatureHelper = appURL.appendingPathComponent("Contents/Resources/ssd_temperature")
+        guard FileManager.default.isExecutableFile(atPath: binary.path),
+              FileManager.default.isReadableFile(atPath: helper.path),
+              FileManager.default.isExecutableFile(atPath: temperatureHelper.path) else {
+            throw updateError("The downloaded app is missing a required bundled helper.")
+        }
+        try verifyDownloadedUpdateSignature(appURL)
+    }
+
+    private func verifyDownloadedUpdateSignature(_ appURL: URL) throws {
+        let expectedTeamID = expectedUpdateSigningTeamID
+        guard !expectedTeamID.isEmpty else {
+            throw updateError("Automatic update installation requires a pinned Developer ID Team ID.")
+        }
+        try runProcess("/usr/bin/codesign", arguments: ["--verify", "--deep", "--strict", appURL.path])
+        let signatureDetails = try runProcess("/usr/bin/codesign", arguments: ["--display", "--verbose=4", appURL.path])
+        guard signatureDetails.contains("TeamIdentifier=\(expectedTeamID)") else {
+            throw updateError("The downloaded app was not signed by the expected Codex Gauge publisher.")
+        }
+        try runProcess("/usr/sbin/spctl", arguments: ["--assess", "--type", "execute", "--verbose=4", appURL.path])
+    }
+
+    private func installPreparedUpdate(_ update: PreparedUpdate) {
+        do {
+            lastUpdateSummary = "Update: installing \(update.release.tagName)..."
+            rebuildMenu()
+            try runDetachedUpdateInstaller(update)
+            allowTermination = true
+            NSApp.terminate(nil)
+        } catch {
+            isInstallingUpdate = false
+            lastUpdateSummary = "Update failed"
+            rebuildMenu()
+            showReportAlert(title: "Could not install update", detail: clipped(error.localizedDescription, limit: 240))
+        }
+    }
+
+    private func runDetachedUpdateInstaller(_ update: PreparedUpdate) throws {
+        let scriptURL = update.workDirectory.appendingPathComponent("install-update.sh")
+        let targetPath = currentAppBundlePath()
+        let script = """
+        #!/bin/zsh
+        set -euo pipefail
+        SOURCE_APP="$1"
+        TARGET_APP="$2"
+        CURRENT_PID="$3"
+        CLEANUP_DIR="$4"
+        AGENT_PLIST="$HOME/Library/LaunchAgents/app.codexgauge.menubar.plist"
+        UPDATE_TARGET="$TARGET_APP.update"
+        while /bin/kill -0 "$CURRENT_PID" >/dev/null 2>&1; do
+          /bin/sleep 0.2
+        done
+        /bin/rm -f "$AGENT_PLIST" >/dev/null 2>&1 || true
+        /bin/rm -rf "$UPDATE_TARGET"
+        /usr/bin/ditto --norsrc --noextattr "$SOURCE_APP" "$UPDATE_TARGET"
+        /usr/bin/codesign --verify --deep --strict "$UPDATE_TARGET"
+        /bin/rm -rf "$TARGET_APP"
+        /bin/mv "$UPDATE_TARGET" "$TARGET_APP"
+        /usr/bin/open -na "$TARGET_APP"
+        /bin/rm -rf "$CLEANUP_DIR"
+        """
+        try script.write(to: scriptURL, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: scriptURL.path)
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        process.arguments = [scriptURL.path, update.appURL.path, targetPath, "\(getpid())", update.workDirectory.path]
+        try process.run()
+    }
+
+    private func currentAppBundlePath() -> String {
+        let path = Bundle.main.bundlePath
+        if path.hasSuffix(".app") {
+            return path
+        }
+        return "/Applications/CodexGauge.app"
+    }
+
+    private func updateAsset(in release: GitHubRelease) -> GitHubReleaseAsset? {
+        let zipAssets = release.assets.filter { asset in
+            let lower = asset.name.lowercased()
+            return lower.hasSuffix(".zip") && !lower.hasSuffix(".zip.sha256")
+        }
+        return zipAssets.first { $0.name.lowercased().contains("codexgauge") } ?? zipAssets.first
+    }
+
+    private func updateError(_ message: String) -> NSError {
+        NSError(domain: "CodexGaugeUpdater", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
+    }
+
+    @discardableResult
+    private func runProcess(_ executable: String, arguments: [String]) throws -> String {
+        let process = Process()
+        let output = Pipe()
+        let error = Pipe()
+        process.executableURL = URL(fileURLWithPath: executable)
+        process.arguments = arguments
+        process.standardOutput = output
+        process.standardError = error
+        try process.run()
+        process.waitUntilExit()
+        let outputText = String(data: output.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        let errorText = String(data: error.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        guard process.terminationStatus == 0 else {
+            throw updateError(errorText.isEmpty ? "\(executable) failed with status \(process.terminationStatus)" : errorText)
+        }
+        return outputText + errorText
+    }
+
+    private func releaseInfoText(release: GitHubRelease, asset: GitHubReleaseAsset?, latestVersion: String) -> String {
+        var lines = [
+            "Current: v\(appVersion)",
+            "Latest: \(release.tagName) (\(latestVersion))",
+        ]
+        if let name = release.name, !name.isEmpty {
+            lines.append("Title: \(name)")
+        }
+        if let publishedAt = release.publishedAt {
+            lines.append("Published: \(publishedAt)")
+        }
+        if let asset {
+            lines.append("Download: \(asset.name)\(assetSizeText(asset.size))")
+        }
+        let notes = clipped(release.body ?? "No release notes were provided.", limit: 900)
+        lines.append("")
+        lines.append("Release notes:")
+        lines.append(notes)
+        return lines.joined(separator: "\n")
+    }
+
+    private func assetSizeText(_ size: Int?) -> String {
+        guard let size else {
+            return ""
+        }
+        if size >= 1_000_000 {
+            return String(format: " · %.1f MB", Double(size) / 1_000_000.0)
+        }
+        if size >= 1_000 {
+            return String(format: " · %.0f KB", Double(size) / 1_000.0)
+        }
+        return " · \(size) B"
+    }
+
+    private func appVersionIsNewer(_ candidate: String, than current: String) -> Bool {
+        compareVersionStrings(candidate, current) == .orderedDescending
+    }
+
+    private func compareVersionStrings(_ lhs: String, _ rhs: String) -> ComparisonResult {
+        let left = versionComponents(lhs)
+        let right = versionComponents(rhs)
+        let count = max(left.count, right.count)
+        for index in 0..<count {
+            let leftValue = index < left.count ? left[index] : 0
+            let rightValue = index < right.count ? right[index] : 0
+            if leftValue < rightValue {
+                return .orderedAscending
+            }
+            if leftValue > rightValue {
+                return .orderedDescending
+            }
+        }
+        return .orderedSame
+    }
+
+    private func versionComponents(_ value: String) -> [Int] {
+        normalizedVersion(value)
+            .split { character in
+                character == "." || character == "-" || character == "+"
+            }
+            .map { component in
+                Int(component.prefix { $0.isNumber }) ?? 0
+            }
+    }
+
+    private func normalizedVersion(_ value: String) -> String {
+        value.trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
+    }
+
     @objc private func openPreferences() {
         let window = preferencesWindow ?? makePreferencesWindow()
         preferencesWindow = window
@@ -2182,22 +2961,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func showFirstRunSetupIfNeeded() {
-        let seen = UserDefaults.standard.bool(forKey: firstRunSetupSeenKey)
-        appendLog("first-run setup seen=\(seen)")
-        guard !seen else {
-            return
-        }
-        if let button = statusItem.button {
-            showFirstRunSetupPopover(from: button)
-            return
-        }
-        let window = firstRunSetupWindow ?? makeFirstRunSetupWindow()
-        firstRunSetupWindow = window
-        window.center()
-        window.makeKeyAndOrderFront(nil)
-        window.orderFrontRegardless()
-        NSApp.activate(ignoringOtherApps: true)
-        appendLog("first-run setup shown")
+        return
     }
 
     private func showFirstRunSetupPopover(from button: NSStatusBarButton) {
@@ -2229,7 +2993,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     @objc private func completeFirstRunSetup() {
-        UserDefaults.standard.set(true, forKey: firstRunSetupSeenKey)
         firstRunSetupWindow?.close()
         firstRunSetupWindow = nil
         firstRunSetupPopover?.performClose(nil)
@@ -2251,6 +3014,21 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     @objc private func generateUsageReport() {
+        if !persistentStorageEnabled {
+            guard let status = snapshot?.codex, status.ok else {
+                showReportAlert(title: "Live summary unavailable", detail: "Zero persistence mode keeps no stored quota history. Open Codex and refresh for a current live summary.")
+                return
+            }
+            let report = liveUsageSummaryText(status)
+            NSPasteboard.general.clearContents()
+            guard NSPasteboard.general.setString(report, forType: .string) else {
+                showReportAlert(title: "Live summary not copied", detail: "The pasteboard did not accept the current summary.")
+                return
+            }
+            showReportAlert(title: "Live summary copied", detail: "Copied the current live-only summary. No history or report file was saved.")
+            appendLog("live summary copied to clipboard")
+            return
+        }
         let samples = historySamples(since: Date().addingTimeInterval(-24 * 60 * 60), from: readHistorySamples())
         guard let report = usageReportText(samples: samples, status: snapshot?.codex) else {
             showReportAlert(title: "Not enough history yet", detail: "Codex Gauge needs at least two local samples before it can summarize quota movement.")
@@ -2276,10 +3054,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     @objc private func clearLocalData() {
         let alert = NSAlert()
-        alert.messageText = "Clear local data?"
-        alert.informativeText = "This clears local history, last-live cache, legacy report files, and logs. It does not touch Codex, browser cookies, Keychain, or auth files."
+        alert.messageText = "Clear legacy data?"
+        alert.informativeText = "Codex Gauge runs in Zero persistence mode. This removes old history, last-live cache, report, log, and LaunchAgent files from earlier builds. It does not touch Codex, browser cookies, Keychain, or auth files."
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Clear Data")
+        alert.addButton(withTitle: "Clear Legacy Data")
         alert.addButton(withTitle: "Cancel")
         guard alert.runModal() == .alertFirstButtonReturn else {
             return
@@ -2305,12 +3083,19 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         previousFiveHourLeft = nil
         temperatureSamples = []
         systemMetricSamples = []
-        lastSystemMetricPersistAt = nil
         clearSystemMetricHistoryAsync()
         clearTemperatureHistoryAsync()
         liveUnavailableSince = nil
         didNotifyLiveUnavailable = false
         resetHighlightUntil = nil
+        do {
+            if try removeLegacySupportDirectory() {
+                removed += 1
+            }
+        } catch {
+            showReportAlert(title: "Some data was not cleared", detail: clipped(error.localizedDescription, limit: 180))
+            return
+        }
         refreshSignalPopoverIfNeeded()
         rebuildMenu()
         if let snapshot {
@@ -2318,7 +3103,29 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         } else {
             setStatusImage(title: "Codex quota")
         }
-        showReportAlert(title: "Local data cleared", detail: removed == 0 ? "No local history, cache, or log files were present." : "Cleared \(removed) local Codex Gauge file(s).")
+        showReportAlert(title: "Legacy data cleared", detail: removed == 0 ? "No legacy history, cache, report, log, or LaunchAgent files were present." : "Cleared \(removed) legacy Codex Gauge file(s).")
+    }
+
+    private func removePersistentAppStorage() {
+        let manager = FileManager.default
+        for path in localDataPathsForClearing() {
+            guard manager.fileExists(atPath: path) else {
+                continue
+            }
+            try? manager.removeItem(atPath: path)
+        }
+        removeLaunchAgentPlist()
+        unloadLaunchAgent()
+        _ = try? removeLegacySupportDirectory()
+    }
+
+    private func removeLegacySupportDirectory() throws -> Bool {
+        let manager = FileManager.default
+        guard manager.fileExists(atPath: supportDir) else {
+            return false
+        }
+        try manager.removeItem(atPath: supportDir)
+        return true
     }
 
     private func clearTemperatureHistoryAsync() {
@@ -2358,7 +3165,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openSupportFolder() {
-        NSWorkspace.shared.open(URL(fileURLWithPath: supportDir, isDirectory: true))
+        showReportAlert(title: "Zero persistence", detail: "Codex Gauge does not keep a support folder. Clear legacy removes old app files if earlier builds created them.")
     }
 
     @objc private func quit() {
@@ -2374,7 +3181,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         else {
             return
         }
-        UserDefaults.standard.set(mode, forKey: refreshModeKey)
+        sessionRefreshMode = mode
         if !isRefreshing {
             scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))
             rebuildMenu()
@@ -2388,7 +3195,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         else {
             return
         }
-        UserDefaults.standard.set(key, forKey: themePreferenceKey)
+        sessionSignalConsoleThemeKey = key
         if let signalPopover, signalPopover.isShown {
             signalPopover.appearance = NSAppearance(named: currentSignalConsoleTheme().appearance)
         }
@@ -2405,7 +3212,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return
         }
         let enabled = checkbox.state == .on
-        UserDefaults.standard.set(enabled, forKey: notificationsEnabledKey)
+        sessionNotificationsEnabled = enabled
         if enabled {
             requestNotificationAuthorization()
         }
@@ -2415,7 +3222,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         guard let checkbox = sender as? NSButton else {
             return
         }
-        UserDefaults.standard.set(checkbox.state == .on, forKey: showSSDTemperatureInMenuBarKey)
+        sessionShowSSDTemperatureInMenuBar = checkbox.state == .on
         if let snapshot {
             setStatusImage(title: statusTooltipTitle(snapshot), status: snapshot.codex)
         } else {
@@ -2427,18 +3234,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         guard let checkbox = sender as? NSButton else {
             return
         }
-        if checkbox.state == .on {
-            if installLaunchAgentForCurrentApp() {
-                UserDefaults.standard.set(true, forKey: launchAtLoginKey)
-            } else {
-                checkbox.state = .off
-                UserDefaults.standard.set(false, forKey: launchAtLoginKey)
-            }
-            return
-        }
+        checkbox.state = .off
         removeLaunchAgentPlist()
         unloadLaunchAgent()
-        UserDefaults.standard.set(false, forKey: launchAtLoginKey)
     }
 
     private func refresh() {
@@ -2456,7 +3254,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         process.executableURL = URL(fileURLWithPath: pythonPath)
         process.arguments = [usagePath, "--status-json"]
         process.environment = helperEnvironment()
-        process.currentDirectoryURL = URL(fileURLWithPath: supportDir, isDirectory: true)
+        process.currentDirectoryURL = FileManager.default.temporaryDirectory
 
         let stdout = Pipe()
         let stderr = Pipe()
@@ -2532,6 +3330,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 self.stopMoodAnimation()
             }
         }
+        applyTimerTolerance(nextTimer, interval: 0.18)
         animationTimer = nextTimer
         RunLoop.main.add(nextTimer, forMode: .common)
     }
@@ -2543,20 +3342,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func registerDefaultPreferences() {
-        let defaults = UserDefaults.standard
-        if defaults.object(forKey: themePreferenceKey) == nil {
-            UserDefaults.standard.set(paperConsoleThemeKey, forKey: themePreferenceKey)
-        }
-        if defaults.object(forKey: refreshModeKey) == nil {
-            defaults.set(adaptiveRefreshMode, forKey: refreshModeKey)
-        }
-        if defaults.object(forKey: notificationsEnabledKey) == nil {
-            defaults.set(false, forKey: notificationsEnabledKey)
-        }
-        if defaults.object(forKey: showSSDTemperatureInMenuBarKey) == nil {
-            defaults.set(true, forKey: showSSDTemperatureInMenuBarKey)
-        }
-        defaults.set(isLaunchAgentConfigured(), forKey: launchAtLoginKey)
+        sessionSignalConsoleThemeKey = porcelainLabThemeKey
+        sessionRefreshMode = adaptiveRefreshMode
+        sessionNotificationsEnabled = false
+        sessionShowSSDTemperatureInMenuBar = true
     }
 
     private func makeThemedUtilityContentView(size: NSSize) -> ThemedUtilityPanelView {
@@ -2683,8 +3472,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         content.addSubview(utilityLabel("Theme", frame: NSRect(x: 24, y: 292, width: 96, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
 
         let themeSelect = NSPopUpButton(frame: NSRect(x: 132, y: 290, width: 180, height: 26), pullsDown: false)
-        themeSelect.addItems(withTitles: ["Paper Console", "Signal Dark", "Mono Graphite"])
-        themeSelect.item(withTitle: "Paper Console")?.representedObject = paperConsoleThemeKey
+        themeSelect.addItems(withTitles: ["Porcelain Lab", "Signal Dark", "Mono Graphite"])
+        themeSelect.item(withTitle: "Porcelain Lab")?.representedObject = porcelainLabThemeKey
         themeSelect.item(withTitle: "Signal Dark")?.representedObject = signalDarkThemeKey
         themeSelect.item(withTitle: "Mono Graphite")?.representedObject = monoGraphiteThemeKey
         themeSelect.target = self
@@ -2722,9 +3511,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
         content.addSubview(utilityLabel("Startup", frame: NSRect(x: 24, y: 128, width: 110, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
 
-        let login = NSButton(checkboxWithTitle: "Launch at login", target: self, action: #selector(launchAtLoginPreferenceChanged))
+        let login = NSButton(checkboxWithTitle: "Launch at login disabled", target: self, action: #selector(launchAtLoginPreferenceChanged))
         login.frame = NSRect(x: 132, y: 126, width: 220, height: 24)
         login.contentTintColor = theme.textSecondary
+        login.isEnabled = false
         content.addSubview(login)
         launchAtLoginCheckbox = login
 
@@ -2745,7 +3535,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         styleUtilityButton(diagnostics)
         content.addSubview(diagnostics)
 
-        content.addSubview(utilityLabel("Live, Last live, Snapshot, and unavailable labels stay visible in the menu.", frame: NSRect(x: 24, y: 18, width: 372, height: 18), size: 11, weight: .regular, color: theme.textMuted))
+        content.addSubview(utilityLabel("Zero persistence: no saved preferences, histories, caches, reports, or logs.", frame: NSRect(x: 24, y: 18, width: 372, height: 18), size: 11, weight: .regular, color: theme.textMuted))
 
         return window
     }
@@ -2756,9 +3546,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         themePopup?.selectItem(withTitle: currentSignalConsoleTheme().name)
         notificationsCheckbox?.state = notificationsEnabled() ? .on : .off
         showSSDTemperatureCheckbox?.state = showSSDTemperatureInMenuBar() ? .on : .off
-        let launchEnabled = isLaunchAgentConfigured()
-        UserDefaults.standard.set(launchEnabled, forKey: launchAtLoginKey)
-        launchAtLoginCheckbox?.state = launchEnabled ? .on : .off
+        launchAtLoginCheckbox?.state = .off
     }
 
     private func refreshTitle(for mode: String) -> String {
@@ -2774,27 +3562,29 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func currentSignalConsoleTheme() -> SignalConsoleTheme {
         switch currentSignalConsoleThemeKey() {
+        case porcelainLabThemeKey:
+            return porcelainLabTheme()
         case signalDarkThemeKey:
             return signalDarkTheme()
         case monoGraphiteThemeKey:
             return monoGraphiteTheme()
         default:
-            return paperConsoleTheme()
+            return porcelainLabTheme()
         }
     }
 
     private func currentSignalConsoleThemeKey() -> String {
-        let key = UserDefaults.standard.string(forKey: themePreferenceKey) ?? paperConsoleThemeKey
+        let key = sessionSignalConsoleThemeKey
         switch key {
-        case paperConsoleThemeKey, signalDarkThemeKey, monoGraphiteThemeKey:
+        case porcelainLabThemeKey, paperConsoleThemeKey, signalDarkThemeKey, monoGraphiteThemeKey:
             return key
         default:
-            return paperConsoleThemeKey
+            return porcelainLabThemeKey
         }
     }
 
     private func currentRefreshMode() -> String {
-        let mode = UserDefaults.standard.string(forKey: refreshModeKey) ?? adaptiveRefreshMode
+        let mode = sessionRefreshMode
         switch mode {
         case fiveMinuteRefreshMode, tenMinuteRefreshMode:
             return mode
@@ -2806,7 +3596,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func fixedRefreshInterval() -> TimeInterval? {
         switch currentRefreshMode() {
         case fiveMinuteRefreshMode:
-            return normalRefreshInterval
+            return powerPolicy.normalRefreshInterval
         case tenMinuteRefreshMode:
             return 10 * 60
         default:
@@ -2829,7 +3619,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             "USER": userName,
             "CODEX_GAUGE_PYTHON_PATH": pythonPath,
             "CODEX_GAUGE_STATUS_HELPER": usagePath,
-            "CODEX_GAUGE_SUPPORT_DIR": supportDir,
+            "CODEX_GAUGE_SUPPORT_DIR": NSTemporaryDirectory(),
+            "CODEX_GAUGE_NO_STORAGE": "1",
         ]
         if FileManager.default.isExecutableFile(atPath: codexCliBundlePath) {
             helperEnv["CODEX_GAUGE_CODEX_CLI_PATH"] = codexCliBundlePath
@@ -2844,7 +3635,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: ssdTemperaturePath)
-        process.currentDirectoryURL = URL(fileURLWithPath: supportDir, isDirectory: true)
+        process.currentDirectoryURL = FileManager.default.temporaryDirectory
         let stdout = Pipe()
         let stderr = Pipe()
         process.standardOutput = stdout
@@ -2885,6 +3676,49 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func configureHardwareSamplersForPowerState() {
+        if hardwareBackgroundSamplingAllowed() {
+            startSystemMetricsSampler()
+            stopTemperatureSampler()
+            return
+        }
+        stopTemperatureSampler()
+        stopSystemMetricsSampler()
+    }
+
+    private func hardwareBackgroundSamplingAllowed() -> Bool {
+        return hardwareSignalsVisible()
+    }
+
+    private func startVisibleTemperatureSamplerIfNeeded() {
+        stopVisibleTemperatureSampler()
+        guard hardwareSignalsVisible() else {
+            return
+        }
+        startTemperatureSampler()
+    }
+
+    private func sampleHardwareAfterRefreshIfAllowed() {
+        guard hardwareSignalsVisible() else {
+            return
+        }
+        sampleTemperature()
+    }
+
+    private func stopVisibleTemperatureSampler() {
+        stopTemperatureSampler()
+    }
+
+    private func stopTemperatureSampler() {
+        temperatureTimer?.invalidate()
+        temperatureTimer = nil
+    }
+
+    private func stopSystemMetricsSampler() {
+        systemMetricsTimer?.invalidate()
+        systemMetricsTimer = nil
+    }
+
     private func startTemperatureSampler() {
         temperatureTimer?.invalidate()
         _ = ssdTemperaturePath
@@ -2894,6 +3728,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let nextTimer = Timer(timeInterval: temperatureSampleInterval, repeats: true) { [weak self] _ in
             self?.sampleTemperature()
         }
+        applyTimerTolerance(nextTimer, interval: temperatureSampleInterval)
         temperatureTimer = nextTimer
         RunLoop.main.add(nextTimer, forMode: .common)
     }
@@ -2904,8 +3739,150 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let nextTimer = Timer(timeInterval: systemMetricSampleInterval, repeats: true) { [weak self] _ in
             self?.sampleSystemMetrics()
         }
+        applyTimerTolerance(nextTimer, interval: systemMetricSampleInterval)
         systemMetricsTimer = nextTimer
         RunLoop.main.add(nextTimer, forMode: .common)
+    }
+
+    private func startBatterySampler() {
+        batteryTimer?.invalidate()
+        let interval = batterySampleIntervalForCurrentUI()
+        let nextTimer = Timer(timeInterval: interval, repeats: false) { [weak self] _ in
+            self?.refreshBatteryStatus()
+            self?.startBatterySampler()
+        }
+        applyTimerTolerance(nextTimer, interval: interval)
+        batteryTimer = nextTimer
+        RunLoop.main.add(nextTimer, forMode: .common)
+        startPowerSourceNotifications()
+    }
+
+    private func batterySampleIntervalForCurrentUI() -> TimeInterval {
+        signalPopover?.isShown == true ? batteryVisibleSampleInterval : batteryIdleSampleInterval
+    }
+
+    private func startPowerSourceNotifications() {
+        guard batteryRunLoopSource == nil else {
+            return
+        }
+        let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
+        guard let source = IOPSNotificationCreateRunLoopSource({ context in
+            guard let context else {
+                return
+            }
+            let app = Unmanaged<CodexGaugeApp>.fromOpaque(context).takeUnretainedValue()
+            DispatchQueue.main.async {
+                app.handlePowerSourceChanged()
+            }
+        }, context)?.takeRetainedValue() else {
+            appendLog("battery power source notification unavailable")
+            return
+        }
+        batteryRunLoopSource = source
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+    }
+
+    private func handlePowerSourceChanged() {
+        guard sampleBattery() else {
+            return
+        }
+        scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))
+        configureHardwareSamplersForPowerState()
+        if signalPopover?.isShown == true {
+            startVisibleTemperatureSamplerIfNeeded()
+        }
+        startBatterySampler()
+        updateBatteryStatusUI()
+        resumeAutomaticUpdateCheckAfterPowerReturns()
+    }
+
+    private func refreshBatteryStatus() {
+        guard sampleBattery() else {
+            return
+        }
+        updateBatteryStatusUI()
+        resumeAutomaticUpdateCheckAfterPowerReturns()
+    }
+
+    private func updateBatteryStatusUI() {
+        rebuildMenu()
+        if let snapshot {
+            setStatusImage(title: statusTooltipTitle(snapshot), status: snapshot.codex)
+        } else {
+            setStatusImage(title: "Codex quota")
+        }
+        refreshSignalPopoverIfNeeded()
+    }
+
+    private func sampleBattery() -> Bool {
+        let previousBatteryStatus = batteryStatus
+        batteryStatus = readBatteryStatus()
+        return previousBatteryStatus != batteryStatus
+    }
+
+    private func readBatteryStatus() -> BatteryStatus {
+        guard let info = IOPSCopyPowerSourcesInfo()?.takeRetainedValue() else {
+            return BatteryStatus(percent: nil, isPluggedIn: nil, isCharging: nil, hasBattery: false, powerSaverActive: false, source: "IOPS", error: "Power source info unavailable")
+        }
+        guard let sources = IOPSCopyPowerSourcesList(info)?.takeRetainedValue() as? [CFTypeRef], !sources.isEmpty else {
+            return BatteryStatus(percent: nil, isPluggedIn: true, isCharging: nil, hasBattery: false, powerSaverActive: false, source: "IOPS", error: nil)
+        }
+
+        for source in sources {
+            guard
+                let description = IOPSGetPowerSourceDescription(info, source)?.takeUnretainedValue() as? [String: Any],
+                let type = description[kIOPSTypeKey as String] as? String,
+                type == kIOPSInternalBatteryType
+            else {
+                continue
+            }
+
+            let current = description[kIOPSCurrentCapacityKey as String] as? Int
+            let maximum = description[kIOPSMaxCapacityKey as String] as? Int
+            let state = description[kIOPSPowerSourceStateKey as String] as? String
+            let isCharging = description[kIOPSIsChargingKey as String] as? Bool
+            let percent = batteryPercent(current: current, maximum: maximum)
+            let pluggedIn = state == kIOPSACPowerValue ? true : (state == kIOPSBatteryPowerValue ? false : nil)
+            let active = pluggedIn == false
+            return BatteryStatus(percent: percent, isPluggedIn: pluggedIn, isCharging: isCharging, hasBattery: true, powerSaverActive: active, source: "IOPS", error: nil)
+        }
+
+        return BatteryStatus(percent: nil, isPluggedIn: true, isCharging: nil, hasBattery: false, powerSaverActive: false, source: "IOPS", error: nil)
+    }
+
+    private func batteryPercent(current: Int?, maximum: Int?) -> Int? {
+        guard let current, let maximum, maximum > 0 else {
+            return nil
+        }
+        let value = Int(round(Double(current) * 100.0 / Double(maximum)))
+        return max(0, min(100, value))
+    }
+
+    private func batteryStatusText(status: BatteryStatus?) -> String {
+        guard let status, status.hasBattery else {
+            return "Battery --"
+        }
+        guard let percent = status.percent else {
+            return "Battery --"
+        }
+        return "Battery \(percent)%"
+    }
+
+    private func powerSaverStatusText() -> String {
+        powerSaverActive() ? "Power Saver active" : "Power Saver off"
+    }
+
+    private func refreshCadenceStatusText() -> String {
+        let interval = nextRefreshInterval(for: snapshot?.codex)
+        let minutes = Int(round(interval / 60.0))
+        return "Refresh \(minutes)m"
+    }
+
+    private func batteryDisplayText(_ status: BatteryStatus?) -> String {
+        guard let status, status.hasBattery, let percent = status.percent else {
+            return "--"
+        }
+        return "\(percent)%"
     }
 
     private func sampleSystemMetrics() {
@@ -3030,6 +4007,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func sampleTemperature() {
+        guard temperatureReadAllowed() else {
+            return
+        }
         guard !temperatureReadInFlight else {
             return
         }
@@ -3044,6 +4024,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                     return
                 }
                 self.temperatureReadInFlight = false
+                self.recordTemperatureReadResult(status)
                 self.ssdTemperature = status
                 self.updateLastValidSSDTemperature(status)
                 self.appendTemperatureSample(status)
@@ -3056,9 +4037,24 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func temperatureReadAllowed(now: Date = Date()) -> Bool {
+        guard let temperatureFailureBackoffUntil else {
+            return true
+        }
+        return now >= temperatureFailureBackoffUntil
+    }
+
+    private func recordTemperatureReadResult(_ status: SSDTemperatureStatus?, at date: Date = Date()) {
+        guard status?.ok == true else {
+            temperatureFailureBackoffUntil = date.addingTimeInterval(temperatureFailureBackoffInterval)
+            return
+        }
+        temperatureFailureBackoffUntil = nil
+    }
+
     private func finishRefresh(status: Int32, output: String, errorOutput: String) {
         isRefreshing = false
-        sampleTemperature()
+        sampleHardwareAfterRefreshIfAllowed()
         appendLog("refresh finished status=\(status) stdout=\(clipped(output, limit: 600)) stderr=\(clipped(errorOutput, limit: 600))")
         if status == 0 {
             do {
@@ -3069,7 +4065,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 snapshot = decoded
                 lastError = nil
                 handleNotificationTransitions(decoded.codex)
-                appendHistorySample(decoded.codex)
                 setStatusImage(title: statusTooltipTitle(decoded), status: decoded.codex)
                 startMoodAnimation(for: decoded.codex)
                 appendLog("title=\(decoded.title) ok=\(decoded.codex.ok) source=\(decoded.codex.source ?? "") error=\(decoded.codex.error ?? "")")
@@ -3092,11 +4087,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func notificationsEnabled() -> Bool {
-        UserDefaults.standard.bool(forKey: notificationsEnabledKey)
+        sessionNotificationsEnabled
     }
 
     private func showSSDTemperatureInMenuBar() -> Bool {
-        UserDefaults.standard.bool(forKey: showSSDTemperatureInMenuBarKey)
+        sessionShowSSDTemperatureInMenuBar
     }
 
     private func requestNotificationAuthorization() {
@@ -3106,7 +4101,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                     self?.appendLog("notification authorization failed=\(error.localizedDescription)")
                 }
                 if !granted {
-                    UserDefaults.standard.set(false, forKey: self?.notificationsEnabledKey ?? "notificationsEnabled")
+                    self?.sessionNotificationsEnabled = false
                     self?.notificationsCheckbox?.state = .off
                 }
             }
@@ -3234,9 +4229,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let liveAvailable = snapshot?.codex.ok == true && snapshot?.codex.source == "live"
         let launchAgentRunning = isLaunchAgentConfigured()
         let notificationsAllowed = notificationsEnabled()
-        if ssdTemperature == nil {
-            sampleTemperature()
-        }
         let ssdTemperature = self.ssdTemperature
         return [
             DoctorCheck(
@@ -3255,9 +4247,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 detail: liveAvailable ? "Live data is current" : "Open Codex, then Refresh Now"
             ),
             DoctorCheck(
-                title: "LaunchAgent running",
-                state: launchAgentRunning ? "green" : "amber",
-                detail: launchAgentRunning ? "Starts at login" : "Enable Launch at login"
+                title: "Session storage",
+                state: launchAgentRunning ? "amber" : "green",
+                detail: launchAgentRunning ? "Removing old LaunchAgent" : "Zero persistence"
             ),
             DoctorCheck(
                 title: "Notifications permission",
@@ -3265,6 +4257,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 detail: notificationsAllowed ? "Quota alerts enabled" : "Optional, off by default"
             ),
             ssdTemperatureDoctorCheck(ssdTemperature),
+            batteryDoctorCheck(batteryStatus),
         ]
     }
 
@@ -3281,6 +4274,34 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         default:
             return DoctorCheck(title: "SSD temp", state: "green", detail: detail)
         }
+    }
+
+    private func batteryDoctorCheck(_ status: BatteryStatus?) -> DoctorCheck {
+        guard let status else {
+            return DoctorCheck(title: "Battery", state: "grey", detail: "Battery state unavailable")
+        }
+        guard status.hasBattery else {
+            return DoctorCheck(title: "Battery", state: "grey", detail: "No internal battery")
+        }
+        let detail = "\(batteryDisplayText(status)) · \(status.powerSaverActive ? "Power Saver active" : "plugged in")"
+        if let percent = status.percent, percent < 15 {
+            return DoctorCheck(title: "Battery", state: "red", detail: detail)
+        }
+        if status.powerSaverActive {
+            return DoctorCheck(title: "Battery", state: "amber", detail: detail)
+        }
+        return DoctorCheck(title: "Battery", state: "green", detail: detail)
+    }
+
+    private func batteryDiagnosticsText() -> String {
+        guard let batteryStatus else {
+            return "unavailable"
+        }
+        guard batteryStatus.hasBattery else {
+            return "no internal battery"
+        }
+        let power = batteryStatus.powerSaverActive ? "on battery" : "plugged in"
+        return "\(batteryDisplayText(batteryStatus)), \(power)"
     }
 
     private func doctorStatusColor(_ state: String) -> NSColor {
@@ -3318,7 +4339,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
         menu.addItem(NSMenuItem.separator())
         addDisabled("Codex Gauge v" + appVersion)
-        addAction("Check for Updates...", action: #selector(openReleases))
+        addDisabled("Storage: Zero persistence")
+        if let lastUpdateSummary {
+            addDisabled(lastUpdateSummary)
+        }
+        addAction("Check for Updates...", action: #selector(checkForUpdates))
+        addAction("Release Page...", action: #selector(openReleases))
         addAction("Preferences...", action: #selector(openPreferences))
         menu.addItem(NSMenuItem.separator())
         addAction("Refresh Now", action: #selector(refreshNow))
@@ -3326,7 +4352,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         addAction("Setup Doctor", action: #selector(openSetupDoctor))
         addAction("Copy Diagnostics", action: #selector(copyDiagnostics))
         addAction("Open Codex Analytics", action: #selector(openCodexAnalytics))
-        addAction("Open Support Folder", action: #selector(openSupportFolder))
         menu.addItem(NSMenuItem.separator())
         addAction("Quit", action: #selector(quit))
         refreshSignalPopoverIfNeeded()
@@ -3352,13 +4377,13 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
         switch status.source {
         case "last_live":
-            return "Showing last live cache"
+            return "Non-live fallback disabled in app"
         case "local_snapshot":
-            return "Showing recent local snapshot"
+            return "Snapshot fallback disabled in app"
         case "live", nil:
             return status.ok ? "Live data is current" : "Open Codex to refresh live usage"
         default:
-            return "Showing recent local snapshot"
+            return "Fallback disabled in app"
         }
     }
 
@@ -3368,9 +4393,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
         switch status.source {
         case "last_live":
-            return "Codex not reachable - showing last live"
+            return "Zero persistence keeps no cached fallback in app mode"
         case "local_snapshot":
-            return "Codex closed - showing recent local snapshot"
+            return "Zero persistence keeps no local snapshot fallback in app mode"
         case "live", nil:
             return "Read from local Codex app-server"
         default:
@@ -3392,7 +4417,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             addDisabled("\(sevenDayMenuLabel)     \(percent(status.sevenDayLeft))  \(barString(status.sevenDayLeft))", monospaced: true)
             addDisabled("\(fiveHourResetMenuLabel) \(resetCountdown(status.fiveHourReset))")
             addDisabled("\(sevenDayResetMenuLabel) \(resetCountdown(status.sevenDayReset))")
-            addDisabled("SSD temperature \(ssdTemperatureStatusText(ssdTemperature))")
+            if hardwareSignalsVisible() {
+                addDisabled("SSD temperature \(ssdTemperatureStatusText(ssdTemperature))")
+            }
+            addDisabled("Battery \(batteryDisplayText(batteryStatus))")
+            addDisabled(powerSaverStatusText())
+            if !hardwareSignalsVisible() {
+                addDisabled(refreshCadenceStatusText())
+            }
             if let resetHighlightUntil, resetHighlightUntil > Date() {
                 addDisabled("5h refreshed")
             }
@@ -3430,12 +4462,13 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 sevenDayReset: status.sevenDayReset,
                 source: status.source,
                 ssdTemperature: ssdTemperatureForDisplay(),
-                systemMetric: systemMetricSampleForDisplay()
+                systemMetric: systemMetricSampleForDisplay(),
+                batteryStatus: batteryStatus
             )
         } else if let status, status.ok {
-            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: status.source, ssdTemperature: ssdTemperatureForDisplay(), systemMetric: systemMetricSampleForDisplay())
+            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: status.source, ssdTemperature: ssdTemperatureForDisplay(), systemMetric: systemMetricSampleForDisplay(), batteryStatus: batteryStatus)
         } else {
-            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: nil, ssdTemperature: ssdTemperatureForDisplay(), systemMetric: systemMetricSampleForDisplay())
+            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: nil, ssdTemperature: ssdTemperatureForDisplay(), systemMetric: systemMetricSampleForDisplay(), batteryStatus: batteryStatus)
         }
         button.toolTip = menuBarTooltipTitle(title: title, status: status)
         button.setAccessibilityLabel("Codex Gauge \(menuBarAccessibilitySummary(status))")
@@ -3447,34 +4480,43 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             parts.append("5h resets \(fiveHourResetCountdown(status.fiveHourReset))")
             parts.append("7d resets \(sevenDayResetCountdown(status.sevenDayReset))")
         }
-        let temperature = ssdTemperatureDisplayText(ssdTemperatureForDisplay())
-        if temperature != "--°" {
-            parts.append("SSD \(temperature)")
+        if hardwareSignalsVisible() {
+            let temperature = ssdTemperatureDisplayText(ssdTemperatureForDisplay())
+            if temperature != "--°" {
+                parts.append("SSD \(temperature)")
+            }
+            if let metrics = systemMetricSampleForDisplay() {
+                parts.append("CPU \(systemMetricPercentText(metrics.cpuPercent))")
+                parts.append("RAM \(systemMetricPercentText(metrics.ramPercent))")
+            }
+        } else {
+            parts.append(powerSaverStatusText())
+            parts.append(refreshCadenceStatusText())
         }
-        if let metrics = systemMetricSampleForDisplay() {
-            parts.append("CPU \(systemMetricPercentText(metrics.cpuPercent))")
-            parts.append("RAM \(systemMetricPercentText(metrics.ramPercent))")
-        }
+        parts.append("Battery \(batteryDisplayText(batteryStatus))")
         return parts.joined(separator: " · ")
     }
 
     private func menuBarAccessibilitySummary(_ status: ServiceStatus?) -> String {
-        let temperatureSummary = showSSDTemperatureInMenuBar()
+        let temperatureSummary = hardwareSignalsVisible() && showSSDTemperatureInMenuBar()
             ? ", SSD \(ssdTemperatureDisplayText(ssdTemperatureForDisplay()))"
             : ""
-        let metrics = systemMetricSampleForDisplay()
-        let systemSummary = ", CPU \(systemMetricPercentText(metrics?.cpuPercent)), RAM \(systemMetricPercentText(metrics?.ramPercent))"
+        let metrics = hardwareSignalsVisible() ? systemMetricSampleForDisplay() : nil
+        let systemSummary = hardwareSignalsVisible()
+            ? ", CPU \(systemMetricPercentText(metrics?.cpuPercent)), RAM \(systemMetricPercentText(metrics?.ramPercent))"
+            : ", \(powerSaverStatusText()), \(refreshCadenceStatusText())"
+        let batterySummary = ", Battery \(batteryDisplayText(batteryStatus))"
         guard let status, status.ok, !isUnavailableStatus(status) else {
-            return showSSDTemperatureInMenuBar()
-                ? "SSD \(ssdTemperatureDisplayText(ssdTemperatureForDisplay()))\(systemSummary)"
-                : "unavailable\(systemSummary)"
+            return hardwareSignalsVisible() && showSSDTemperatureInMenuBar()
+                ? "SSD \(ssdTemperatureDisplayText(ssdTemperatureForDisplay()))\(systemSummary)\(batterySummary)"
+                : "unavailable\(systemSummary)\(batterySummary)"
         }
         let fiveHour = status.fiveHourLeft.map { "\($0)%" } ?? "--"
         let sevenDay = status.sevenDayLeft.map { "\($0)%" } ?? "--"
-        return "5h \(fiveHour), 7d \(sevenDay)\(temperatureSummary)\(systemSummary)"
+        return "5h \(fiveHour), 7d \(sevenDay)\(temperatureSummary)\(systemSummary)\(batterySummary)"
     }
 
-    private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?, ssdTemperature: SSDTemperatureStatus?, systemMetric: SystemMetricSample?) -> NSImage {
+    private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?, ssdTemperature: SSDTemperatureStatus?, systemMetric: SystemMetricSample?, batteryStatus: BatteryStatus?) -> NSImage {
         let image = NSImage(size: statusImageSize)
         image.lockFocus()
 
@@ -3501,10 +4543,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 palette: palette
             )
         }
-        if showSSDTemperatureInMenuBar() {
-            drawMenuBarSSDTemperature(status: ssdTemperature, rect: menuBarTemperatureChipRect, palette: palette)
+        if hardwareSignalsVisible() {
+            if showSSDTemperatureInMenuBar() {
+                drawMenuBarSSDTemperature(status: ssdTemperature, rect: menuBarTemperatureChipRect, palette: palette)
+            }
+            drawMenuBarSystemMetricStrip(sample: systemMetric, rect: menuBarSystemMetricStripRect, palette: palette)
+        } else {
+            drawMenuBarBatteryModeInfo(status: batteryStatus, rect: menuBarBatteryModeInfoRect, palette: palette)
         }
-        drawMenuBarSystemMetricStrip(sample: systemMetric, rect: menuBarSystemMetricStripRect, palette: palette)
+        drawMenuBarBattery(status: batteryStatus, rect: menuBarBatteryRect, palette: palette)
 
         image.unlockFocus()
         image.isTemplate = false
@@ -3668,6 +4715,73 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             .foregroundColor: textColor,
         ]
         (text as NSString).draw(at: NSPoint(x: rect.minX + 2.9, y: rect.minY + 2.45), withAttributes: attrs)
+    }
+
+    private func drawMenuBarBattery(status: BatteryStatus?, rect: NSRect, palette: GaugePalette) {
+        guard status?.hasBattery == true else {
+            return
+        }
+        let color = batteryMenuBarColor(status, palette: palette)
+        let shell = NSBezierPath(roundedRect: rect.insetBy(dx: 0.6, dy: 1.2), xRadius: 3.0, yRadius: 3.0)
+        color.withAlphaComponent(status?.isPluggedIn == true ? 0.22 : 0.36).setFill()
+        shell.fill()
+        color.withAlphaComponent(0.72).setStroke()
+        shell.lineWidth = 0.7
+        shell.stroke()
+        drawMenuBarBatteryTerminal(rect: rect, color: color)
+        drawMenuBarBatteryFill(status: status, rect: rect.insetBy(dx: 3.1, dy: 3.7), color: color)
+    }
+
+    private func drawMenuBarBatteryModeInfo(status: BatteryStatus?, rect: NSRect, palette: GaugePalette) {
+        guard status?.hasBattery == true else {
+            return
+        }
+        let color = batteryMenuBarColor(status, palette: palette)
+        let chip = NSBezierPath(roundedRect: rect, xRadius: 4.0, yRadius: 4.0)
+        color.withAlphaComponent(isDarkMenuBar() ? 0.24 : 0.18).setFill()
+        chip.fill()
+        color.withAlphaComponent(0.58).setStroke()
+        chip.lineWidth = 0.55
+        chip.stroke()
+
+        let text = batteryDisplayText(status)
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: text.count > 3 ? 6.3 : 6.9, weight: .bold),
+            .foregroundColor: palette.primaryText,
+        ]
+        (text as NSString).draw(at: NSPoint(x: rect.minX + 4.2, y: rect.minY + 2.5), withAttributes: attrs)
+    }
+
+    private func drawMenuBarBatteryTerminal(rect: NSRect, color: NSColor) {
+        let terminal = NSBezierPath(roundedRect: NSRect(x: rect.maxX - 1.1, y: rect.midY - 2.8, width: 2.6, height: 5.6), xRadius: 1.1, yRadius: 1.1)
+        color.withAlphaComponent(0.72).setFill()
+        terminal.fill()
+    }
+
+    private func drawMenuBarBatteryFill(status: BatteryStatus?, rect: NSRect, color: NSColor) {
+        guard let percent = status?.percent else {
+            return
+        }
+        let fillWidth = max(1.0, rect.width * CGFloat(max(0, min(100, percent))) / 100.0)
+        let fill = NSBezierPath(roundedRect: NSRect(x: rect.minX, y: rect.minY, width: fillWidth, height: rect.height), xRadius: 1.8, yRadius: 1.8)
+        color.withAlphaComponent(0.88).setFill()
+        fill.fill()
+    }
+
+    private func batteryMenuBarColor(_ status: BatteryStatus?, palette: GaugePalette) -> NSColor {
+        guard let status, status.hasBattery else {
+            return palette.mutedText
+        }
+        guard let percent = status.percent else {
+            return palette.mutedText
+        }
+        if percent < 15 {
+            return criticalQuotaColor
+        }
+        if percent < 30 {
+            return warningQuotaColor
+        }
+        return status.powerSaverActive ? warningQuotaColor : normalQuotaColor
     }
 
     private func drawMenuBarSystemMetricStrip(sample: SystemMetricSample?, rect: NSRect, palette: GaugePalette) {
@@ -4042,28 +5156,39 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         return max(0, min(10, Int((Double(value) / 10.0).rounded())))
     }
 
-    private func minQuota(_ first: Int?, _ second: Int?) -> Int? {
-        let values = [first, second].compactMap { $0 }
-        return values.min()
+    private func powerSaverActive() -> Bool {
+        batteryStatus?.powerSaverActive == true
+    }
+
+    private func hardwareSignalsVisible() -> Bool {
+        powerPolicy.hardwareSignalsVisible(powerSaverActive: powerSaverActive())
+    }
+
+    private func batteryPowerSaverRefreshInterval() -> TimeInterval? {
+        powerPolicy.batteryPowerSaverRefreshInterval(percent: batteryStatus?.percent)
+    }
+
+    private func powerSaverRefreshInterval(for status: ServiceStatus?) -> TimeInterval {
+        powerPolicy.powerSaverRefreshInterval(
+            statusOK: status?.ok == true,
+            fiveHourLeft: status?.fiveHourLeft,
+            sevenDayLeft: status?.sevenDayLeft,
+            batteryPercent: batteryStatus?.percent
+        )
     }
 
     private func nextRefreshInterval(for status: ServiceStatus?) -> TimeInterval {
-        guard let status, status.ok else {
-            return failureRefreshInterval
+        if powerSaverActive() {
+            return powerSaverRefreshInterval(for: status)
         }
-        if let interval = fixedRefreshInterval() {
-            return interval
-        }
-        guard let lowest = minQuota(status.fiveHourLeft, status.sevenDayLeft) else {
-            return failureRefreshInterval
-        }
-        if lowest < 10 {
-            return criticalRefreshInterval
-        }
-        if lowest <= 40 {
-            return watchRefreshInterval
-        }
-        return normalRefreshInterval
+        return powerPolicy.nextRefreshInterval(
+            powerSaverActive: false,
+            fixedRefreshInterval: fixedRefreshInterval(),
+            statusOK: status?.ok == true,
+            fiveHourLeft: status?.fiveHourLeft,
+            sevenDayLeft: status?.sevenDayLeft,
+            batteryPercent: batteryStatus?.percent
+        )
     }
 
     private func nextRefreshCountdownText(now: Date) -> String {
@@ -4094,52 +5219,13 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let nextTimer = Timer(timeInterval: interval, repeats: false) { [weak self] _ in
             self?.refresh()
         }
+        applyTimerTolerance(nextTimer, interval: interval)
         timer = nextTimer
         RunLoop.main.add(nextTimer, forMode: .common)
     }
 
-    private func appendHistorySample(_ status: ServiceStatus) {
-        guard status.ok, status.fiveHourLeft != nil || status.sevenDayLeft != nil else {
-            return
-        }
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        let sample = HistorySample(
-            time: status.dataTime ?? formatter.string(from: Date()),
-            source: status.source ?? "live",
-            fiveHourLeft: status.fiveHourLeft,
-            sevenDayLeft: status.sevenDayLeft
-        )
-        var samples = readHistorySamples()
-        if let latest = samples.last,
-           latest.time == sample.time,
-           latest.source == sample.source,
-           latest.fiveHourLeft == sample.fiveHourLeft,
-           latest.sevenDayLeft == sample.sevenDayLeft {
-            return
-        }
-        samples.append(sample)
-        samples = retainedHistorySamples(samples)
-        do {
-            let data = try JSONEncoder().encode(samples)
-            try FileManager.default.createDirectory(
-                atPath: (historyPath as NSString).deletingLastPathComponent,
-                withIntermediateDirectories: true
-            )
-            try data.write(to: URL(fileURLWithPath: historyPath), options: .atomic)
-        } catch {
-            appendLog("history write failed=\(error.localizedDescription)")
-        }
-    }
-
     private func readHistorySamples() -> [HistorySample] {
-        guard
-            let data = try? Data(contentsOf: URL(fileURLWithPath: historyPath)),
-            let samples = try? JSONDecoder().decode([HistorySample].self, from: data)
-        else {
-            return []
-        }
-        return retainedHistorySamples(samples)
+        []
     }
 
     private func appendSystemMetricSample(cpuPercent: Int?, ramPercent: Int?) {
@@ -4150,89 +5236,68 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             time: formatter.string(from: now),
             cpuPercent: cpuPercent,
             ramPercent: ramPercent,
-            ok: cpuPercent != nil || ramPercent != nil
+            ok: cpuPercent != nil || ramPercent != nil,
+            timestamp: now.timeIntervalSince1970
         )
         systemMetricSamples.append(sample)
         systemMetricSamples = retainedSystemMetricSamples(systemMetricSamples)
-        guard shouldPersistSystemMetricSamples(now: now) else {
-            return
-        }
-        let samplesSnapshot = systemMetricSamples
-        persistSystemMetricSamplesAsync(samplesSnapshot)
-    }
-
-    private func shouldPersistSystemMetricSamples(now: Date = Date()) -> Bool {
-        guard let lastSystemMetricPersistAt else {
-            self.lastSystemMetricPersistAt = now
-            return true
-        }
-        guard now.timeIntervalSince(lastSystemMetricPersistAt) >= systemMetricPersistInterval else {
-            return false
-        }
-        self.lastSystemMetricPersistAt = now
-        return true
-    }
-
-    private func persistSystemMetricSamplesAsync(_ samples: [SystemMetricSample]) {
-        systemMetricsQueue.async { [weak self] in
-            guard let self else {
-                return
-            }
-            self.writeSystemMetricSamples(samples)
-        }
-    }
-
-    private func writeSystemMetricSamples(_ samples: [SystemMetricSample]) {
-        let retained = retainedSystemMetricSamples(samples)
-        do {
-            let data = try JSONEncoder().encode(retained)
-            try FileManager.default.createDirectory(
-                atPath: (systemMetricsHistoryPath as NSString).deletingLastPathComponent,
-                withIntermediateDirectories: true
-            )
-            try data.write(to: URL(fileURLWithPath: systemMetricsHistoryPath), options: .atomic)
-        } catch {
-            appendLog("system metrics history write failed=\(error.localizedDescription)")
-        }
     }
 
     private func readSystemMetricSamples() -> [SystemMetricSample] {
-        guard
-            let data = try? Data(contentsOf: URL(fileURLWithPath: systemMetricsHistoryPath)),
-            let samples = try? JSONDecoder().decode([SystemMetricSample].self, from: data)
-        else {
-            return []
-        }
-        return retainedSystemMetricSamples(samples)
+        []
     }
 
     private func retainedSystemMetricSamples(_ samples: [SystemMetricSample], now: Date = Date()) -> [SystemMetricSample] {
-        let cutoff = now.addingTimeInterval(-systemMetricRetentionWindow)
+        let cutoff = now.timeIntervalSince1970 - systemMetricRetentionWindow
         let recent = samples.filter { sample in
-            guard let date = isoDate(sample.time) else {
+            guard let timestamp = systemMetricSampleTimestamp(sample) else {
                 return false
             }
-            return date >= cutoff
+            return timestamp >= cutoff
         }
         return Array(recent.suffix(maxSystemMetricSamples))
     }
 
+    private func systemMetricSampleTimestamp(_ sample: SystemMetricSample) -> Double? {
+        if let timestamp = sample.timestamp {
+            return timestamp
+        }
+        return isoDate(sample.time)?.timeIntervalSince1970
+    }
+
+    private func normalizedSystemMetricSample(_ sample: SystemMetricSample) -> SystemMetricSample {
+        guard sample.timestamp == nil, let timestamp = systemMetricSampleTimestamp(sample) else {
+            return sample
+        }
+        return SystemMetricSample(
+            time: sample.time,
+            cpuPercent: sample.cpuPercent,
+            ramPercent: sample.ramPercent,
+            ok: sample.ok,
+            timestamp: timestamp
+        )
+    }
+
+    private func normalizedSystemMetricSamples(_ samples: [SystemMetricSample]) -> [SystemMetricSample] {
+        samples.map(normalizedSystemMetricSample)
+    }
+
     private func systemMetricGraphSamples(_ samples: [SystemMetricSample], now: Date = Date()) -> [SystemMetricSample] {
-        let cutoff = now.addingTimeInterval(-systemMetricGraphWindow)
+        let cutoff = now.timeIntervalSince1970 - systemMetricGraphWindow
         return samples.filter { sample in
-            guard let date = isoDate(sample.time) else {
+            guard let timestamp = systemMetricSampleTimestamp(sample) else {
                 return false
             }
-            return date >= cutoff
+            return timestamp >= cutoff
         }
     }
 
     private func systemMetricSampleForDisplay(now: Date = Date()) -> SystemMetricSample? {
         systemMetricSamples.reversed().first { sample in
-            guard sample.ok, let date = isoDate(sample.time) else {
+            guard sample.ok, let timestamp = systemMetricSampleTimestamp(sample) else {
                 return false
             }
-            return now.timeIntervalSince(date) <= systemMetricGraphWindow
+            return now.timeIntervalSince1970 - timestamp <= systemMetricGraphWindow
         }
     }
 
@@ -4243,80 +5308,58 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let sample = TemperatureSample(
             time: formatter.string(from: now),
             temperatureC: status?.ok == true ? status?.temperatureC : nil,
-            ok: status?.ok == true && status?.temperatureC != nil
+            ok: status?.ok == true && status?.temperatureC != nil,
+            timestamp: now.timeIntervalSince1970
         )
         temperatureSamples.append(sample)
         temperatureSamples = retainedTemperatureSamples(temperatureSamples)
-        guard shouldPersistTemperatureSamples(now: now) else {
-            return
-        }
-        let samplesSnapshot = temperatureSamples
-        persistTemperatureSamplesAsync(samplesSnapshot)
-    }
-
-    private func shouldPersistTemperatureSamples(now: Date = Date()) -> Bool {
-        guard let lastTemperaturePersistAt else {
-            self.lastTemperaturePersistAt = now
-            return true
-        }
-        guard now.timeIntervalSince(lastTemperaturePersistAt) >= temperaturePersistInterval else {
-            return false
-        }
-        self.lastTemperaturePersistAt = now
-        return true
-    }
-
-    private func persistTemperatureSamplesAsync(_ samples: [TemperatureSample]) {
-        temperatureQueue.async { [weak self] in
-            guard let self else {
-                return
-            }
-            self.writeTemperatureSamples(samples)
-        }
-    }
-
-    private func writeTemperatureSamples(_ samples: [TemperatureSample]) {
-        let retained = retainedTemperatureSamples(samples)
-        do {
-            let data = try JSONEncoder().encode(retained)
-            try FileManager.default.createDirectory(
-                atPath: (temperatureHistoryPath as NSString).deletingLastPathComponent,
-                withIntermediateDirectories: true
-            )
-            try data.write(to: URL(fileURLWithPath: temperatureHistoryPath), options: .atomic)
-        } catch {
-            appendLog("temperature history write failed=\(error.localizedDescription)")
-        }
     }
 
     private func readTemperatureSamples() -> [TemperatureSample] {
-        guard
-            let data = try? Data(contentsOf: URL(fileURLWithPath: temperatureHistoryPath)),
-            let samples = try? JSONDecoder().decode([TemperatureSample].self, from: data)
-        else {
-            return []
-        }
-        return retainedTemperatureSamples(samples)
+        []
     }
 
     private func retainedTemperatureSamples(_ samples: [TemperatureSample], now: Date = Date()) -> [TemperatureSample] {
-        let cutoff = now.addingTimeInterval(-temperatureHistoryRetentionWindow)
+        let cutoff = now.timeIntervalSince1970 - temperatureHistoryRetentionWindow
         let recent = samples.filter { sample in
-            guard let date = isoDate(sample.time) else {
+            guard let timestamp = temperatureSampleTimestamp(sample) else {
                 return false
             }
-            return date >= cutoff
+            return timestamp >= cutoff
         }
         return Array(recent.suffix(maxTemperatureSamples))
     }
 
+    private func temperatureSampleTimestamp(_ sample: TemperatureSample) -> Double? {
+        if let timestamp = sample.timestamp {
+            return timestamp
+        }
+        return isoDate(sample.time)?.timeIntervalSince1970
+    }
+
+    private func normalizedTemperatureSample(_ sample: TemperatureSample) -> TemperatureSample {
+        guard sample.timestamp == nil, let timestamp = temperatureSampleTimestamp(sample) else {
+            return sample
+        }
+        return TemperatureSample(
+            time: sample.time,
+            temperatureC: sample.temperatureC,
+            ok: sample.ok,
+            timestamp: timestamp
+        )
+    }
+
+    private func normalizedTemperatureSamples(_ samples: [TemperatureSample]) -> [TemperatureSample] {
+        samples.map(normalizedTemperatureSample)
+    }
+
     private func temperatureGraphSamples(_ samples: [TemperatureSample], now: Date = Date()) -> [TemperatureSample] {
-        let cutoff = now.addingTimeInterval(-temperatureGraphWindow)
+        let cutoff = now.timeIntervalSince1970 - temperatureGraphWindow
         return samples.filter { sample in
-            guard let date = isoDate(sample.time) else {
+            guard let timestamp = temperatureSampleTimestamp(sample) else {
                 return false
             }
-            return date >= cutoff
+            return timestamp >= cutoff
         }
     }
 
@@ -4471,6 +5514,26 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         ].joined(separator: "\n")
     }
 
+    private func liveUsageSummaryText(_ status: ServiceStatus) -> String {
+        [
+            "# Codex Gauge Live Summary",
+            "",
+            "Generated: \(reportDateString(Date()))",
+            "Storage mode: Zero persistence",
+            "Current source: \(sourceDisplayName(status.source))",
+            "",
+            "## Current quota",
+            "- 5-hour left: \(percent(status.fiveHourLeft))",
+            "- 7-day left: \(percent(status.sevenDayLeft))",
+            "- 5-hour reset: \(resetCountdown(status.fiveHourReset))",
+            "- 7-day reset: \(resetCountdown(status.sevenDayReset))",
+            "",
+            "## Limitations",
+            "This is a live-only snapshot. Codex Gauge keeps no saved quota history, report file, cache, or log.",
+            "It is not token accounting, billing, or spend.",
+        ].joined(separator: "\n")
+    }
+
     private func reportHeadline(_ summary: UsageReportSummary) -> String {
         let five = compactMovementText(first: summary.firstFiveHourLeft, latest: summary.latestFiveHourLeft)
         let seven = compactMovementText(first: summary.firstSevenDayLeft, latest: summary.latestSevenDayLeft)
@@ -4607,34 +5670,21 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func appendLog(_ value: String) {
-        let url = URL(fileURLWithPath: logPath)
-        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        rotateLogIfNeeded(url)
-        let line = "[\(Date())] \(value)\n"
-        guard let data = line.data(using: .utf8) else {
-            return
-        }
-        if FileManager.default.fileExists(atPath: logPath),
-           let handle = try? FileHandle(forWritingTo: url) {
-            _ = try? handle.seekToEnd()
-            try? handle.write(contentsOf: data)
-            try? handle.close()
-        } else {
-            try? data.write(to: url)
+        let entry = "[\(Date())] \(value)"
+        runtimeLogQueue.async { [weak self] in
+            guard let self else {
+                return
+            }
+            self.runtimeLogMessages.append(entry)
+            let overflow = self.runtimeLogMessages.count - self.maxRuntimeLogMessages
+            if overflow > 0 {
+                self.runtimeLogMessages.removeFirst(overflow)
+            }
         }
     }
 
     private func rotateLogIfNeeded(_ url: URL) {
-        guard
-            let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
-            let size = attrs[.size] as? NSNumber,
-            size.uint64Value > maxRuntimeLogBytes
-        else {
-            return
-        }
-        let rotated = url.appendingPathExtension("1")
-        try? FileManager.default.removeItem(at: rotated)
-        try? FileManager.default.moveItem(at: url, to: rotated)
+        _ = url
     }
 
     private func addDisabled(_ title: String, monospaced: Bool = false) {
@@ -4701,11 +5751,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func sourceTooltipSuffix(_ source: String?) -> String? {
         switch source {
         case "last_live":
-            return "Codex not reachable - showing last live"
+            return "Zero persistence keeps no cached fallback"
         case "live", nil:
             return nil
         default:
-            return "Codex closed - showing recent local snapshot"
+            return "Zero persistence keeps no local snapshot fallback"
         }
     }
 
@@ -4811,9 +5861,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let manager = FileManager.default
         let base = manager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? manager.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support")
-        let url = base.appendingPathComponent("CodexGauge", isDirectory: true)
-        try? manager.createDirectory(at: url, withIntermediateDirectories: true)
-        return url.path
+        return base.appendingPathComponent("CodexGauge", isDirectory: true).path
     }
 
     private func ssdTemperatureDiagnosticsText() -> String {
@@ -4832,14 +5880,18 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             "Codex Gauge Diagnostics",
             "App version: \(appVersion)",
             "Helper path: bundled codex_status.py \(helperState)",
+            "Storage mode: Zero persistence",
             "Current data source: \(source)",
             "Last refresh time: \(lastRefresh)",
             "Last error summary: \(error)",
-            "LaunchAgent state: \(launchState)",
+            "Legacy LaunchAgent state: \(launchState)",
             "Notifications permission: \(notificationState)",
             "SSD temperature: \(ssdTemperatureDiagnosticsText())",
+            "Battery state: \(batteryDiagnosticsText())",
+            "Power Saver state: \(powerSaverStatusText())",
             "Refresh mode: \(currentRefreshMode())",
-            "Excludes: browser cookies, ~/.codex/auth.json, Session file contents, Runtime logs, prompts, responses",
+            "Updater state: \(lastUpdateSummary ?? "manual check only")",
+            "Excludes: browser cookies, ~/.codex/auth.json, session file contents, local histories, caches, reports, runtime logs, prompts, responses",
         ].joined(separator: "\n")
     }
 
@@ -4851,55 +5903,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func installLaunchAgentForCurrentApp() -> Bool {
-        let binaryPath = currentAppBinaryPath()
-        guard FileManager.default.isExecutableFile(atPath: binaryPath) else {
-            appendLog("launch agent install failed=missing executable \(binaryPath)")
-            return false
-        }
-
-        let plist = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-          <key>Label</key>
-          <string>\(xmlEscaped(launchAgentLabel))</string>
-          <key>ProgramArguments</key>
-          <array>
-            <string>\(xmlEscaped(binaryPath))</string>
-          </array>
-          <key>RunAtLoad</key>
-          <true/>
-          <key>KeepAlive</key>
-          <true/>
-          <key>LimitLoadToSessionType</key>
-          <string>Aqua</string>
-          <key>ProcessType</key>
-          <string>Interactive</string>
-          <key>StandardOutPath</key>
-          <string>\(xmlEscaped(supportDir + "/launchd.out.log"))</string>
-          <key>StandardErrorPath</key>
-          <string>\(xmlEscaped(supportDir + "/launchd.err.log"))</string>
-        </dict>
-        </plist>
-        """
-
-        do {
-            try FileManager.default.createDirectory(
-                atPath: (launchAgentPlistPath as NSString).deletingLastPathComponent,
-                withIntermediateDirectories: true
-            )
-            try FileManager.default.createDirectory(atPath: supportDir, withIntermediateDirectories: true)
-            try plist.write(toFile: launchAgentPlistPath, atomically: true, encoding: .utf8)
-            unloadLaunchAgent()
-            _ = runLaunchctl(arguments: ["bootstrap", launchctlDomain(), launchAgentPlistPath])
-            _ = runLaunchctl(arguments: ["kickstart", "-k", "\(launchctlDomain())/\(launchAgentLabel)"])
-            appendLog("launch agent installed path=\(launchAgentPlistPath)")
-            return true
-        } catch {
-            appendLog("launch agent install failed=\(error.localizedDescription)")
-            return false
-        }
+        false
     }
 
     private func removeLaunchAgentPlist() {

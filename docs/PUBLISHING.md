@@ -1,11 +1,11 @@
 # Publishing Codex Gauge Safely
 
-This project publishes one supported surface: the native Codex Gauge menu bar app. It is Codex-only and bundles `native/codex_status.py` inside the app. It does not read browser sessions or `~/.codex/auth.json`. When app-server is unavailable, it can read bounded recent Codex session `rate_limits` metadata as a local snapshot fallback and labels that state as Snapshot.
+This project publishes one supported surface: the native Codex Gauge menu bar app. It is Codex-only and bundles `native/codex_status.py` inside the app. It does not read browser sessions or `~/.codex/auth.json`. The app runs in zero persistence mode: no LaunchAgent, support-folder logs, caches, histories, reports, or saved preferences.
 
 ## Privacy
 
 - Review the diff before each public release.
-- Do not publish logs, screenshots with account details, `.venv`, `.env`, `.app` bundles, or files from `~/Library/Application Support/CodexGauge`. In release review, search for the exact rule: do not publish logs.
+- Do not publish logs, screenshots with account details, `.venv`, `.env`, `.app` bundles, or legacy files from `~/Library/Application Support/CodexGauge`. In release review, search for the exact rule: do not publish logs.
 - Do not include personal paths from `Info.plist`; the installed app should resolve its helper from `Contents/Resources`.
 - Keep private planning notes out of the public repo.
 - Keep the public repo identity independent from older fork wording, while preserving required license history.
@@ -24,7 +24,7 @@ This runs the unit tests, builds the app, verifies a clean no-xattr app copy wit
 ./script/package_release.sh
 ```
 
-This builds `native/dist/release/CodexGauge-$APP_VERSION.zip`, writes `CodexGauge-$APP_VERSION.zip.sha256`, and includes `Install Codex Gauge.command` plus `README-INSTALL.txt`. The package contains the app bundle and installer only; it must not include logs, source checkout files, local support data, or files from `~/Library/Application Support/CodexGauge`.
+This builds `native/dist/release/CodexGauge-$APP_VERSION.zip`, writes `CodexGauge-$APP_VERSION.zip.sha256`, and includes `Install Codex Gauge.command` plus `README-INSTALL.txt`. The package contains the app bundle and installer only; it must not include logs, source checkout files, local support data, or files from `~/Library/Application Support/CodexGauge`. The installer launches the app directly and removes any old Codex Gauge LaunchAgent plist.
 
 The generated package is ad-hoc signed and not notarized until Developer ID signing is configured. Treat it as a source-built convenience package, not the final 1.0 distribution path.
 
@@ -34,18 +34,30 @@ The generated package is ad-hoc signed and not notarized until Developer ID sign
 ./script/soak_check.sh --iterations 12 --interval 300
 ```
 
-The soak checker samples the same bundled helper with `--status-json`, writes JSONL under `~/Library/Application Support/CodexGauge`, and summarizes `source_counts` plus `unavailable_count`. For a release candidate, run a longer soak such as `--iterations 2016 --interval 300` to cover one week.
+The soak checker samples the same bundled helper with `--status-json`, writes JSONL to `${TMPDIR:-/tmp}` unless `--out` is provided, sets `CODEX_GAUGE_NO_STORAGE=1`, and summarizes `source_counts` plus `unavailable_count`. For a release candidate, run a longer soak such as `--iterations 2016 --interval 300` to cover one week.
+
+For battery-drain review, unplug the Mac and run:
+
+```bash
+./script/soak_check.sh --battery-mode --iterations 6 --interval 10
+```
+
+Battery mode does not poll the Codex helper. It records power state, CodexGauge CPU, helper process count, legacy runtime-log byte growth, and SSD temperature parse-failure count so repeated hardware sampling is easy to catch before release.
 
 ## Signing
 
 The local build uses ad-hoc `codesign --force --sign -` so it can run on the current Mac. Public distribution should use an Apple Developer ID certificate and notarization:
 
 ```bash
+export CODEX_GAUGE_UPDATE_TEAM_ID="YOURTEAMID"
+./script/build_and_run.sh --build-only
 codesign --force --options runtime --timestamp --sign "Developer ID Application: YOUR NAME" native/dist/CodexGauge.app
 ditto -c -k --keepParent native/dist/CodexGauge.app CodexGauge.zip
 xcrun notarytool submit CodexGauge.zip --keychain-profile YOUR_PROFILE --wait
 xcrun stapler staple native/dist/CodexGauge.app
 ```
+
+`CODEX_GAUGE_UPDATE_TEAM_ID` is stamped into `CodexGaugeUpdateTeamID` and is required for in-app **Download & Install**. Without it, local ad-hoc builds can still check releases, but automatic update installation refuses to trust a generic signed app.
 
 Do not commit signing identities, notary profiles, API keys, or generated archives.
 
@@ -56,8 +68,8 @@ A Homebrew cask is a good public install path after signing and notarization. Ke
 ## Release Checklist
 
 1. Run `./script/release_check.sh`.
-2. Confirm live data is labeled Live and fallback data is labeled Snapshot.
-3. Confirm runtime logs are rotated locally and not packaged.
+2. Confirm live data is labeled Live and unavailable data asks the user to open Codex.
+3. Confirm zero persistence mode creates no support-folder logs, caches, histories, reports, saved preferences, or LaunchAgent plist.
 4. Run `./script/package_release.sh` and verify the zip plus checksum.
 5. Create tag `v0.9.0` on the public clean-history commit.
 6. Sign and notarize with external credentials.

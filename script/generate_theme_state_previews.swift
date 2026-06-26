@@ -32,18 +32,18 @@ let outputPath = "docs/design/codex-gauge-theme-state-fixtures.png"
 
 let themes = [
     PreviewTheme(
-        name: "Paper Console",
-        background: NSColor(calibratedRed: 0.90, green: 0.88, blue: 0.82, alpha: 1.0),
-        panel: NSColor(calibratedRed: 0.99, green: 0.98, blue: 0.94, alpha: 1.0),
-        panelSoft: NSColor(calibratedRed: 0.94, green: 0.92, blue: 0.86, alpha: 1.0),
-        border: NSColor(calibratedRed: 0.10, green: 0.16, blue: 0.14, alpha: 0.30),
-        text: NSColor(calibratedRed: 0.09, green: 0.13, blue: 0.12, alpha: 0.96),
-        secondary: NSColor(calibratedRed: 0.22, green: 0.27, blue: 0.25, alpha: 0.96),
-        muted: NSColor(calibratedRed: 0.40, green: 0.45, blue: 0.42, alpha: 0.92),
-        mint: NSColor(calibratedRed: 0.11, green: 0.65, blue: 0.46, alpha: 0.96),
-        amber: NSColor(calibratedRed: 0.95, green: 0.68, blue: 0.25, alpha: 0.96),
-        coral: NSColor(calibratedRed: 0.84, green: 0.29, blue: 0.25, alpha: 0.96),
-        blue: NSColor(calibratedRed: 0.23, green: 0.45, blue: 0.72, alpha: 0.96)
+        name: "Porcelain Lab",
+        background: NSColor(calibratedRed: 0.91, green: 0.95, blue: 0.98, alpha: 1.0),
+        panel: NSColor(calibratedRed: 0.96, green: 0.985, blue: 1.00, alpha: 1.0),
+        panelSoft: NSColor(calibratedRed: 0.89, green: 0.94, blue: 0.97, alpha: 1.0),
+        border: NSColor(calibratedRed: 0.10, green: 0.19, blue: 0.23, alpha: 0.20),
+        text: NSColor(calibratedRed: 0.08, green: 0.13, blue: 0.15, alpha: 0.96),
+        secondary: NSColor(calibratedRed: 0.19, green: 0.28, blue: 0.31, alpha: 0.96),
+        muted: NSColor(calibratedRed: 0.42, green: 0.50, blue: 0.53, alpha: 0.92),
+        mint: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 0.96),
+        amber: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.96),
+        coral: NSColor(calibratedRed: 0.93, green: 0.27, blue: 0.31, alpha: 0.96),
+        blue: NSColor(calibratedRed: 0.24, green: 0.37, blue: 0.92, alpha: 0.96)
     ),
     PreviewTheme(
         name: "Signal Dark",
@@ -78,7 +78,7 @@ let themes = [
 let states = [
     PreviewState(name: "Live", detail: "Current local app-server signal", source: "Source: Menu Bar", fiveHour: 82, sevenDay: 76, reset: "4h", status: NSColor.systemGreen),
     PreviewState(name: "Codex closed", detail: "Open Codex desktop once to enable live usage", source: "No live quota yet", fiveHour: nil, sevenDay: nil, reset: "--", status: NSColor.systemOrange),
-    PreviewState(name: "Last live", detail: "Cached, clearly labeled", source: "Source: Last live", fiveHour: 58, sevenDay: 63, reset: "2h", status: NSColor.systemBlue),
+    PreviewState(name: "Live only", detail: "No stored cache or snapshot", source: "Storage: Zero persistence", fiveHour: 58, sevenDay: 63, reset: "2h", status: NSColor.systemBlue),
     PreviewState(name: "Low quota", detail: "Adaptive refresh speeds up", source: "Source: Menu Bar", fiveHour: 9, sevenDay: 44, reset: "38m", status: NSColor.systemRed),
 ]
 
