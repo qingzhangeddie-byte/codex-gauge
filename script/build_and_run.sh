@@ -9,6 +9,7 @@ MIN_SYSTEM_VERSION="13.0"
 APP_VERSION="0.9.0"
 APP_BUILD="1"
 RELEASE_URL="https://github.com/qingzhangeddie-byte/codex-gauge/releases"
+UPDATE_TEAM_ID="${CODEX_GAUGE_UPDATE_TEAM_ID:-}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_FILE="$ROOT_DIR/native/CodexGauge.swift"
@@ -30,7 +31,7 @@ SWIFT_MODULE_CACHE="$BUILD_DIR/swift-module-cache"
 CLANG_MODULE_CACHE="$BUILD_DIR/clang-module-cache"
 AGENT_LABEL="app.codexgauge.menubar"
 AGENT_PLIST="$HOME/Library/LaunchAgents/app.codexgauge.menubar.plist"
-SUPPORT_DIR="$HOME/Library/Application Support/CodexGauge"
+LEGACY_SUPPORT_DIR="$HOME/Library/Application Support/CodexGauge"
 
 launchctl_domain() {
   printf "gui/%s" "$(id -u)"
@@ -42,6 +43,8 @@ unload_launch_agent() {
 
 stop_app() {
   unload_launch_agent
+  rm -f "$AGENT_PLIST" >/dev/null 2>&1 || true
+  rm -rf "$LEGACY_SUPPORT_DIR" >/dev/null 2>&1 || true
   pkill -x "$APP_NAME" >/dev/null 2>&1 || true
   pkill -x "$APP_BINARY_NAME" >/dev/null 2>&1 || true
   pkill -x "$LEGACY_APP_NAME" >/dev/null 2>&1 || true
@@ -158,6 +161,8 @@ LAUNCHER
   <string>codex_status.py</string>
   <key>CodexGaugeReleaseURL</key>
   <string>$RELEASE_URL</string>
+  <key>CodexGaugeUpdateTeamID</key>
+  <string>$UPDATE_TEAM_ID</string>
 </dict>
 </plist>
 PLIST
@@ -171,52 +176,12 @@ PLIST
 }
 
 open_app() {
-  nohup "$APP_BINARY" >/dev/null 2>&1 &
+  /usr/bin/open -na "$APP_BUNDLE"
 }
 
 launch_app_binary() {
   local app_path="$1"
-  nohup "$app_path/Contents/MacOS/$APP_BINARY_NAME" >/dev/null 2>&1 &
-}
-
-write_launch_agent() {
-  local app_path="$1"
-  local binary_path="$app_path/Contents/MacOS/$APP_BINARY_NAME"
-  mkdir -p "$(dirname "$AGENT_PLIST")" "$SUPPORT_DIR"
-  cat >"$AGENT_PLIST" <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>$AGENT_LABEL</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>$binary_path</string>
-  </array>
-  <key>RunAtLoad</key>
-  <true/>
-  <key>KeepAlive</key>
-  <true/>
-  <key>LimitLoadToSessionType</key>
-  <string>Aqua</string>
-  <key>ProcessType</key>
-  <string>Interactive</string>
-  <key>StandardOutPath</key>
-  <string>$SUPPORT_DIR/launchd.out.log</string>
-  <key>StandardErrorPath</key>
-  <string>$SUPPORT_DIR/launchd.err.log</string>
-</dict>
-</plist>
-PLIST
-}
-
-install_launch_agent() {
-  local app_path="$1"
-  unload_launch_agent
-  write_launch_agent "$app_path"
-  /bin/launchctl bootstrap "$(launchctl_domain)" "$AGENT_PLIST"
-  /bin/launchctl kickstart -k "$(launchctl_domain)/$AGENT_LABEL"
+  /usr/bin/open -na "$app_path"
 }
 
 install_app() {
@@ -236,16 +201,12 @@ install_app() {
 
   rm -rf "$legacy_target" >/dev/null 2>&1 || true
   if copy_verified_app "$target"; then
-    if ! install_launch_agent "$target"; then
-      launch_app_binary "$target"
-    fi
+    launch_app_binary "$target"
     return
   fi
 
   if copy_verified_app "$user_target"; then
-    if ! install_launch_agent "$user_target"; then
-      launch_app_binary "$user_target"
-    fi
+    launch_app_binary "$user_target"
     return
   fi
 

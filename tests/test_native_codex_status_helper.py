@@ -102,6 +102,35 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
         self.assertTrue(snapshot["codex"]["ok"])
         write_cache.assert_called_once()
 
+    def test_no_storage_mode_skips_cache_writes_and_local_fallbacks(self):
+        helper = load_helper()
+
+        with mock.patch.dict(helper.os.environ, {"CODEX_GAUGE_NO_STORAGE": "1"}), \
+             mock.patch.object(helper, "live_codex_rate_limits", return_value={
+                 "plan": "pro",
+                 "primary": {"percent_used": 27, "resets_at": 1_800_000_100},
+                 "secondary": {"percent_used": 11, "resets_at": 1_800_000_200},
+             }), \
+             mock.patch.object(helper, "_write_last_live_rate_limits_cache", wraps=helper._write_last_live_rate_limits_cache) as write_cache:
+            snapshot = helper.build_status_snapshot()
+
+        self.assertTrue(snapshot["codex"]["ok"])
+        self.assertEqual(snapshot["codex"]["source"], "live")
+        write_cache.assert_called_once()
+        self.assertFalse(list(pathlib.Path(self.support_tmp.name).glob("*")))
+
+        with mock.patch.dict(helper.os.environ, {"CODEX_GAUGE_NO_STORAGE": "1"}), \
+             mock.patch.object(helper, "live_codex_rate_limits", side_effect=helper.CodexRemoteError("offline")), \
+             mock.patch.object(helper, "latest_last_live_rate_limits_cache", wraps=helper.latest_last_live_rate_limits_cache) as last_live, \
+             mock.patch.object(helper, "latest_local_codex_rate_limits_snapshot", wraps=helper.latest_local_codex_rate_limits_snapshot) as local_snapshot:
+            snapshot = helper.build_status_snapshot()
+
+        self.assertFalse(snapshot["codex"]["ok"])
+        self.assertEqual(snapshot["codex"]["source"], "live")
+        self.assertIn("Codex live usage unavailable", snapshot["codex"]["error"])
+        last_live.assert_called_once()
+        local_snapshot.assert_called_once()
+
     def test_uses_recent_last_live_cache_when_live_and_snapshot_are_unavailable(self):
         helper = load_helper()
         now = datetime.datetime.fromisoformat("2026-06-12T17:40:00+00:00").timestamp()

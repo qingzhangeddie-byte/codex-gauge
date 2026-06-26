@@ -66,12 +66,16 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("Timer(timeInterval: interval", source)
         self.assertIn("RunLoop.main.add(nextTimer, forMode: .common)", source)
 
-    def test_native_app_writes_runtime_status_log(self):
+    def test_native_app_does_not_write_runtime_status_log(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         self.assertIn("CodexGauge-runtime.log", source)
         self.assertIn("appendLog", source)
         self.assertIn("title=\\(decoded.title)", source)
+        append_log_body = source.split("private func appendLog", 1)[1].split("private func rotateLogIfNeeded", 1)[0]
+        self.assertNotIn("FileHandle", append_log_body)
+        self.assertNotIn("write(to:", append_log_body)
+        self.assertNotIn("createDirectory", append_log_body)
 
     def test_native_app_clears_stale_snapshot_on_refresh_failure(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -122,7 +126,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("stopMoodAnimation()", source)
         self.assertNotIn("Timer(timeInterval: 2.4, repeats: true)", source)
         self.assertIn("RunLoop.main.add(nextTimer, forMode: .common)", source)
-        self.assertIn('statusItem.autosaveName = "CodexGaugeStatusItem"', source)
+        self.assertNotIn('statusItem.autosaveName = "CodexGaugeStatusItem"', source)
         self.assertIn("statusItem.length = statusItemWidth", source)
         self.assertIn("button.imagePosition = .imageOnly", source)
         self.assertIn('button.title = ""', source)
@@ -307,7 +311,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertNotIn("automaticUpdateDismissedTagName.write", source)
         self.assertNotIn("dismissedUpdate", source)
 
-    def test_native_app_has_preferences_for_refresh_notifications_and_login(self):
+    def test_native_app_has_session_only_preferences_for_refresh_notifications_and_theme(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         self.assertIn('"Preferences..."', source)
@@ -320,13 +324,17 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn('"Adaptive"', source)
         self.assertIn('"5 minutes"', source)
         self.assertIn('"10 minutes"', source)
-        self.assertIn('"Launch at login"', source)
+        self.assertIn('"Launch at login disabled"', source)
+        self.assertIn("login.isEnabled = false", source)
         self.assertIn('"Quota notifications"', source)
         self.assertIn("refreshPreferenceChanged", source)
         self.assertIn("notificationsPreferenceChanged", source)
         self.assertIn("launchAtLoginPreferenceChanged", source)
         self.assertIn("installLaunchAgentForCurrentApp", source)
         self.assertIn("removeLaunchAgentPlist", source)
+        self.assertIn("sessionRefreshMode", source)
+        self.assertIn("sessionNotificationsEnabled", source)
+        self.assertNotIn("UserDefaults.standard", source)
         self.assertIn("makeThemedUtilityContentView", source)
         self.assertIn("ThemedUtilityPanelView", source)
         self.assertIn("styleUtilityButton", source)
@@ -349,7 +357,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn(".canJoinAllSpaces", source)
         self.assertIn("show(relativeTo: button.bounds", source)
         self.assertIn("firstRunSetupPopover?.performClose", source)
-        self.assertIn("UserDefaults.standard.set(true, forKey: firstRunSetupSeenKey)", source)
+        self.assertNotIn("UserDefaults.standard.set(true, forKey: firstRunSetupSeenKey)", source)
 
     def test_native_app_sends_opt_in_quota_notifications(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()

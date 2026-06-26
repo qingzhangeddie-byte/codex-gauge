@@ -20,11 +20,15 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertIn('APP_BINARY_NAME="${APP_NAME}-bin"', script)
         self.assertIn('APP_LAUNCHER="$APP_MACOS/$APP_NAME"', script)
         self.assertIn('#!/bin/zsh', script)
-        self.assertIn("install_launch_agent", script)
         self.assertIn("app.codexgauge.menubar.plist", script)
-        self.assertIn("<key>KeepAlive</key>", script)
-        self.assertIn("launchctl bootstrap", script)
-        self.assertIn("launchctl kickstart -k", script)
+        self.assertIn('rm -f "$AGENT_PLIST"', script)
+        self.assertIn('launch_app_binary "$target"', script)
+        self.assertIn('launch_app_binary "$user_target"', script)
+        self.assertIn('/usr/bin/open -na "$app_path"', script)
+        self.assertNotIn('nohup "$app_path/Contents/MacOS/$APP_BINARY_NAME"', script)
+        self.assertNotIn("<key>KeepAlive</key>", script)
+        self.assertNotIn("launchctl bootstrap", script)
+        self.assertNotIn("launchctl kickstart -k", script)
         self.assertNotIn("remove_watchdog", script)
         self.assertNotIn("WATCHDOG", script)
         self.assertIn("CodexGaugePythonPath", script)
@@ -106,7 +110,7 @@ class NativeHardeningTests(unittest.TestCase):
         ]:
             self.assertNotIn(blocked, source)
 
-    def test_temperature_history_is_local_bounded_and_clearable(self):
+    def test_temperature_samples_are_in_memory_bounded_and_legacy_clearable(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         self.assertIn('temperatureHistoryFileName = "CodexGauge-temperature-history.json"', source)
@@ -114,18 +118,22 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertIn("maxTemperatureSamples = 24 * 60 * 60", source)
         self.assertIn("temperatureGraphWindow: TimeInterval = 10 * 60", source)
         self.assertIn("temperatureHistoryRetentionWindow: TimeInterval = 24 * 60 * 60", source)
-        self.assertIn("temperaturePersistInterval: TimeInterval = 60", source)
         self.assertIn("ssdTemperatureReadTimeout", source)
         self.assertIn("Date().addingTimeInterval(ssdTemperatureReadTimeout)", source)
         self.assertIn("process.terminate()", source)
         self.assertIn("retainedTemperatureSamples", source)
         self.assertIn("temperatureHistoryPath,", source)
-        self.assertIn("Clear local data", source)
+        self.assertIn("Clear legacy data", source)
 
         history_storage = source.split("private func appendTemperatureSample", 1)[1].split("private func readTemperatureSamples", 1)[0]
+        self.assertIn("temperatureSamples.append(sample)", history_storage)
+        self.assertIn("temperatureSamples = retainedTemperatureSamples(temperatureSamples)", history_storage)
+        self.assertIn("private func readTemperatureSamples() -> [TemperatureSample] {\n        []\n    }", source)
         self.assertNotIn("Keychain", history_storage)
+        self.assertNotIn("writeTemperatureSamples", source)
+        self.assertNotIn("persistTemperatureSamplesAsync", source)
 
-    def test_system_metric_history_is_local_bounded_and_clearable(self):
+    def test_system_metric_samples_are_in_memory_bounded_and_legacy_clearable(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         self.assertIn('systemMetricsHistoryFileName = "CodexGauge-system-metrics-history.json"', source)
@@ -133,21 +141,52 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertIn("systemMetricSampleInterval: TimeInterval = 5", source)
         self.assertIn("systemMetricGraphWindow: TimeInterval = 10 * 60", source)
         self.assertIn("systemMetricRetentionWindow: TimeInterval = 24 * 60 * 60", source)
-        self.assertIn("systemMetricPersistInterval: TimeInterval = 60", source)
-        self.assertIn("lastSystemMetricPersistAt", source)
         self.assertIn("maxSystemMetricSamples = 24 * 60 * 60 / 5", source)
         self.assertIn("systemMetricsHistoryPath,", source)
-        self.assertIn("Clear local data", source)
+        self.assertIn("Clear legacy data", source)
         self.assertIn("CPU/RAM", pathlib.Path("docs/PRIVACY.md").read_text(encoding="utf-8"))
         self.assertIn("aggregated local CPU and RAM percentages", pathlib.Path("docs/PRIVACY.md").read_text(encoding="utf-8"))
 
         metric_storage = source.split("private func appendSystemMetricSample", 1)[1].split("private func readSystemMetricSamples", 1)[0]
-        self.assertIn("shouldPersistSystemMetricSamples(now: now)", metric_storage)
+        self.assertIn("systemMetricSamples.append(sample)", metric_storage)
+        self.assertIn("systemMetricSamples = retainedSystemMetricSamples(systemMetricSamples)", metric_storage)
+        self.assertIn("private func readSystemMetricSamples() -> [SystemMetricSample] {\n        []\n    }", source)
         self.assertNotIn("Keychain", metric_storage)
         self.assertNotIn("browser", metric_storage.lower())
         self.assertNotIn("auth.json", metric_storage)
+        self.assertNotIn("writeSystemMetricSamples", source)
+        self.assertNotIn("persistSystemMetricSamplesAsync", source)
 
-        self.assertIn("private func shouldPersistSystemMetricSamples(now: Date = Date()) -> Bool", source)
+    def test_zero_persistence_disables_app_storage_and_preferences(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+        build_script = pathlib.Path("script/build_and_run.sh").read_text()
+        replace_script = pathlib.Path("script/replace_installed_app.sh").read_text()
+
+        self.assertIn("private let persistentStorageEnabled = false", source)
+        self.assertIn('"CODEX_GAUGE_NO_STORAGE": "1"', source)
+        self.assertIn("removePersistentAppStorage()", source)
+        self.assertIn("removeLegacySupportDirectory()", source)
+        self.assertIn("Zero persistence", source)
+        self.assertNotIn("UserDefaults.standard", source)
+        self.assertNotIn("try data.write", source)
+        self.assertNotIn("writeTemperatureSamples", source)
+        self.assertNotIn("writeSystemMetricSamples", source)
+        self.assertNotIn("persistTemperatureSamplesAsync", source)
+        self.assertNotIn("persistSystemMetricSamplesAsync", source)
+        self.assertIn('LEGACY_SUPPORT_DIR="$HOME/Library/Application Support/CodexGauge"', build_script)
+        self.assertIn('rm -rf "$LEGACY_SUPPORT_DIR"', build_script)
+        self.assertIn('LEGACY_SUPPORT_DIR="$HOME/Library/Application Support/CodexGauge"', replace_script)
+        self.assertIn('rm -rf "$LEGACY_SUPPORT_DIR"', replace_script)
+
+        append_log_body = source.split("private func appendLog", 1)[1].split("private func addDisabled", 1)[0]
+        self.assertNotIn("FileHandle", append_log_body)
+        self.assertNotIn("write(to:", append_log_body)
+        self.assertNotIn("createDirectory", append_log_body)
+
+        clear_data_body = source.split("private func performClearLocalData()", 1)[1].split("private func removePersistentAppStorage", 1)[0]
+        persistent_cleanup_body = source.split("private func removePersistentAppStorage()", 1)[1].split("private func removeLegacySupportDirectory", 1)[0]
+        self.assertIn("try removeLegacySupportDirectory()", clear_data_body)
+        self.assertIn("try? removeLegacySupportDirectory()", persistent_cleanup_body)
 
     def test_battery_status_uses_native_iops_without_persisting_history(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -166,7 +205,8 @@ class NativeHardeningTests(unittest.TestCase):
             "private var batteryStatus: BatteryStatus?",
             "private var batteryTimer: Timer?",
             "private var batteryRunLoopSource: CFRunLoopSource?",
-            "private let batterySampleInterval: TimeInterval = 60",
+            "private let batteryVisibleSampleInterval: TimeInterval = 60",
+            "private let batteryIdleSampleInterval: TimeInterval = 5 * 60",
             "private func readBatteryStatus() -> BatteryStatus",
             "IOPSCopyPowerSourcesInfo()",
             "IOPSCopyPowerSourcesList",
@@ -185,10 +225,6 @@ class NativeHardeningTests(unittest.TestCase):
             self.assertIn(token, source)
 
         self.assertIn("-framework IOKit", build_script)
-        notification_handler = source.split("private func handlePowerSourceChanged()", 1)[1].split(
-            "private func sampleBattery()", 1
-        )[0]
-        self.assertNotIn("scheduleNextRefresh(after:", notification_handler)
         self.assertNotIn("pmset", source)
         self.assertNotIn("ioreg", source)
         self.assertNotIn("Battery-history", source)
@@ -221,9 +257,6 @@ class NativeHardeningTests(unittest.TestCase):
             "return powerSaverRefreshInterval(for: status)",
             "fixedRefreshInterval: fixedRefreshInterval()",
             "scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))",
-            "private func rescheduleNextRefreshIfEarlier(after interval: TimeInterval)",
-            "let desiredFireDate = Date().addingTimeInterval(interval)",
-            "guard desiredFireDate < nextRefreshAt else",
         ]:
             self.assertIn(token, source)
 
@@ -231,10 +264,10 @@ class NativeHardeningTests(unittest.TestCase):
             "private func sampleBattery()", 1
         )[0]
         self.assertIn(
-            "rescheduleNextRefreshIfEarlier(after: nextRefreshInterval(for: snapshot?.codex))",
+            "scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))",
             notification_handler,
         )
-        self.assertNotIn("scheduleNextRefresh(after:", notification_handler)
+        self.assertNotIn("rescheduleNextRefreshIfEarlier", notification_handler)
 
         power_saver_body = app_source.split("private func powerSaverRefreshInterval(for status: ServiceStatus?)", 1)[1].split(
             "private func nextRefreshInterval", 1
@@ -262,6 +295,30 @@ class NativeHardeningTests(unittest.TestCase):
             policy_power_saver_body.index("guard statusOK else"),
         )
 
+    def test_power_timers_are_coalesced_and_battery_ui_avoids_noop_refreshes(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "private struct BatteryStatus: Equatable",
+            "private func sampleBattery() -> Bool",
+            "let previousBatteryStatus = batteryStatus",
+            "return previousBatteryStatus != batteryStatus",
+            "guard sampleBattery() else",
+            "private let batteryVisibleSampleInterval: TimeInterval = 60",
+            "private let batteryIdleSampleInterval: TimeInterval = 5 * 60",
+            "private func batterySampleIntervalForCurrentUI() -> TimeInterval",
+            "signalPopover?.isShown == true ? batteryVisibleSampleInterval : batteryIdleSampleInterval",
+            "private func applyTimerTolerance(",
+            "timer.tolerance",
+            "applyTimerTolerance(nextTimer, interval: temperatureSampleInterval)",
+            "applyTimerTolerance(nextTimer, interval: systemMetricSampleInterval)",
+            "applyTimerTolerance(nextTimer, interval: interval)",
+            "applyTimerTolerance(nextTimer, interval: interval)",
+            "Timer(timeInterval: interval, repeats: false)",
+            "self?.startBatterySampler()",
+        ]:
+            self.assertIn(token, source)
+
     def test_privacy_docs_describe_battery_as_local_hardware_telemetry(self):
         privacy = pathlib.Path("docs/PRIVACY.md").read_text(encoding="utf-8")
 
@@ -274,6 +331,54 @@ class NativeHardeningTests(unittest.TestCase):
             self.assertIn(phrase, privacy)
 
         self.assertNotIn("Battery-history", privacy)
+
+    def test_privacy_docs_describe_session_only_github_updater(self):
+        privacy = pathlib.Path("docs/PRIVACY.md").read_text(encoding="utf-8")
+        readme = pathlib.Path("README.md").read_text(encoding="utf-8")
+
+        for phrase in [
+            "session-only update check",
+            "only while plugged in",
+            "manual update check",
+            "GitHub Releases",
+            "downloaded update zip",
+            "temporary directory",
+            "no update history",
+            "no dismissed-version record",
+        ]:
+            self.assertIn(phrase, privacy)
+
+        self.assertIn("Check for Updates", readme)
+        self.assertIn("Download & Install", readme)
+        self.assertIn("session-only update check while plugged in", readme)
+        self.assertIn("temporary directory", readme)
+        self.assertIn("does not keep update history", readme)
+
+    def test_updater_pins_release_checksum_and_publisher_before_install(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+        build_script = pathlib.Path("script/build_and_run.sh").read_text()
+
+        for token in [
+            "CodexGaugeUpdateTeamID",
+            "expectedUpdateSigningTeamID",
+            "verifyDownloadedUpdateChecksum",
+            "expectedSHA256",
+            "matchingChecksumAsset",
+            "parseSHA256",
+            'runProcess("/usr/bin/shasum", arguments: ["-a", "256", zipURL.path])',
+            'runProcess("/usr/bin/codesign", arguments: ["--display", "--verbose=4", appURL.path])',
+            "TeamIdentifier=\\(expectedTeamID)",
+            'runProcess("/usr/sbin/spctl", arguments: ["--assess", "--type", "execute", "--verbose=4", appURL.path])',
+        ]:
+            self.assertIn(token, source)
+
+        prepare_body = source.split("private func prepareDownloadedUpdate", 1)[1].split(
+            "private func findDownloadedCodexGaugeApp", 1
+        )[0]
+        self.assertLess(prepare_body.index("verifyDownloadedUpdateChecksum"), prepare_body.index('runProcess("/usr/bin/ditto"'))
+        self.assertLess(prepare_body.index("verifyDownloadedUpdateApp"), prepare_body.index("return PreparedUpdate"))
+        self.assertIn('UPDATE_TEAM_ID="${CODEX_GAUGE_UPDATE_TEAM_ID:-}"', build_script)
+        self.assertIn("<key>CodexGaugeUpdateTeamID</key>", build_script)
 
     def test_build_script_stamps_public_version_metadata(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()
@@ -298,17 +403,22 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertNotIn("AILimitUsagePath", source)
         self.assertNotIn('fallback: "\\(rootDir)/usage.py"', source)
 
-    def test_native_app_logs_to_application_support(self):
+    def test_native_app_keeps_no_runtime_logs_and_removes_legacy_storage(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         self.assertIn("applicationSupportDirectory", source)
         self.assertIn('"CodexGauge"', source)
         self.assertIn('"CodexGauge-runtime.log"', source)
-        self.assertIn("maxRuntimeLogBytes", source)
         self.assertIn("rotateLogIfNeeded", source)
-        self.assertIn('appendingPathExtension("1")', source)
         self.assertNotIn('native/build/AiLimitStatus-runtime.log', source)
-        self.assertIn('"Open Support Folder"', source)
+        self.assertIn('"Storage: Zero persistence"', source)
+        self.assertIn("removePersistentAppStorage()", source)
+        self.assertIn("Clear legacy data", source)
+        append_log_body = source.split("private func appendLog", 1)[1].split("private func rotateLogIfNeeded", 1)[0]
+        self.assertNotIn("FileHandle", append_log_body)
+        self.assertNotIn("write(to:", append_log_body)
+        self.assertNotIn("createDirectory", append_log_body)
+        self.assertNotIn('"Open Support Folder"', source)
         self.assertIn("disableAutomaticTermination", source)
         self.assertIn("disableSuddenTermination", source)
         self.assertIn("beginActivity", source)

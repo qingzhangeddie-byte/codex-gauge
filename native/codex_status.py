@@ -28,12 +28,17 @@ SECONDARY_RESET_MAX_FUTURE_SEC = 8 * 24 * 60 * 60
 RESET_FUTURE_GRACE_SEC = 60
 ENV_CODEX_CLI_PATH = "CODEX_GAUGE_CODEX_CLI_PATH"
 ENV_SUPPORT_DIR = "CODEX_GAUGE_SUPPORT_DIR"
+ENV_NO_STORAGE = "CODEX_GAUGE_NO_STORAGE"
 LAST_LIVE_CACHE_FILE = "last-live-status.json"
 CODEX_GAUGE_CLIENT = {"name": "codex-gauge", "title": "Codex Gauge", "version": "0"}
 
 
 class CodexRemoteError(Exception):
     pass
+
+
+def no_storage_enabled() -> bool:
+    return os.environ.get(ENV_NO_STORAGE, "").strip() == "1"
 
 
 def find_free_local_port() -> int:
@@ -305,6 +310,8 @@ def _normalize_remote_rate_limits(rate_limits: dict) -> dict:
 
 
 def latest_local_codex_rate_limits_snapshot(now: float | None = None) -> dict | None:
+    if no_storage_enabled():
+        return None
     sessions_dir = pathlib.Path.home() / ".codex" / "sessions"
     if not sessions_dir.is_dir():
         return None
@@ -464,6 +471,8 @@ def _last_live_cache_path() -> pathlib.Path:
 
 
 def _write_last_live_rate_limits_cache(rate_limits: dict, captured_at: str) -> None:
+    if no_storage_enabled():
+        return
     if not rate_limits:
         return
     cache_path = _last_live_cache_path()
@@ -479,6 +488,8 @@ def _write_last_live_rate_limits_cache(rate_limits: dict, captured_at: str) -> N
 
 
 def latest_last_live_rate_limits_cache(now: float | None = None) -> dict | None:
+    if no_storage_enabled():
+        return None
     now = time.time() if now is None else now
     try:
         payload = json.loads(_last_live_cache_path().read_text(encoding="utf-8"))

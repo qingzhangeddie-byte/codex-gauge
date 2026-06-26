@@ -119,7 +119,9 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("./script/build_and_run.sh --build-only", script)
         self.assertIn("AiLimitStatus.app", script)
         self.assertIn("app.codexgauge.menubar.plist", script)
-        self.assertIn("launchctl bootstrap", script)
+        self.assertIn('rm -f "$AGENT_PLIST"', script)
+        self.assertIn("launch_app_binary", script)
+        self.assertNotIn("launchctl bootstrap", script)
         self.assertIn("not notarized", script)
         self.assertNotIn("docs/marketing", script)
         self.assertNotIn("CodexGauge-runtime.log", script)
@@ -183,12 +185,12 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertTrue(fixture.exists())
         script_text = script.read_text()
         for phrase in [
-            "Paper Console",
+            "Porcelain Lab",
             "Signal Dark",
             "Mono Graphite",
             "Live",
             "Codex closed",
-            "Last live",
+            "Live only",
             "Low quota",
             "docs/design/codex-gauge-theme-state-fixtures.png",
         ]:
@@ -208,10 +210,10 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         script = pathlib.Path("script/render_signal_console_fixtures.sh")
         fixture_dir = pathlib.Path("docs/design/app-rendered-signal-console")
         expected = [
-            "paper-console-live.png",
-            "paper-console-codex-closed.png",
-            "paper-console-last-live.png",
-            "paper-console-low-quota.png",
+            "porcelain-lab-live.png",
+            "porcelain-lab-codex-closed.png",
+            "porcelain-lab-last-live.png",
+            "porcelain-lab-low-quota.png",
             "signal-dark-live.png",
             "signal-dark-codex-closed.png",
             "signal-dark-last-live.png",
@@ -220,8 +222,8 @@ class PublicReleaseHygieneTests(unittest.TestCase):
             "mono-graphite-codex-closed.png",
             "mono-graphite-last-live.png",
             "mono-graphite-low-quota.png",
-            "paper-console-plugged-in-full.png",
-            "paper-console-battery-mode.png",
+            "porcelain-lab-plugged-in-full.png",
+            "porcelain-lab-battery-mode.png",
         ]
 
         self.assertTrue(script.exists())
@@ -229,6 +231,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         script_text = script.read_text()
         self.assertIn("--render-signal-console-fixtures", script_text)
         self.assertIn("native/dist/CodexGauge.app/Contents/MacOS/CodexGauge-bin", script_text)
+        self.assertIn("porcelain-lab", pathlib.Path("native/CodexGauge.swift").read_text())
         for filename in expected:
             fixture = fixture_dir / filename
             self.assertTrue(fixture.exists(), filename)
@@ -247,7 +250,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
 
         self.assertTrue(script.exists())
         script_text = script.read_text()
-        self.assertIn("docs/design/app-rendered-signal-console/paper-console-live.png", script_text)
+        self.assertIn("docs/design/app-rendered-signal-console/porcelain-lab-live.png", script_text)
         self.assertIn("docs/design/app-rendered-signal-console/signal-dark-live.png", script_text)
         self.assertIn("docs/assets/codex-gauge-signal-console.png", script_text)
         self.assertIn("docs/assets/codex-gauge-social-preview.png", script_text)

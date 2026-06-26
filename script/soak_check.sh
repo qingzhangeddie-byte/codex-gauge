@@ -47,12 +47,11 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$OUT" ]]; then
-  SUPPORT_DIR="$HOME/Library/Application Support/CodexGauge"
-  mkdir -p "$SUPPORT_DIR"
+  OUTPUT_DIR="${TMPDIR:-/tmp}"
   if [[ "$BATTERY_MODE" -eq 1 ]]; then
-    OUT="$SUPPORT_DIR/CodexGauge-battery-soak-$(date -u +%Y%m%d-%H%M%S).jsonl"
+    OUT="$OUTPUT_DIR/CodexGauge-battery-soak-$(date -u +%Y%m%d-%H%M%S).jsonl"
   else
-    OUT="$SUPPORT_DIR/CodexGauge-soak-$(date -u +%Y%m%d-%H%M%S).jsonl"
+    OUT="$OUTPUT_DIR/CodexGauge-soak-$(date -u +%Y%m%d-%H%M%S).jsonl"
   fi
 else
   mkdir -p "$(dirname "$OUT")"
@@ -160,7 +159,7 @@ for ((i = 1; i <= ITERATIONS; i++)); do
   stdout_file="$tmpdir/stdout-$i.json"
   stderr_file="$tmpdir/stderr-$i.txt"
   observed_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-  if CODEX_GAUGE_SUPPORT_DIR="$(dirname "$OUT")" "$PYTHON_BIN" "$HELPER" --status-json >"$stdout_file" 2>"$stderr_file"; then
+    if CODEX_GAUGE_SUPPORT_DIR="$tmpdir" CODEX_GAUGE_NO_STORAGE=1 "$PYTHON_BIN" "$HELPER" --status-json >"$stdout_file" 2>"$stderr_file"; then
     "$PYTHON_BIN" - "$observed_at" "$stdout_file" >>"$OUT" <<'PY'
 import json
 import sys

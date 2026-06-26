@@ -35,33 +35,29 @@ bash install.sh
 - 分段信号条让菜单栏里的额度健康状态更直观，同时不会变成很占位置的大组件
 - 可选 SSD 温度后缀会在 macOS 暴露传感器时显示本机硬盘温度，也可以在 Preferences 里关闭
 - 下拉菜单、诊断和 Setup Doctor 会把 SSD 温度标注为 Normal、Warm 或 Hot
-- 1 秒本地 SSD 温度历史会在 Movement 区域显示为平滑的 10 分钟温度曲线，并进行 24 小时本地保留
+- 1 秒 SSD 温度采样会在 Movement 区域显示为平滑的 10 分钟温度曲线，并且只保存在内存中
 - 本地 CPU 和 RAM 百分比会以很小的 CPU/RAM 系统条显示在菜单栏里，并在 Signal Console 中显示为趋势脉冲线
-- 每 5 秒采样一次本地 CPU/RAM，保留 10 分钟趋势视图和 24 小时本地 CPU/RAM 历史；写入本地历史文件最多每分钟一次
+- 每 5 秒采样一次本地 CPU/RAM，保留 10 分钟内存趋势视图，不写入磁盘
 - 原生电池信号会用熟悉的电池图形显示本机电量和供电状态
 - 电池供电时 Power Saver 会把额度刷新降低到通常 20 分钟、额度偏低 10 分钟、严重偏低 5 分钟；电池模式只显示用量和电池/Power Saver 信息，并停止 SSD 温度和 CPU/RAM 采样，直到重新接入外部电源
 - 自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口
 - Signal Console 显示真实的下次刷新倒计时，不再只是静态刷新标签
-- 三套可选主题：默认 Paper Console，并提供 Signal Dark 和 Mono Graphite
+- 三套可选主题：默认 Porcelain Lab，并提供 Signal Dark 和 Mono Graphite
 - 首次运行设置页会解释本地优先模式，并引导新用户打开 Codex、运行 Setup Doctor、开始使用菜单栏
 - Preferences 和 Setup Doctor 会跟随当前选择的 Signal Console 主题
 - 趋势按真实时间窗口显示：当前 5 小时窗口变化，以及过去 24 小时内的 7 天额度变化，并直接标出正负百分比
-- Signal Console 会直接显示本地 24 小时额度变化报告；Copy report 只复制，不保存报告文件
-- Clear local data 只清理 Codex Gauge 的历史、Last live 缓存和日志，不触碰 Codex 登录或会话数据
-- Clear local data 会同时删除温度历史、额度历史、缓存和日志
-- Clear local data 会同时删除 CPU/RAM 历史、额度历史、温度历史、缓存和日志
+- Signal Console 可以复制当前实时摘要；不会保存 report 文件
+- Clear legacy data 只清理旧版本可能留下的历史、缓存、report、日志和 LaunchAgent 文件，不触碰 Codex 登录或会话数据
 - 自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
-- 偏好设置支持主题、自适应、5 分钟、10 分钟刷新，也可以控制是否登录时启动
+- 偏好设置只在当前运行会话中生效，支持主题、自适应、5 分钟和 10 分钟刷新
 - 可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
-- Signal Console 会在弹出面板解释 Live、Last live、Snapshot、Codex closed 和不可用状态
-- 菜单栏会明确标记 Cache、Snapshot 和 Open 状态，避免把非实时数据误认为 Live
+- Signal Console 会在弹出面板解释 Live、Codex closed 和不可用状态
+- 菜单栏会明确标记 Live 和 Open；Zero persistence 模式会在 App 中关闭本地 Cache 和 Snapshot fallback
 - Setup Doctor 和 Copy Diagnostics 可帮助排查本地设置，但不会复制 prompts、Cookie、auth 文件或日志
 - 原生 App 自带 helper，安装后不依赖源码目录
-- 使用用户级 LaunchAgent 保持菜单栏进程常驻，不读取浏览器 Cookie
-- 提供有边界的 fallback：短时 **Last live** 缓存、15 分钟 **Snapshot** 新鲜度保护，并在菜单栏显示来源标记
+- Zero persistence 模式不保留 LaunchAgent、保存的偏好、历史、缓存、report、运行日志或 support-folder 存储
 - 原生菜单栏 App 不读取浏览器 Cookie
 - 原生菜单栏 App 不读取 `~/.codex/auth.json`
-- 日志写入 `~/Library/Application Support/CodexGauge`，并在本地自动轮转
 
 ![Codex Gauge Signal Console](docs/assets/codex-gauge-signal-console.png)
 
@@ -95,9 +91,11 @@ bash install.sh
 
 通常约一分钟后，菜单栏会出现 Codex 额度仪表。
 
-安装脚本也会写入 `~/Library/LaunchAgents/app.codexgauge.menubar.plist`，让 macOS 保持菜单栏进程运行。从菜单里选择 **Quit** 会卸载当前用户的这个 LaunchAgent。
+安装脚本会直接启动 App，并移除旧版本可能留下的 `~/Library/LaunchAgents/app.codexgauge.menubar.plist`。从菜单里选择 **Quit** 会停止菜单栏 App。
 
 从下载好的 release package 安装时，打开 `Install Codex Gauge.command`。
+
+安装后，菜单里的 **Check for Updates...** 会查询 GitHub Releases 的 latest 版本，并展示当前版本、最新版本、release 信息和更新说明。发现新版本 zip 时，**Download & Install** 会把更新包下载到临时目录，验证 release checksum、固定的发布者 Team ID 和 notarization，再替换 `CodexGauge.app` 并重新启动。Codex Gauge 不保存更新历史或 updater cache。
 
 维护者生成 package 时使用：
 
@@ -106,7 +104,7 @@ bash install.sh
 open native/dist/release
 ```
 
-生成的 zip 包含 `CodexGauge.app`、`Install Codex Gauge.command` 和 SHA-256 checksum。正式 1.0 公共版本仍建议使用 Developer ID 签名和 notarization。
+生成的 zip 包含 `CodexGauge.app`、`Install Codex Gauge.command` 和 SHA-256 checksum。正式 1.0 公共版本应使用 Developer ID 签名、notarization，并在构建时设置 `CODEX_GAUGE_UPDATE_TEAM_ID`，这样 app 内安装才能验证发布者。
 
 ## 和其他工具的不同
 
@@ -115,17 +113,18 @@ open native/dist/release
 | 菜单栏安全性 | 原生菜单栏 App 不读取浏览器 Cookie |
 | 本地登录安全性 | 原生菜单栏 App 不读取 `~/.codex/auth.json` |
 | 打包方式 | helper 打包在 App bundle 内部 |
-| 菜单栏常驻 | 使用用户级 LaunchAgent，并在 Quit 时明确清理 |
+| 菜单栏常驻 | 当前会话直接启动，不安装 LaunchAgent |
+| 更新 | 手动检查 GitHub release，确认后 Download & Install，只使用临时文件 |
 | 信息密度 | 同时展示 5 小时和 7 天额度 |
 | 刷新策略 | 根据额度余量自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后快速重试 |
-| 偏好设置 | 内置刷新频率、通知、登录时启动控制 |
-| 可选 SSD 温度 | 菜单栏 SSD 温度 chip 可以隐藏；诊断里仍会标注 Normal、Warm 或 Hot；Signal Console 会显示本地 10 分钟温度曲线，并进行 24 小时本地保留 |
-| 本地 CPU/RAM 状态 | 菜单栏显示极小 CPU/RAM 系统条，Signal Console 显示趋势脉冲，只保留 24 小时本地百分比历史，并且最多每分钟写入一次 |
+| 偏好设置 | 当前会话内的刷新频率、通知和主题控制 |
+| 可选 SSD 温度 | 菜单栏 SSD 温度 chip 可以隐藏；诊断里仍会标注 Normal、Warm 或 Hot；Signal Console 会显示本地 10 分钟内存温度曲线 |
+| 本地 CPU/RAM 状态 | 菜单栏显示极小 CPU/RAM 系统条，Signal Console 显示趋势脉冲，只保存在内存中 |
 | 电池 Power Saver | 原生电池图形加自动电池供电省电模式；电池供电时只显示用量和电池信息，并停止 SSD 温度与 CPU/RAM 采样 |
 | 通知 | 只在用户主动开启后提醒关键额度状态 |
-| Signal Console | 直接说明数据是实时、缓存、快照还是不可用 |
-| Setup Doctor | 检查 Codex App、helper、实时数据、LaunchAgent 和通知权限 |
-| Diagnostics | 安全复制诊断信息，不包含 prompts、Cookie、auth 文件、session 内容或日志 |
+| Signal Console | 直接说明数据是实时还是不可用 |
+| Setup Doctor | 检查 Codex App、helper、实时数据、Zero persistence 和通知权限 |
+| Diagnostics | 安全复制诊断信息，不包含 prompts、Cookie、auth 文件、session 内容、历史、缓存、report 或日志 |
 | 重置时间 | 下拉菜单直接显示重置时间 |
 | 安装方式 | 本地 clone 后一条命令安装，不建议网络管道执行 shell |
 
@@ -137,7 +136,7 @@ open native/dist/release
 CodexGauge.app/Contents/Resources/codex_status.py
 ```
 
-它优先通过本地 Codex app-server 读取实时额度。每次成功读取实时数据后，helper 会在本地短时缓存；如果临时读不到实时数据，会标记为 **Last live**，表示这是最近一次实时读数。如果实时数据和 Last live 都不可用，helper 才会使用有边界的本地快照 fallback：递归查找最近的 Codex session 文件，最多读取 80 个文件，每个文件只读取末尾 2 MB，并且只提取 `rate_limits` 元数据。快照必须是 15 分钟内捕获的数据；下拉菜单会明确标记为 **Snapshot**，不会把过期数据伪装成实时数据。
+App 会通过打包的 helper 访问本地 Codex app-server 读取实时额度。App 运行 helper 时会启用 Zero persistence，所以实时读数不会被缓存，App 模式下也不会使用本地 Snapshot fallback。
 
 它不读取浏览器 Cookie，不读取 `~/.codex/auth.json`，也不扫描无关的项目目录、浏览器 profile 或 Keychain。
 
@@ -162,7 +161,7 @@ bash install.sh
 
 ## 卸载
 
-先在 Codex Gauge 菜单中选择 **Quit**，然后删除 App 和本地支持文件：
+先在 Codex Gauge 菜单中选择 **Quit**，然后删除 App 和旧版本可能留下的本地支持文件：
 
 ```bash
 launchctl bootout "gui/$(id -u)/app.codexgauge.menubar" 2>/dev/null || true
@@ -201,7 +200,7 @@ plist 应该只引用 `codex_status.py`，不应该包含你的源码目录路�
 
 ### Codex Gauge 会读取 `~/.codex/auth.json` 吗？
 
-不会。它优先使用本地 Codex app-server 获取实时额度，并在不可用时使用有边界、只读的 session 元数据快照 fallback。
+不会。App 优先使用本地 Codex app-server 获取实时额度，并以 Zero persistence 模式禁用本地缓存和 Snapshot fallback。
 
 ### 这会触发 5 小时窗口吗？
 

@@ -58,12 +58,12 @@ Search phrases this project is designed to answer naturally: **check Codex usage
   可选 SSD 温度后缀会在 macOS 暴露传感器时显示本机硬盘温度；SSD 温度显示可以在 Preferences 里关闭
 - SSD temperature is explained as Normal, Warm, or Hot in the dropdown, diagnostics, and Setup Doctor
   SSD 温度会在下拉菜单、诊断和 Setup Doctor 里标注为 Normal、Warm 或 Hot
-- 1-second local SSD temperature history renders as a smooth 10-minute temperature curve in the Movement section, with 24-hour local retention
-  1 秒本地 SSD 温度历史会在 Movement 区域显示为平滑的 10 分钟温度曲线，并进行 24 小时本地保留
+- 1-second SSD temperature samples render a smooth 10-minute Movement curve in memory only
+  1 秒 SSD 温度采样会在 Movement 区域显示为平滑的 10 分钟曲线，并且只保存在内存中
 - Local CPU and RAM percentages appear as a tiny CPU/RAM system strip in the menu bar and as pulse lines in Signal Console
   本地 CPU 和 RAM 百分比会以很小的 CPU/RAM 系统条显示在菜单栏里，并在 Signal Console 中显示为趋势脉冲线
-- 5-second local CPU/RAM samples keep a 10-minute movement view and 24-hour local CPU/RAM history, while disk writes are throttled to once per minute
-  每 5 秒采样一次本地 CPU/RAM，保留 10 分钟趋势视图和 24 小时本地 CPU/RAM 历史；写入本地历史文件最多每分钟一次
+- 5-second local CPU/RAM samples keep a 10-minute in-memory movement view with no disk writes
+  每 5 秒采样一次本地 CPU/RAM，保留 10 分钟内存趋势视图，不写入磁盘
 - A native battery signal shows local charge and power-source state with a familiar battery glyph
   原生电池信号会用熟悉的电池图形显示本机电量和供电状态
 - Power Saver on battery slows quota refresh to 20 minutes normally on battery, 10 minutes when low, and 5 minutes when critical; on battery it shows usage plus battery/Power Saver info only and stops SSD temperature plus CPU/RAM sampling until external power returns
@@ -72,42 +72,34 @@ Search phrases this project is designed to answer naturally: **check Codex usage
   自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口；下拉菜单显示额度重置时间和上次刷新时间
 - Signal Console shows the actual next-refresh countdown, not a static refresh label
   Signal Console 显示真实的下次刷新倒计时，不再只是静态刷新标签
-- Three selectable themes: Paper Console by default, Signal Dark, and Mono Graphite
-  三套可选主题：默认 Paper Console，并提供 Signal Dark 和 Mono Graphite
+- Three selectable themes: Porcelain Lab by default, Signal Dark, and Mono Graphite
+  三套可选主题：默认 Porcelain Lab，并提供 Signal Dark 和 Mono Graphite
 - First-run setup explains the local-only model and points new users to Codex, Setup Doctor, and the menu bar
   首次运行设置页会解释本地优先模式，并引导新用户打开 Codex、运行 Setup Doctor、开始使用菜单栏
 - Preferences and Setup Doctor use the same selected Signal Console theme
   Preferences 和 Setup Doctor 会跟随当前选择的 Signal Console 主题
 - Time-based trends show signed 5-hour movement in the current reset window and 7-day movement over the last 24 hours
   趋势不再按模糊样本数展示，而是显示当前 5 小时窗口变化，以及过去 24 小时内的 7 天额度变化，并直接标出正负百分比
-- Signal Console shows a local 24-hour quota movement report inline; Copy report never saves a report file
-  Signal Console 会直接显示本地 24 小时额度变化报告；Copy report 只复制，不保存报告文件
-- Clear local data removes Codex Gauge history, last-live cache, and logs without touching Codex auth/session data
-  Clear local data 只清理 Codex Gauge 的历史、Last live 缓存和日志，不触碰 Codex 登录或会话数据
-- Clear local data removes temperature history together with quota history, cache, and logs
-  Clear local data 会同时删除温度历史、额度历史、缓存和日志
-- Clear local data removes CPU/RAM history together with quota history, temperature history, cache, and logs
-  Clear local data 会同时删除 CPU/RAM 历史、额度历史、温度历史、缓存和日志
+- Signal Console copies a current live-only summary; no report file is saved
+  Signal Console 可以复制当前实时摘要；不会保存 report 文件
+- Clear legacy data removes old Codex Gauge history, cache, report, log, and LaunchAgent files from earlier builds without touching Codex auth/session data
+  Clear legacy data 只清理旧版本可能留下的历史、缓存、report、日志和 LaunchAgent 文件，不触碰 Codex 登录或会话数据
 - Adaptive refresh: 5 minutes normally, 3 minutes when low, 2 minutes when critical, 1 minute after transient errors  
   自适应刷新：正常 5 分钟，额度偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
-- Preferences for theme, Adaptive, 5-minute, or 10-minute refresh plus launch-at-login control
-  偏好设置支持主题、自适应、5 分钟、10 分钟刷新，也可以控制是否登录时启动
+- Session-only preferences for theme, Adaptive, 5-minute, or 10-minute refresh
+  偏好设置只在当前运行会话中生效，支持主题、自适应、5 分钟和 10 分钟刷新
 - Opt-in notifications for low 5-hour quota, restored quota, and prolonged non-live data
   可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
-- Signal Console states explain Live, Last live, Snapshot, Codex closed, and unavailable data directly in the popover
-  Signal Console 会在弹出面板解释 Live、Last live、Snapshot、Codex closed 和不可用状态
-- Menu bar states mark Cache, Snapshot, and Open explicitly so stale data is not confused with Live
-  菜单栏会明确标记 Cache、Snapshot 和 Open 状态，避免把非实时数据误认为 Live
+- Signal Console states explain Live, Codex closed, and unavailable data directly in the popover
+  Signal Console 会在弹出面板解释 Live、Codex closed 和不可用状态
+- Menu bar states mark Live and Open explicitly; zero persistence disables stored Cache and Snapshot fallback in the app
+  菜单栏会明确标记 Live 和 Open；Zero persistence 模式会在 App 中关闭本地 Cache 和 Snapshot fallback
 - Setup Doctor and Copy Diagnostics help debug local setup without copying prompts, cookies, auth files, or logs
   Setup Doctor 和 Copy Diagnostics 可帮助排查本地设置，但不会复制 prompts、Cookie、auth 文件或日志
-- Self-contained app bundle with its helper inside `Contents/Resources`  
+- Self-contained app bundle with its helper inside `Contents/Resources`
   自包含 App bundle，helper 打包在 `Contents/Resources` 内
-- User LaunchAgent keeps the installed menu bar app resident without browser-cookie access  
-  用户级 LaunchAgent 保持菜单栏 App 常驻，不读取浏览器 Cookie
-- Bounded fallback: short **Last live** cache, 15-minute **Snapshot** guard, and visible menu bar source marker  
-  有边界的 fallback：短时 **Last live** 缓存、15 分钟 **Snapshot** 新鲜度保护，并在菜单栏显示来源标记
-- Runtime logs in `~/Library/Application Support/CodexGauge`, rotated locally  
-  运行日志写入 `~/Library/Application Support/CodexGauge`，并在本地轮转
+- Zero persistence mode: no LaunchAgent, saved preferences, local histories, caches, reports, runtime logs, or support-folder storage
+  Zero persistence 模式：不保留 LaunchAgent、保存的偏好、历史、缓存、report、运行日志或 support-folder 存储
 
 ![Codex Gauge Signal Console](docs/assets/codex-gauge-signal-console.png)
 
@@ -157,11 +149,11 @@ That installs the native app at:
 /Applications/CodexGauge.app
 ```
 
-About a minute later, Codex Gauge should appear in your menu bar with live Codex usage.
-
-The installer also writes `~/Library/LaunchAgents/app.codexgauge.menubar.plist` so macOS keeps the menu bar process running. Choosing **Quit** from the menu unloads that LaunchAgent for the current user.
+Codex Gauge should appear in your menu bar with live Codex usage. The installer launches the app directly and removes any old Codex Gauge LaunchAgent plist; choosing **Quit** stops the menu bar app.
 
 From a downloaded release package, open `Install Codex Gauge.command`.
+
+After install, Codex Gauge can perform one session-only update check while plugged in, and **Check for Updates...** always queries the latest GitHub Releases entry on demand. Both paths show the current version, latest version, release info, and notes. When a newer release zip is available, **Download & Install** downloads it to a temporary directory, verifies the release checksum plus the pinned publisher Team ID/notarization, replaces `CodexGauge.app`, and relaunches. Codex Gauge does not keep update history, dismissed-version records, or an updater cache.
 
 For maintainers creating that package:
 
@@ -170,7 +162,7 @@ For maintainers creating that package:
 open native/dist/release
 ```
 
-The generated zip includes `CodexGauge.app`, `Install Codex Gauge.command`, and a SHA-256 checksum. Public 1.0 builds should still be Developer ID signed and notarized.
+The generated zip includes `CodexGauge.app`, `Install Codex Gauge.command`, and a SHA-256 checksum. Public 1.0 builds should be Developer ID signed, notarized, and built with `CODEX_GAUGE_UPDATE_TEAM_ID` so in-app installs can verify the publisher.
 
 ## Why Codex Gauge is different
 
@@ -179,17 +171,18 @@ The generated zip includes `CodexGauge.app`, `Install Codex Gauge.command`, and 
 | Native menu bar safety | No browser cookies in the menu bar app |
 | Local auth safety | No `~/.codex/auth.json` reads in the menu bar app |
 | Packaging | Self-contained app bundle with a bundled helper |
-| Menu bar persistence | User LaunchAgent with explicit Quit cleanup |
+| Menu bar persistence | Session-only direct launch; no LaunchAgent is installed |
+| Updates | Session-only plugged-in GitHub release check plus manual Check for Updates, with confirmed Download & Install and temporary files only |
 | Signal quality | Shows both 5-hour and 7-day quota instead of one vague number |
 | Refresh behavior | Adaptive refresh instead of constant polling: 5 minutes normally, 3 minutes when low, 2 minutes when critical, with quick retry after transient errors |
-| Preferences | Built-in refresh cadence, notifications, and launch-at-login controls |
-| Optional SSD temperature | Menu bar SSD chip can be hidden; diagnostics still label the sensor as Normal, Warm, or Hot, and the Signal Console can draw a local 10-minute curve with 24-hour local retention |
-| Local CPU/RAM context | Tiny menu-bar CPU/RAM system strip plus Signal Console movement pulses, stored only as 24-hour local percentage history and persisted at most once per minute |
+| Preferences | Session-only refresh cadence, notifications, and theme controls |
+| Optional SSD temperature | Menu bar SSD chip can be hidden; diagnostics still label the sensor as Normal, Warm, or Hot, and the Signal Console can draw a local 10-minute in-memory curve |
+| Local CPU/RAM context | Tiny menu-bar CPU/RAM system strip plus Signal Console movement pulses, kept in memory only |
 | Battery Power Saver | Native battery glyph plus automatic on-battery Power Saver that keeps quota useful while reducing background hardware sampling |
 | Notifications | Opt-in alerts for the moments users actually care about |
-| Signal Console | Explains whether data is live, cached, snapshot-based, or unavailable |
-| Setup Doctor | Local checks for Codex app, helper, live data, LaunchAgent, and notifications |
-| Diagnostics | Safe copy-only diagnostics that exclude prompts, cookies, auth files, session contents, and logs |
+| Signal Console | Explains whether data is live or unavailable |
+| Setup Doctor | Local checks for Codex app, helper, live data, zero persistence, and notifications |
+| Diagnostics | Safe copy-only diagnostics that exclude prompts, cookies, auth files, session contents, histories, caches, reports, and logs |
 | Reset timing | Reset timing is visible in the dropdown |
 | Setup | Local clone, one install command, no network-piped shell script |
 
@@ -215,11 +208,11 @@ The native menu bar app uses a bundled helper:
 CodexGauge.app/Contents/Resources/codex_status.py
 ```
 
-For live Codex quota, it first talks to the local Codex app-server. Each successful live reading is cached locally for short outages and is labeled **Last live** if reused. If live and last-live data are unavailable, it can fall back to a bounded local snapshot: the helper reads at most 80 recent Codex session files, only the last 2 MB of each file, and extracts only `rate_limits` metadata. Snapshot data must be captured within the last 15 minutes and is labeled as **Snapshot** in the dropdown so stale fallback data is not presented as live.
+For live Codex quota, the app talks to the local Codex app-server through the bundled helper. The app runs that helper with zero persistence enabled, so successful live readings are not cached and local Snapshot fallback is disabled in app mode.
 
 It does **not** read browser cookies, does **not** read `~/.codex/auth.json`, and does **not** scan unrelated project folders, browser profiles, or Keychain.
 
-The CPU/RAM display is local CPU and RAM percentages only. Codex Gauge samples it every 5 seconds for the live strip, persists the bounded history at most once per minute, and stores no process list, app names, command lines, or file paths.
+The CPU/RAM display is local CPU and RAM percentages only. Codex Gauge samples it every 5 seconds for the live strip while external power is connected, keeps only the in-memory movement view, and stores no process list, app names, command lines, or file paths.
 
 Battery display is local battery percentage and power-source state only. Codex Gauge does not store battery history.
 
@@ -244,7 +237,7 @@ The installer builds and replaces the native menu bar app only. It does not inst
 
 ## Uninstall
 
-Choose **Quit** from the Codex Gauge menu first. Then remove the app and local support files:
+Choose **Quit** from the Codex Gauge menu first. Then remove the app and any legacy support files from older builds:
 
 ```bash
 launchctl bootout "gui/$(id -u)/app.codexgauge.menubar" 2>/dev/null || true
@@ -272,10 +265,10 @@ The plist should reference `codex_status.py`, not your source checkout.
 | Data | Source |
 |---|---|
 | Codex live quota | Local Codex app-server |
-| Codex fallback quota | Recent `~/.codex/sessions` `rate_limits` metadata, recursively discovered, bounded by file count and tail size, labeled Snapshot |
-| CPU/RAM usage | Aggregated local macOS CPU and RAM percentages only, retained for 24 hours in Application Support, persisted at most once per minute |
-| Menu bar persistence | `~/Library/LaunchAgents/app.codexgauge.menubar.plist` |
-| Runtime logs | `~/Library/Application Support/CodexGauge`, rotated at 512 KB |
+| Codex fallback quota | Disabled in app mode by `CODEX_GAUGE_NO_STORAGE=1` |
+| CPU/RAM usage | Aggregated local macOS CPU and RAM percentages only, kept in memory |
+| Menu bar persistence | None; direct app launch only |
+| App storage | None; old support files can be cleared as legacy data |
 
 ## FAQ
 
@@ -293,7 +286,7 @@ No. The native menu bar app does not read browser cookies, browser profiles, Key
 
 ### Does Codex Gauge read `~/.codex/auth.json`?
 
-No. It uses the local Codex app-server for live usage and a bounded read-only session metadata fallback labeled Snapshot.
+No. It uses the local Codex app-server for live usage, and app mode disables local cache and Snapshot fallback with `CODEX_GAUGE_NO_STORAGE=1`.
 
 ### Does this trigger the 5-hour window?
 
