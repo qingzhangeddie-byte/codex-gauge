@@ -170,6 +170,101 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("https://github.com/qingzhangeddie-byte/codex-gauge/releases", source)
         self.assertIn('"Check for Updates..."', source)
 
+    def test_native_app_runs_session_only_automatic_update_check_on_external_power(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "private enum UpdateCheckMode",
+            "case manual",
+            "case automatic",
+            "private var automaticUpdateTimer: Timer?",
+            "private var automaticUpdateCheckDidRun = false",
+            "private var automaticUpdateCheckPendingForPower = false",
+            "private var automaticUpdateDismissedTagName: String?",
+            "private let automaticUpdateCheckDelay: TimeInterval = 2 * 60",
+            "scheduleAutomaticUpdateCheck()",
+            "performAutomaticUpdateCheckIfAllowed()",
+            "resumeAutomaticUpdateCheckAfterPowerReturns()",
+            "performUpdateCheck(mode: .automatic)",
+            "handleLatestRelease(release, mode: mode)",
+            "handleUpdateCheckFailure(error, mode: mode)",
+        ]:
+            self.assertIn(token, source)
+
+        launch_body = source.split("func applicationDidFinishLaunching", 1)[1].split(
+            "func applicationWillTerminate", 1
+        )[0]
+        self.assertIn("scheduleAutomaticUpdateCheck()", launch_body)
+
+        terminate_body = source.split("func applicationWillTerminate", 1)[1].split(
+            "func applicationShouldTerminate", 1
+        )[0]
+        self.assertIn("automaticUpdateTimer?.invalidate()", terminate_body)
+
+        schedule_body = source.split("private func scheduleAutomaticUpdateCheck()", 1)[1].split(
+            "private func performAutomaticUpdateCheckIfAllowed()", 1
+        )[0]
+        self.assertIn("Timer(timeInterval: automaticUpdateCheckDelay, repeats: false)", schedule_body)
+        self.assertIn("applyTimerTolerance(nextTimer, interval: automaticUpdateCheckDelay)", schedule_body)
+        self.assertIn("RunLoop.main.add(nextTimer, forMode: .common)", schedule_body)
+
+        automatic_body = source.split("private func performAutomaticUpdateCheckIfAllowed()", 1)[1].split(
+            "private func resumeAutomaticUpdateCheckAfterPowerReturns()", 1
+        )[0]
+        self.assertIn("guard !automaticUpdateCheckDidRun else", automatic_body)
+        self.assertIn("guard !powerSaverActive() else", automatic_body)
+        self.assertIn("automaticUpdateCheckPendingForPower = true", automatic_body)
+        self.assertIn("automaticUpdateCheckDidRun = true", automatic_body)
+        self.assertIn("performUpdateCheck(mode: .automatic)", automatic_body)
+
+        power_body = source.split("private func handlePowerSourceChanged()", 1)[1].split(
+            "private func refreshBatteryStatus()", 1
+        )[0]
+        self.assertIn("resumeAutomaticUpdateCheckAfterPowerReturns()", power_body)
+
+    def test_native_app_suppresses_dismissed_automatic_update_prompts_without_blocking_manual_checks(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        manual_body = source.split("@objc private func checkForUpdates()", 1)[1].split(
+            "private func performUpdateCheck", 1
+        )[0]
+        self.assertIn("automaticUpdateTimer?.invalidate()", manual_body)
+        self.assertIn("automaticUpdateCheckDidRun = true", manual_body)
+        self.assertIn("automaticUpdateCheckPendingForPower = false", manual_body)
+        self.assertIn("performUpdateCheck(mode: .manual)", manual_body)
+
+        latest_body = source.split("private func handleLatestRelease(_ release: GitHubRelease, mode: UpdateCheckMode)", 1)[1].split(
+            "private func showUpdateInfo", 1
+        )[0]
+        self.assertIn("mode == .manual", latest_body)
+        self.assertIn("mode == .automatic", latest_body)
+        self.assertIn("automaticUpdateDismissedTagName == release.tagName", latest_body)
+        self.assertIn("showUpdatePrompt(release: release, asset: asset, latestVersion: latestVersion, mode: mode)", latest_body)
+        self.assertNotIn("openURL(release.htmlURL)", latest_body.split("mode == .automatic", 1)[-1])
+
+        prompt_body = source.split("private func showUpdatePrompt", 1)[1].split(
+            "private func downloadAndInstallUpdate", 1
+        )[0]
+        self.assertIn('alert.addButton(withTitle: "Not Now")', prompt_body)
+        self.assertIn("case .alertSecondButtonReturn:", prompt_body)
+        self.assertIn("automaticUpdateDismissedTagName = release.tagName", prompt_body)
+        self.assertIn("openURL(release.htmlURL)", prompt_body)
+
+    def test_automatic_update_failures_are_quiet_and_non_persistent(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        failure_body = source.split("private func handleUpdateCheckFailure", 1)[1].split(
+            "private func fetchLatestRelease", 1
+        )[0]
+        self.assertIn('lastUpdateSummary = "Update check unavailable"', failure_body)
+        self.assertIn("guard mode == .manual else", failure_body)
+        self.assertIn('appendLog("automatic update check failed=', failure_body)
+        self.assertIn('showReportAlert(title: "Could not check for updates"', failure_body)
+
+        self.assertNotIn("UserDefaults.standard", source)
+        self.assertNotIn("automaticUpdateDismissedTagName.write", source)
+        self.assertNotIn("dismissedUpdate", source)
+
     def test_native_app_has_preferences_for_refresh_notifications_and_login(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
