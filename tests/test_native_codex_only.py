@@ -170,6 +170,46 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("https://github.com/qingzhangeddie-byte/codex-gauge/releases", source)
         self.assertIn('"Check for Updates..."', source)
 
+    def test_native_app_can_download_and_install_confirmed_github_updates(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "private struct GitHubRelease",
+            "private struct GitHubReleaseAsset",
+            "latestReleaseAPIURL",
+            "https://api.github.com/repos/qingzhangeddie-byte/codex-gauge/releases/latest",
+            "checkForUpdates",
+            "fetchLatestRelease",
+            "showUpdatePrompt",
+            "Download & Install",
+            "downloadAndInstallUpdate",
+            "prepareDownloadedUpdate",
+            "findDownloadedCodexGaugeApp",
+            "verifyDownloadedUpdateApp",
+            "installPreparedUpdate",
+            "CodexGauge-update-",
+            "NSTemporaryDirectory()",
+            "ditto",
+            "codesign",
+            "CFBundleShortVersionString",
+            "CFBundleIdentifier",
+            "app.codexgauge.menubar",
+            "appVersionIsNewer",
+            "compareVersionStrings",
+            "lastUpdateSummary",
+        ]:
+            self.assertIn(token, source)
+
+        self.assertIn('addAction("Check for Updates...", action: #selector(checkForUpdates))', source)
+        self.assertIn("URLSession.shared.dataTask", source)
+        self.assertIn("URLSession.shared.downloadTask", source)
+        self.assertIn("release.body", source)
+        self.assertIn("browser_download_url", source)
+        self.assertIn(".zip", source)
+        self.assertIn("runDetachedUpdateInstaller", source)
+        self.assertIn("NSApp.terminate(nil)", source)
+        self.assertNotIn("UserDefaults.standard.set", source)
+
     def test_native_app_runs_session_only_automatic_update_check_on_external_power(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
