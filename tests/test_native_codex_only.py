@@ -265,6 +265,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
     def test_native_app_suppresses_dismissed_automatic_update_prompts_without_blocking_manual_checks(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
+        self.assertIn("@objc private func checkForUpdates()", source)
         manual_body = source.split("@objc private func checkForUpdates()", 1)[1].split(
             "private func performUpdateCheck", 1
         )[0]
