@@ -122,9 +122,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("animationTimer", source)
         self.assertIn("startMoodAnimation", source)
         self.assertIn("moodAnimationFrameLimit", source)
-        self.assertIn("Timer(timeInterval: 0.18, repeats: true)", source)
         self.assertIn("stopMoodAnimation()", source)
-        self.assertNotIn("Timer(timeInterval: 2.4, repeats: true)", source)
         self.assertIn("RunLoop.main.add(nextTimer, forMode: .common)", source)
         self.assertNotIn('statusItem.autosaveName = "CodexGaugeStatusItem"', source)
         self.assertIn("statusItem.length = statusItemWidth", source)
@@ -138,6 +136,22 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertNotIn("drawWordmark", source)
         self.assertNotIn('("Codex" as NSString).draw', source)
         self.assertNotIn("drawStatusLetters", source)
+
+    def test_status_image_renderer_avoids_core_animation_backing_store_churn(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+        make_status_body = source.split("private func makeStatusImage(", 1)[1].split(
+            "private func drawSourceIndicator", 1
+        )[0]
+        animation_body = source.split("private func startMoodAnimation", 1)[1].split(
+            "private func stopMoodAnimation", 1
+        )[0]
+
+        self.assertNotIn(".lockFocus()", make_status_body)
+        self.assertNotIn(".unlockFocus()", make_status_body)
+        self.assertIn("NSBitmapImageRep", make_status_body)
+        self.assertIn("NSGraphicsContext(bitmapImageRep:", make_status_body)
+        self.assertIn("guard animationTimer == nil", animation_body)
+        self.assertNotIn("Timer(timeInterval: 0.18, repeats: true)", animation_body)
 
     def test_native_app_dropdown_keeps_detailed_codex_pro_meter_rows(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()

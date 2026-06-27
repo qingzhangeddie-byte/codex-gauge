@@ -3317,20 +3317,28 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             stopMoodAnimation()
             return
         }
+        guard animationTimer == nil else {
+            return
+        }
         animationTimer?.invalidate()
-        moodPulseStep = 0
-        let nextTimer = Timer(timeInterval: 0.18, repeats: true) { [weak self] timer in
-            guard let self, let snapshot = self.snapshot, snapshot.codex.ok else {
-                timer.invalidate()
+        moodPulseStep = 1
+        if let snapshot {
+            setStatusImage(title: statusTooltipTitle(snapshot), status: snapshot.codex)
+        }
+        let nextTimer = Timer(timeInterval: 1.2, repeats: false) { [weak self] timer in
+            timer.invalidate()
+            guard let self else {
                 return
             }
-            self.moodPulseStep += 1
-            self.setStatusImage(title: self.statusTooltipTitle(snapshot), status: snapshot.codex)
-            if self.moodPulseStep >= self.moodAnimationFrameLimit {
-                self.stopMoodAnimation()
+            self.animationTimer = nil
+            self.moodPulseStep = 0
+            if let snapshot = self.snapshot {
+                self.setStatusImage(title: self.statusTooltipTitle(snapshot), status: snapshot.codex)
+            } else {
+                self.setStatusImage(title: "Codex quota")
             }
         }
-        applyTimerTolerance(nextTimer, interval: 0.18)
+        applyTimerTolerance(nextTimer, interval: 1.2)
         animationTimer = nextTimer
         RunLoop.main.add(nextTimer, forMode: .common)
     }
@@ -4517,8 +4525,28 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?, ssdTemperature: SSDTemperatureStatus?, systemMetric: SystemMetricSample?, batteryStatus: BatteryStatus?) -> NSImage {
+        guard let bitmap = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: Int(statusImageSize.width),
+            pixelsHigh: Int(statusImageSize.height),
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ), let context = NSGraphicsContext(bitmapImageRep: bitmap) else {
+            let image = NSImage(size: statusImageSize)
+            image.isTemplate = false
+            return image
+        }
+
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = context
+        context.shouldAntialias = true
+
         let image = NSImage(size: statusImageSize)
-        image.lockFocus()
 
         let palette = gaugePalette()
         let nonLiveMode = isNonLiveSource(source)
@@ -4553,7 +4581,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
         drawMenuBarBattery(status: batteryStatus, rect: menuBarBatteryRect, palette: palette)
 
-        image.unlockFocus()
+        NSGraphicsContext.restoreGraphicsState()
+        image.addRepresentation(bitmap)
         image.isTemplate = false
         return image
     }
