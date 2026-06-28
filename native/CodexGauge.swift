@@ -331,6 +331,7 @@ private struct GaugePalette {
     let mutedText: NSColor
 }
 
+private let blueCeramicThemeKey = "blueCeramic"
 private let porcelainLabThemeKey = "porcelainLab"
 private let paperConsoleThemeKey = "paperConsole"
 private let signalDarkThemeKey = "signalDark"
@@ -370,6 +371,56 @@ private struct SignalConsoleTheme {
 
 private func monoAccent(_ white: CGFloat, alpha: CGFloat = 1.0) -> NSColor {
     NSColor(calibratedWhite: white, alpha: alpha)
+}
+
+private func blueCeramicTheme() -> SignalConsoleTheme {
+    SignalConsoleTheme(
+        key: blueCeramicThemeKey,
+        name: "Blue Ceramic",
+        appearance: .aqua,
+        material: .popover,
+        panelBackground: NSColor(calibratedRed: 0.965, green: 0.984, blue: 1.000, alpha: 1.0),
+        panelStrongBackground: NSColor(calibratedRed: 0.910, green: 0.953, blue: 0.980, alpha: 1.0),
+        panelSoftBackground: NSColor(calibratedRed: 0.216, green: 0.424, blue: 0.561, alpha: 0.070),
+        panelBorder: NSColor(calibratedRed: 0.659, green: 0.749, blue: 0.816, alpha: 0.88),
+        textPrimary: NSColor(calibratedRed: 0.063, green: 0.137, blue: 0.227, alpha: 0.98),
+        textSecondary: NSColor(calibratedRed: 0.145, green: 0.275, blue: 0.380, alpha: 0.92),
+        textMuted: NSColor(calibratedRed: 0.360, green: 0.492, blue: 0.580, alpha: 0.82),
+        buttonPrimaryText: NSColor.white,
+        secondaryButtonBackground: NSColor(calibratedRed: 0.910, green: 0.953, blue: 0.980, alpha: 0.84),
+        commandButtonBackground: NSColor.white.withAlphaComponent(0.66),
+        trackFill: NSColor(calibratedRed: 0.760, green: 0.858, blue: 0.902, alpha: 0.72),
+        baselineStroke: NSColor(calibratedRed: 0.659, green: 0.749, blue: 0.816, alpha: 0.48),
+        mintAccent: NSColor(calibratedRed: 0.114, green: 0.733, blue: 0.718, alpha: 0.96),
+        amberAccent: NSColor(calibratedRed: 0.886, green: 0.651, blue: 0.208, alpha: 0.96),
+        coralAccent: NSColor(calibratedRed: 0.906, green: 0.384, blue: 0.361, alpha: 0.96),
+        blueAccent: NSColor(calibratedRed: 0.216, green: 0.424, blue: 0.561, alpha: 0.96),
+        mintSoft: NSColor(calibratedRed: 0.114, green: 0.733, blue: 0.718, alpha: 0.14),
+        amberSoft: NSColor(calibratedRed: 0.886, green: 0.651, blue: 0.208, alpha: 0.16),
+        coralSoft: NSColor(calibratedRed: 0.906, green: 0.384, blue: 0.361, alpha: 0.14),
+        blueSoft: NSColor(calibratedRed: 0.216, green: 0.424, blue: 0.561, alpha: 0.12),
+        quotaLowEnd: NSColor(calibratedRed: 0.906, green: 0.384, blue: 0.361, alpha: 0.96),
+        quotaHighEnd: NSColor(calibratedRed: 0.114, green: 0.733, blue: 0.718, alpha: 0.96),
+        resetMidAccent: NSColor(calibratedRed: 0.886, green: 0.651, blue: 0.208, alpha: 0.96),
+        menuDarkPalette: GaugePalette(
+            background: NSColor(calibratedRed: 0.063, green: 0.137, blue: 0.227, alpha: 0.88),
+            border: NSColor(calibratedRed: 0.659, green: 0.749, blue: 0.816, alpha: 0.54),
+            track: NSColor.white.withAlphaComponent(0.18),
+            resetTrack: NSColor(calibratedRed: 0.886, green: 0.651, blue: 0.208, alpha: 0.28),
+            primaryText: NSColor.white.withAlphaComponent(0.96),
+            secondaryText: NSColor.white.withAlphaComponent(0.72),
+            mutedText: NSColor.white.withAlphaComponent(0.44)
+        ),
+        menuLightPalette: GaugePalette(
+            background: NSColor(calibratedRed: 0.965, green: 0.984, blue: 1.000, alpha: 0.92),
+            border: NSColor(calibratedRed: 0.659, green: 0.749, blue: 0.816, alpha: 0.76),
+            track: NSColor(calibratedRed: 0.760, green: 0.858, blue: 0.902, alpha: 0.76),
+            resetTrack: NSColor(calibratedRed: 0.886, green: 0.651, blue: 0.208, alpha: 0.26),
+            primaryText: NSColor(calibratedRed: 0.063, green: 0.137, blue: 0.227, alpha: 0.94),
+            secondaryText: NSColor(calibratedRed: 0.145, green: 0.275, blue: 0.380, alpha: 0.74),
+            mutedText: NSColor(calibratedRed: 0.360, green: 0.492, blue: 0.580, alpha: 0.54)
+        )
+    )
 }
 
 private func signalDarkTheme() -> SignalConsoleTheme {
@@ -2015,7 +2066,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var automaticUpdateCheckPendingForPower = false
     private var automaticUpdateDismissedTagName: String?
     private var runtimeLogMessages: [String] = []
-    private var sessionSignalConsoleThemeKey = porcelainLabThemeKey
+    private var sessionSignalConsoleThemeKey = blueCeramicThemeKey
     private var sessionRefreshMode = "adaptive"
     private var sessionNotificationsEnabled = false
     private var sessionShowSSDTemperatureInMenuBar = true
@@ -3350,7 +3401,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func registerDefaultPreferences() {
-        sessionSignalConsoleThemeKey = porcelainLabThemeKey
+        sessionSignalConsoleThemeKey = blueCeramicThemeKey
         sessionRefreshMode = adaptiveRefreshMode
         sessionNotificationsEnabled = false
         sessionShowSSDTemperatureInMenuBar = true
@@ -3480,7 +3531,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         content.addSubview(utilityLabel("Theme", frame: NSRect(x: 24, y: 292, width: 96, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
 
         let themeSelect = NSPopUpButton(frame: NSRect(x: 132, y: 290, width: 180, height: 26), pullsDown: false)
-        themeSelect.addItems(withTitles: ["Porcelain Lab", "Signal Dark", "Mono Graphite"])
+        themeSelect.addItems(withTitles: ["Blue Ceramic", "Porcelain Lab", "Signal Dark", "Mono Graphite"])
+        themeSelect.item(withTitle: "Blue Ceramic")?.representedObject = blueCeramicThemeKey
         themeSelect.item(withTitle: "Porcelain Lab")?.representedObject = porcelainLabThemeKey
         themeSelect.item(withTitle: "Signal Dark")?.representedObject = signalDarkThemeKey
         themeSelect.item(withTitle: "Mono Graphite")?.representedObject = monoGraphiteThemeKey
@@ -3570,6 +3622,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func currentSignalConsoleTheme() -> SignalConsoleTheme {
         switch currentSignalConsoleThemeKey() {
+        case blueCeramicThemeKey:
+            return blueCeramicTheme()
         case porcelainLabThemeKey:
             return porcelainLabTheme()
         case signalDarkThemeKey:
@@ -3577,17 +3631,17 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         case monoGraphiteThemeKey:
             return monoGraphiteTheme()
         default:
-            return porcelainLabTheme()
+            return blueCeramicTheme()
         }
     }
 
     private func currentSignalConsoleThemeKey() -> String {
         let key = sessionSignalConsoleThemeKey
         switch key {
-        case porcelainLabThemeKey, paperConsoleThemeKey, signalDarkThemeKey, monoGraphiteThemeKey:
+        case blueCeramicThemeKey, porcelainLabThemeKey, paperConsoleThemeKey, signalDarkThemeKey, monoGraphiteThemeKey:
             return key
         default:
-            return porcelainLabThemeKey
+            return blueCeramicThemeKey
         }
     }
 
@@ -4755,15 +4809,37 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         (text as NSString).draw(at: NSPoint(x: rect.minX + 2.9, y: rect.minY + 2.45), withAttributes: attrs)
     }
 
+    private func batterySignalColor(_ status: BatteryStatus?) -> NSColor {
+        let theme = currentSignalConsoleTheme()
+        let textMuted = theme.textMuted
+        let coralAccent = theme.coralAccent
+        let blueAccent = theme.blueAccent
+        guard let status, status.hasBattery else {
+            return textMuted
+        }
+        if let percent = status.percent, percent < 15 {
+            return coralAccent
+        }
+        if status.percent == nil {
+            return theme.blueAccent
+        }
+        return blueAccent
+    }
+
+    private func batterySoftFillColor(_ status: BatteryStatus?) -> NSColor {
+        let color = batterySignalColor(status)
+        return color.withAlphaComponent(status?.powerSaverActive == true ? 0.14 : 0.10)
+    }
+
     private func drawMenuBarBattery(status: BatteryStatus?, rect: NSRect, palette: GaugePalette) {
         guard status?.hasBattery == true else {
             return
         }
         let color = batteryMenuBarColor(status, palette: palette)
         let shell = NSBezierPath(roundedRect: rect.insetBy(dx: 0.6, dy: 1.2), xRadius: 3.0, yRadius: 3.0)
-        color.withAlphaComponent(status?.isPluggedIn == true ? 0.22 : 0.36).setFill()
+        color.withAlphaComponent(status?.isPluggedIn == true ? 0.16 : 0.24).setFill()
         shell.fill()
-        color.withAlphaComponent(0.72).setStroke()
+        color.withAlphaComponent(0.76).setStroke()
         shell.lineWidth = 0.7
         shell.stroke()
         drawMenuBarBatteryTerminal(rect: rect, color: color)
@@ -4810,16 +4886,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         guard let status, status.hasBattery else {
             return palette.mutedText
         }
-        guard let percent = status.percent else {
-            return palette.mutedText
-        }
-        if percent < 15 {
+        if let percent = status.percent, percent < 15 {
             return criticalQuotaColor
         }
-        if percent < 30 {
-            return warningQuotaColor
-        }
-        return status.powerSaverActive ? warningQuotaColor : normalQuotaColor
+        return currentSignalConsoleTheme().blueAccent
     }
 
     private func drawMenuBarSystemMetricStrip(sample: SystemMetricSample?, rect: NSRect, palette: GaugePalette) {
