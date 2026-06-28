@@ -177,7 +177,7 @@ Append these tests to `tests/test_native_hardening.py` near the updater and zero
             self.assertIn(f'"{label}"', source)
 
         for blocked in [
-            '"/Users/',
+            '"LOCAL_HOME_PATH/',
             '"Share Report"',
             '"Open Support Folder"',
             '"saved preferences, histories, caches, reports, or logs"',

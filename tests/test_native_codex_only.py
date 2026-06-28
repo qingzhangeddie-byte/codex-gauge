@@ -204,7 +204,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
             "checkForUpdates",
             "fetchLatestRelease",
             "showUpdatePrompt",
-            "Download & Install",
+            "Install Update",
             "downloadAndInstallUpdate",
             "prepareDownloadedUpdate",
             "findDownloadedCodexGaugeApp",
@@ -243,7 +243,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
             "private var automaticUpdateTimer: Timer?",
             "private var automaticUpdateCheckDidRun = false",
             "private var automaticUpdateCheckPendingForPower = false",
-            "private var automaticUpdateDismissedTagName: String?",
+            "private var automaticUpdateSkippedTagName: String?",
             "private let automaticUpdateCheckDelay: TimeInterval = 2 * 60",
             "scheduleAutomaticUpdateCheck()",
             "performAutomaticUpdateCheckIfAllowed()",
@@ -285,7 +285,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
         )[0]
         self.assertIn("resumeAutomaticUpdateCheckAfterPowerReturns()", power_body)
 
-    def test_native_app_suppresses_dismissed_automatic_update_prompts_without_blocking_manual_checks(self):
+    def test_native_app_suppresses_skipped_automatic_update_prompts_without_blocking_manual_checks(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         self.assertIn("@objc private func checkForUpdates()", source)
@@ -302,17 +302,19 @@ class NativeCodexOnlyTests(unittest.TestCase):
         )[0]
         self.assertIn("mode == .manual", latest_body)
         self.assertIn("mode == .automatic", latest_body)
-        self.assertIn("automaticUpdateDismissedTagName == release.tagName", latest_body)
+        self.assertIn("automaticUpdateSkippedTagName == release.tagName", latest_body)
         self.assertIn("showUpdatePrompt(release: release, asset: asset, latestVersion: latestVersion, mode: mode)", latest_body)
         self.assertNotIn("openURL(release.htmlURL)", latest_body.split("mode == .automatic", 1)[-1])
 
         prompt_body = source.split("private func showUpdatePrompt", 1)[1].split(
             "private func downloadAndInstallUpdate", 1
         )[0]
-        self.assertIn('alert.addButton(withTitle: "Not Now")', prompt_body)
+        self.assertIn('alert.addButton(withTitle: "Install Update")', prompt_body)
+        self.assertIn('alert.addButton(withTitle: "Skip this version")', prompt_body)
+        self.assertIn('alert.addButton(withTitle: "Remind me later")', prompt_body)
         self.assertIn("case .alertSecondButtonReturn:", prompt_body)
-        self.assertIn("automaticUpdateDismissedTagName = release.tagName", prompt_body)
-        self.assertIn("openURL(release.htmlURL)", prompt_body)
+        self.assertIn("automaticUpdateSkippedTagName = release.tagName", prompt_body)
+        self.assertNotIn("openURL(release.htmlURL)", prompt_body)
 
     def test_automatic_update_failures_are_quiet_and_non_persistent(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -327,7 +329,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn('showReportAlert(title: "Could not check for updates"', failure_body)
 
         self.assertNotIn("UserDefaults.standard", failure_body)
-        self.assertNotIn("automaticUpdateDismissedTagName.write", source)
+        self.assertNotIn("automaticUpdateSkippedTagName.write", source)
         self.assertNotIn("dismissedUpdate", source)
 
     def test_native_app_has_session_only_preferences_for_refresh_notifications_and_theme(self):

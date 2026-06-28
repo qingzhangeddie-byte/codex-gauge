@@ -3,7 +3,7 @@ import AppKit
 import Foundation
 
 let canvasSize = NSSize(width: 1280, height: 640)
-let porcelainFixturePath = "docs/design/app-rendered-signal-console/porcelain-lab-live.png"
+let blueCeramicFixturePath = "docs/design/app-rendered-signal-console/blue-ceramic-live.png"
 let darkFixturePath = "docs/design/app-rendered-signal-console/signal-dark-live.png"
 let menuBarPath = "docs/assets/codex-gauge-menubar-live.png"
 let consoleOutputPath = "docs/assets/codex-gauge-signal-console.png"
@@ -116,7 +116,7 @@ func writePNG(_ path: String, drawing: () -> Void) throws {
     print("Wrote \(path)")
 }
 
-let porcelainPanel = loadImage(porcelainFixturePath)
+let blueCeramicPanel = loadImage(blueCeramicFixturePath)
 let darkPanel = loadImage(darkFixturePath)
 let menuBar = loadImage(menuBarPath)
 
@@ -132,7 +132,7 @@ try writePNG(consoleOutputPath) {
 
     drawPill("Live source", rect: NSRect(x: 74, y: 280, width: 132, height: 38), fill: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 0.13), stroke: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 0.30), text: NSColor(calibratedRed: 0.06, green: 0.22, blue: 0.21, alpha: 1.0), dot: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 1.0))
     drawPill("5h + 7d", rect: NSRect(x: 220, y: 280, width: 118, height: 38), fill: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.15), stroke: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.34), text: NSColor(calibratedRed: 0.28, green: 0.20, blue: 0.08, alpha: 1.0))
-    drawPill("Local report", rect: NSRect(x: 352, y: 280, width: 144, height: 38), fill: NSColor(calibratedRed: 0.24, green: 0.37, blue: 0.92, alpha: 0.09), stroke: NSColor(calibratedRed: 0.24, green: 0.37, blue: 0.92, alpha: 0.18), text: NSColor(calibratedRed: 0.10, green: 0.14, blue: 0.30, alpha: 1.0))
+    drawPill("Live summary", rect: NSRect(x: 352, y: 280, width: 144, height: 38), fill: NSColor(calibratedRed: 0.216, green: 0.424, blue: 0.561, alpha: 0.09), stroke: NSColor(calibratedRed: 0.216, green: 0.424, blue: 0.561, alpha: 0.20), text: NSColor(calibratedRed: 0.063, green: 0.137, blue: 0.227, alpha: 1.0))
 
     drawRoundedRect(NSRect(x: 72, y: 382, width: 468, height: 84), radius: 26, fill: NSColor.white.withAlphaComponent(0.48), stroke: NSColor(calibratedRed: 0.10, green: 0.19, blue: 0.23, alpha: 0.16))
     drawImage(menuBar, in: NSRect(x: 92, y: 405, width: 395, height: 48))
@@ -146,7 +146,7 @@ try writePNG(consoleOutputPath) {
     shadow.set()
     drawRoundedRect(NSRect(x: 604, y: 34, width: 604, height: 604), radius: 30, fill: NSColor.black.withAlphaComponent(0.08))
     NSGraphicsContext.restoreGraphicsState()
-    drawImage(porcelainPanel, in: NSRect(x: 604, y: 34, width: 604, height: 604))
+    drawImage(blueCeramicPanel, in: NSRect(x: 604, y: 34, width: 604, height: 604))
 }
 
 try writePNG(socialOutputPath) {

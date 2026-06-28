@@ -206,7 +206,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
             stdout=subprocess.PIPE,
         )
         self.assertIn("pixelWidth: 1280", result.stdout)
-        self.assertIn("pixelHeight: 960", result.stdout)
+        self.assertIn("pixelHeight: 1220", result.stdout)
 
     def test_actual_app_rendered_signal_console_fixtures_exist(self):
         script = pathlib.Path("script/render_signal_console_fixtures.sh")

@@ -27,23 +27,23 @@ struct PreviewState {
     let status: NSColor
 }
 
-let canvasSize = NSSize(width: 1280, height: 960)
+let canvasSize = NSSize(width: 1280, height: 1220)
 let outputPath = "docs/design/codex-gauge-theme-state-fixtures.png"
 
 let themes = [
     PreviewTheme(
-        name: "Porcelain Lab",
-        background: NSColor(calibratedRed: 0.91, green: 0.95, blue: 0.98, alpha: 1.0),
-        panel: NSColor(calibratedRed: 0.96, green: 0.985, blue: 1.00, alpha: 1.0),
-        panelSoft: NSColor(calibratedRed: 0.89, green: 0.94, blue: 0.97, alpha: 1.0),
-        border: NSColor(calibratedRed: 0.10, green: 0.19, blue: 0.23, alpha: 0.20),
-        text: NSColor(calibratedRed: 0.08, green: 0.13, blue: 0.15, alpha: 0.96),
-        secondary: NSColor(calibratedRed: 0.19, green: 0.28, blue: 0.31, alpha: 0.96),
-        muted: NSColor(calibratedRed: 0.42, green: 0.50, blue: 0.53, alpha: 0.92),
-        mint: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 0.96),
-        amber: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.96),
-        coral: NSColor(calibratedRed: 0.93, green: 0.27, blue: 0.31, alpha: 0.96),
-        blue: NSColor(calibratedRed: 0.24, green: 0.37, blue: 0.92, alpha: 0.96)
+        name: "Blue Ceramic",
+        background: NSColor(calibratedRed: 0.910, green: 0.953, blue: 0.980, alpha: 1.0),
+        panel: NSColor(calibratedRed: 0.965, green: 0.984, blue: 1.000, alpha: 1.0),
+        panelSoft: NSColor(calibratedRed: 0.910, green: 0.953, blue: 0.980, alpha: 1.0),
+        border: NSColor(calibratedRed: 0.659, green: 0.749, blue: 0.816, alpha: 0.88),
+        text: NSColor(calibratedRed: 0.063, green: 0.137, blue: 0.227, alpha: 0.98),
+        secondary: NSColor(calibratedRed: 0.145, green: 0.275, blue: 0.380, alpha: 0.92),
+        muted: NSColor(calibratedRed: 0.360, green: 0.492, blue: 0.580, alpha: 0.82),
+        mint: NSColor(calibratedRed: 0.114, green: 0.733, blue: 0.718, alpha: 0.96),
+        amber: NSColor(calibratedRed: 0.886, green: 0.651, blue: 0.208, alpha: 0.96),
+        coral: NSColor(calibratedRed: 0.906, green: 0.384, blue: 0.361, alpha: 0.96),
+        blue: NSColor(calibratedRed: 0.216, green: 0.424, blue: 0.561, alpha: 0.96)
     ),
     PreviewTheme(
         name: "Signal Dark",
@@ -80,6 +80,7 @@ let states = [
     PreviewState(name: "Codex closed", detail: "Open Codex desktop once to enable live usage", source: "No live quota yet", fiveHour: nil, sevenDay: nil, reset: "--", status: NSColor.systemOrange),
     PreviewState(name: "Live only", detail: "No stored cache or snapshot", source: "Storage: Zero persistence", fiveHour: 58, sevenDay: 63, reset: "2h", status: NSColor.systemBlue),
     PreviewState(name: "Low quota", detail: "Adaptive refresh speeds up", source: "Source: Menu Bar", fiveHour: 9, sevenDay: 44, reset: "38m", status: NSColor.systemRed),
+    PreviewState(name: "Battery mode", detail: "Usage plus battery only", source: "Power Saver active", fiveHour: 80, sevenDay: 79, reset: "60m", status: NSColor.systemBlue),
 ]
 
 func canvasRect(_ rect: NSRect) -> NSRect {
@@ -186,12 +187,12 @@ NSColor(calibratedRed: 0.08, green: 0.09, blue: 0.10, alpha: 1.0).setFill()
 NSRect(origin: .zero, size: canvasSize).fill()
 
 text("Codex Gauge theme-state visual QA", NSRect(x: 44, y: 32, width: 520, height: 30), size: 24, weight: .bold, color: NSColor.white.withAlphaComponent(0.95))
-text("Three themes across, four important runtime states down. Generated from script/generate_theme_state_previews.swift.", NSRect(x: 44, y: 66, width: 780, height: 18), size: 12, weight: .regular, color: NSColor.white.withAlphaComponent(0.62))
+text("Three themes across, five important runtime states down. Generated from script/generate_theme_state_previews.swift.", NSRect(x: 44, y: 66, width: 780, height: 18), size: 12, weight: .regular, color: NSColor.white.withAlphaComponent(0.62))
 
 let startX: CGFloat = 44
 let startY: CGFloat = 110
 let gapX: CGFloat = 24
-let gapY: CGFloat = 18
+let gapY: CGFloat = 30
 let cardWidth: CGFloat = (canvasSize.width - startX * 2 - gapX * 2) / 3
 let cardHeight: CGFloat = 190
 

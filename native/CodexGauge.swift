@@ -269,7 +269,7 @@ private struct SignalConsoleLayout {
     }
 
     var trendCardRect: NSRect {
-        NSRect(x: margin, y: 328, width: 248, height: 104)
+        NSRect(x: margin, y: 328, width: 248, height: 122)
     }
 
     var reportCardRect: NSRect {
@@ -302,25 +302,25 @@ private struct SignalConsoleLayout {
     }
 
     var healthRibbonRect: NSRect {
-        NSRect(x: margin, y: 444, width: bounds.width - margin * 2, height: 54)
+        NSRect(x: margin, y: 454, width: bounds.width - margin * 2, height: 54)
     }
 
     var healthStatusGridRect: NSRect {
         let rect = healthRibbonRect
-        return NSRect(x: rect.minX + 118, y: rect.minY + 14, width: 300, height: 30)
+        return NSRect(x: rect.minX + 118, y: rect.minY + 12, width: 300, height: 30)
     }
 
     var runCheckButtonRect: NSRect {
         let rect = healthRibbonRect
-        return NSRect(x: rect.maxX - 90, y: rect.minY + 30, width: 82, height: 30)
+        return NSRect(x: rect.maxX - 90, y: rect.minY + 13, width: 82, height: 28)
     }
 
     var bottomCommandButtonRects: [NSRect] {
         [
-            NSRect(x: margin, y: 508, width: 122, height: 36),
-            NSRect(x: margin + 130, y: 508, width: 122, height: 36),
-            NSRect(x: margin + 260, y: 508, width: 122, height: 36),
-            NSRect(x: margin + 390, y: 508, width: 130, height: 36),
+            NSRect(x: margin, y: 516, width: 122, height: 32),
+            NSRect(x: margin + 130, y: 516, width: 122, height: 32),
+            NSRect(x: margin + 260, y: 516, width: 122, height: 32),
+            NSRect(x: margin + 390, y: 516, width: 130, height: 32),
         ]
     }
 }
@@ -777,7 +777,7 @@ private final class SignalConsolePanelView: NSView {
         drawTrendSection()
         drawReportSection()
         drawHealthRibbon()
-        drawDivider(y: 502)
+        drawDivider(y: 510)
     }
 
     private func drawPanelBackground() {
@@ -1787,7 +1787,7 @@ private func renderSignalConsolePanel(model: SignalConsoleModel, theme: SignalCo
 
 private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
     let themes: [(slug: String, theme: SignalConsoleTheme)] = [
-        ("porcelain-lab", porcelainLabTheme()),
+        ("blue-ceramic", blueCeramicTheme()),
         ("signal-dark", signalDarkTheme()),
         ("mono-graphite", monoGraphiteTheme()),
     ]
