@@ -178,6 +178,22 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("pixelWidth: 1280", console_result.stdout)
         self.assertIn("pixelHeight: 640", console_result.stdout)
 
+        live_result = subprocess.run(
+            ["sips", "-g", "pixelWidth", "-g", "pixelHeight", str(live)],
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+        )
+        self.assertIn("pixelWidth: 790", live_result.stdout)
+        self.assertIn("pixelHeight: 96", live_result.stdout)
+
+    def test_public_asset_generator_draws_menu_bar_strip(self):
+        script = pathlib.Path("script/generate_public_assets.swift").read_text()
+
+        self.assertIn("writeMenuBarPNG(menuBarPath)", script)
+        self.assertIn("drawMenuBarEtchedSeparator", script)
+        self.assertIn("drawMenuBarCircuitAccent", script)
+
     def test_theme_state_visual_fixture_generator_covers_all_states(self):
         script = pathlib.Path("script/generate_theme_state_previews.swift")
         fixture = pathlib.Path("docs/design/codex-gauge-theme-state-fixtures.png")

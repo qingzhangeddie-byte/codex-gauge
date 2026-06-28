@@ -4902,12 +4902,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
         let palette = gaugePalette()
         let nonLiveMode = isNonLiveSource(source)
-        palette.background.setFill()
-        let frame = NSBezierPath(roundedRect: NSRect(origin: .zero, size: statusImageSize), xRadius: 4, yRadius: 4)
-        frame.fill()
-        (nonLiveMode ? palette.border.withAlphaComponent(0.34) : palette.border).setStroke()
-        frame.lineWidth = 1
-        frame.stroke()
+        drawMenuBarChrome(source: source, nonLiveMode: nonLiveMode, palette: palette)
         drawSignalSourceRail(source: source, palette: palette)
         drawSourceIndicator(source: source, palette: palette)
         drawStatusStateBadge(source: source, palette: palette)
@@ -4937,6 +4932,81 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         image.addRepresentation(bitmap)
         image.isTemplate = false
         return image
+    }
+
+    private func drawMenuBarChrome(source: String?, nonLiveMode: Bool, palette: GaugePalette) {
+        drawMenuBarPorcelainCapsule(nonLiveMode: nonLiveMode, palette: palette)
+        drawMenuBarZoneSeparators(palette: palette)
+        drawMenuBarCircuitAccent(source: source, palette: palette)
+    }
+
+    private func drawMenuBarPorcelainCapsule(nonLiveMode: Bool, palette: GaugePalette) {
+        let rect = NSRect(x: 0.5, y: 0.5, width: statusImageSize.width - 1, height: statusImageSize.height - 1)
+        let capsule = NSBezierPath(roundedRect: rect, xRadius: 5.8, yRadius: 5.8)
+        let theme = currentSignalConsoleTheme()
+        let top = isDarkMenuBar()
+            ? palette.background.blended(withFraction: 0.10, of: theme.blueAccent) ?? palette.background
+            : NSColor.white.withAlphaComponent(0.78)
+        let bottom = isDarkMenuBar()
+            ? palette.background.blended(withFraction: 0.10, of: NSColor.black) ?? palette.background
+            : palette.background.blended(withFraction: 0.10, of: theme.blueSoft) ?? palette.background
+        NSGradient(colors: [top, bottom])?.draw(in: capsule, angle: 90)
+
+        (nonLiveMode ? palette.border.withAlphaComponent(0.34) : palette.border).setStroke()
+        capsule.lineWidth = 0.9
+        capsule.stroke()
+
+        let highlight = NSBezierPath()
+        highlight.move(to: NSPoint(x: rect.minX + 9, y: rect.maxY - 2.5))
+        highlight.line(to: NSPoint(x: rect.maxX - 9, y: rect.maxY - 2.5))
+        highlight.lineWidth = 0.6
+        (isDarkMenuBar() ? NSColor.white.withAlphaComponent(0.10) : NSColor.white.withAlphaComponent(0.58)).setStroke()
+        highlight.stroke()
+    }
+
+    private func drawMenuBarZoneSeparators(palette: GaugePalette) {
+        drawMenuBarEtchedSeparator(x: 78, palette: palette)
+        drawMenuBarEtchedSeparator(x: 112, palette: palette)
+        drawMenuBarEtchedSeparator(x: 164, palette: palette)
+        drawMenuBarEtchedSeparator(x: 202, palette: palette)
+    }
+
+    private func drawMenuBarEtchedSeparator(x: CGFloat, palette: GaugePalette) {
+        let shadow = NSBezierPath()
+        shadow.move(to: NSPoint(x: x - 0.5, y: 4.7))
+        shadow.line(to: NSPoint(x: x - 0.5, y: statusImageSize.height - 5.0))
+        shadow.lineWidth = 0.45
+        palette.border.withAlphaComponent(isDarkMenuBar() ? 0.22 : 0.34).setStroke()
+        shadow.stroke()
+
+        let highlight = NSBezierPath()
+        highlight.move(to: NSPoint(x: x + 0.5, y: 4.7))
+        highlight.line(to: NSPoint(x: x + 0.5, y: statusImageSize.height - 5.0))
+        highlight.lineWidth = 0.45
+        (isDarkMenuBar() ? NSColor.white.withAlphaComponent(0.06) : NSColor.white.withAlphaComponent(0.58)).setStroke()
+        highlight.stroke()
+    }
+
+    private func drawMenuBarCircuitAccent(source: String?, palette: GaugePalette) {
+        let color = sourceIndicatorColor(source) ?? currentSignalConsoleTheme().mintAccent
+        let path = NSBezierPath()
+        path.move(to: NSPoint(x: 84.0, y: 18.1))
+        path.line(to: NSPoint(x: 92.5, y: 18.1))
+        path.line(to: NSPoint(x: 96.0, y: 16.3))
+        path.line(to: NSPoint(x: 104.5, y: 16.3))
+        path.lineWidth = 0.6
+        color.withAlphaComponent(isDarkMenuBar() ? 0.38 : 0.46).setStroke()
+        path.stroke()
+
+        for point in [
+            NSPoint(x: 84.0, y: 18.1),
+            NSPoint(x: 96.0, y: 16.3),
+            NSPoint(x: 104.5, y: 16.3),
+        ] {
+            let node = NSBezierPath(ovalIn: NSRect(x: point.x - 1.0, y: point.y - 1.0, width: 2.0, height: 2.0))
+            color.withAlphaComponent(isDarkMenuBar() ? 0.52 : 0.62).setFill()
+            node.fill()
+        }
     }
 
     private func drawSourceIndicator(source: String?, palette: GaugePalette) {

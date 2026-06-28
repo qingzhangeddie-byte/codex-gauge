@@ -687,6 +687,34 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("fiveHourResetCountdown(resetEpoch)", source)
         self.assertIn("sevenDayResetCountdown(resetEpoch)", source)
 
+    def test_menu_bar_uses_blue_ceramic_instrument_strip_polish(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "drawMenuBarPorcelainCapsule",
+            "drawMenuBarEtchedSeparator",
+            "drawMenuBarCircuitAccent",
+            "drawMenuBarZoneSeparators",
+            "drawMenuBarChrome",
+        ]:
+            self.assertIn(token, source)
+
+        signature = "private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?, ssdTemperature: SSDTemperatureStatus?, systemMetric: SystemMetricSample?, batteryStatus: BatteryStatus?) -> NSImage"
+        make_status_body = self._swift_function_body(source, signature)
+        self.assertIn("drawMenuBarChrome(source: source, nonLiveMode: nonLiveMode, palette: palette)", make_status_body)
+        self.assertLess(make_status_body.index("drawMenuBarChrome"), make_status_body.index("drawSignalSourceRail"))
+        self.assertNotIn("palette.background.setFill()", make_status_body)
+        self.assertNotIn("frame.fill()", make_status_body)
+
+        chrome_body = self._swift_function_body(source, "private func drawMenuBarChrome(source: String?, nonLiveMode: Bool, palette: GaugePalette)")
+        self.assertIn("drawMenuBarPorcelainCapsule", chrome_body)
+        self.assertIn("drawMenuBarZoneSeparators", chrome_body)
+        self.assertIn("drawMenuBarCircuitAccent", chrome_body)
+
+        separator_body = self._swift_function_body(source, "private func drawMenuBarZoneSeparators(palette: GaugePalette)")
+        for x in ["78", "112", "164", "202"]:
+            self.assertIn(f"drawMenuBarEtchedSeparator(x: {x}", separator_body)
+
     def test_reset_countdowns_use_progressive_units(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
