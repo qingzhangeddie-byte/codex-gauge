@@ -222,7 +222,7 @@ private struct SignalConsoleLayout {
     }
 
     var headerTitleRect: NSRect {
-        NSRect(x: margin, y: 18, width: 300, height: 24)
+        NSRect(x: margin, y: 18, width: 306, height: 24)
     }
 
     var headerSignalPillRect: NSRect {
@@ -609,6 +609,129 @@ private final class ThemedUtilityPanelView: NSView {
         theme.panelBorder.setStroke()
         path.lineWidth = 1
         path.stroke()
+        drawUtilityCircuitMotif(in: panel)
+        if bounds.width >= 560 {
+            drawUtilitySidebar(in: panel)
+        }
+    }
+
+    private func drawUtilitySidebar(in panel: NSRect) {
+        let sidebar = NSRect(x: panel.minX, y: panel.minY, width: 150, height: panel.height)
+        let divider = NSBezierPath()
+        divider.move(to: NSPoint(x: sidebar.maxX, y: sidebar.minY))
+        divider.line(to: NSPoint(x: sidebar.maxX, y: sidebar.maxY))
+        divider.lineWidth = 1
+        theme.panelBorder.withAlphaComponent(0.48).setStroke()
+        divider.stroke()
+
+        drawUtilityLogoMark(in: NSRect(x: sidebar.minX + 24, y: sidebar.maxY - 54, width: 34, height: 34), color: theme.blueAccent)
+        drawUtilityText("Codex Gauge", in: NSRect(x: sidebar.minX + 64, y: sidebar.maxY - 42, width: 74, height: 14), size: 11, weight: .semibold, color: theme.textPrimary)
+        let items = ["General", "Appearance", "Signals", "Updates", "Battery", "Storage", "Advanced", "About"]
+        for (index, item) in items.enumerated() {
+            let y = sidebar.maxY - 92 - CGFloat(index) * 34
+            let rect = NSRect(x: sidebar.minX + 18, y: y, width: 116, height: 24)
+            if index == 0 {
+                let selected = NSBezierPath(roundedRect: rect, xRadius: 7, yRadius: 7)
+                theme.blueSoft.setFill()
+                selected.fill()
+                theme.blueAccent.withAlphaComponent(0.32).setStroke()
+                selected.lineWidth = 1
+                selected.stroke()
+            }
+            drawUtilityText(item, in: NSRect(x: rect.minX + 34, y: rect.minY + 5, width: 72, height: 12), size: 10, weight: index == 0 ? .semibold : .regular, color: index == 0 ? theme.blueAccent : theme.textSecondary)
+            drawUtilitySidebarGlyph(index: index, center: NSPoint(x: rect.minX + 17, y: rect.midY))
+        }
+    }
+
+    private func drawUtilitySidebarGlyph(index: Int, center: NSPoint) {
+        let color = index == 0 ? theme.blueAccent : theme.textSecondary
+        let path = NSBezierPath()
+        switch index {
+        case 0:
+            path.appendOval(in: NSRect(x: center.x - 5, y: center.y - 5, width: 10, height: 10))
+        case 1:
+            path.move(to: NSPoint(x: center.x - 5, y: center.y - 4))
+            path.line(to: NSPoint(x: center.x + 5, y: center.y + 4))
+        case 2:
+            path.move(to: NSPoint(x: center.x - 6, y: center.y))
+            path.line(to: NSPoint(x: center.x - 2, y: center.y))
+            path.line(to: NSPoint(x: center.x, y: center.y + 5))
+            path.line(to: NSPoint(x: center.x + 2, y: center.y - 5))
+            path.line(to: NSPoint(x: center.x + 5, y: center.y))
+        default:
+            path.move(to: NSPoint(x: center.x - 5, y: center.y - 4))
+            path.line(to: NSPoint(x: center.x + 5, y: center.y - 4))
+            path.move(to: NSPoint(x: center.x - 5, y: center.y))
+            path.line(to: NSPoint(x: center.x + 5, y: center.y))
+            path.move(to: NSPoint(x: center.x - 5, y: center.y + 4))
+            path.line(to: NSPoint(x: center.x + 5, y: center.y + 4))
+        }
+        path.lineWidth = 1.3
+        color.withAlphaComponent(0.88).setStroke()
+        path.stroke()
+    }
+
+    private func drawUtilityCircuitMotif(in panel: NSRect) {
+        let color = theme.panelBorder.withAlphaComponent(0.48)
+        let paths: [[NSPoint]] = [
+            [NSPoint(x: panel.maxX - 88, y: panel.maxY - 70), NSPoint(x: panel.maxX - 42, y: panel.maxY - 70), NSPoint(x: panel.maxX - 42, y: panel.maxY - 120)],
+            [NSPoint(x: panel.maxX - 112, y: panel.minY + 92), NSPoint(x: panel.maxX - 70, y: panel.minY + 92), NSPoint(x: panel.maxX - 70, y: panel.minY + 58), NSPoint(x: panel.maxX - 36, y: panel.minY + 58)],
+            [NSPoint(x: panel.minX + 36, y: panel.minY + 68), NSPoint(x: panel.minX + 82, y: panel.minY + 68), NSPoint(x: panel.minX + 82, y: panel.minY + 36)],
+        ]
+        for points in paths {
+            drawUtilityCircuitPath(points, color: color)
+        }
+    }
+
+    private func drawUtilityCircuitPath(_ points: [NSPoint], color: NSColor) {
+        guard let first = points.first else {
+            return
+        }
+        let path = NSBezierPath()
+        path.move(to: first)
+        for point in points.dropFirst() {
+            path.line(to: point)
+        }
+        path.lineWidth = 0.9
+        color.setStroke()
+        path.stroke()
+        for point in points {
+            let node = NSBezierPath(ovalIn: NSRect(x: point.x - 2, y: point.y - 2, width: 4, height: 4))
+            color.withAlphaComponent(0.72).setStroke()
+            node.lineWidth = 0.8
+            node.stroke()
+        }
+    }
+
+    private func drawUtilityLogoMark(in rect: NSRect, color: NSColor) {
+        let path = NSBezierPath()
+        path.move(to: NSPoint(x: rect.maxX - 7, y: rect.minY + 7))
+        path.line(to: NSPoint(x: rect.minX + 11, y: rect.minY + 7))
+        path.line(to: NSPoint(x: rect.minX + 5, y: rect.midY))
+        path.line(to: NSPoint(x: rect.minX + 11, y: rect.maxY - 7))
+        path.line(to: NSPoint(x: rect.maxX - 7, y: rect.maxY - 7))
+        path.lineWidth = 1.4
+        color.setStroke()
+        path.stroke()
+        for point in [
+            NSPoint(x: rect.maxX - 4, y: rect.minY + 7),
+            NSPoint(x: rect.maxX - 4, y: rect.maxY - 7),
+            NSPoint(x: rect.minX + 5, y: rect.midY),
+        ] {
+            let dot = NSBezierPath(ovalIn: NSRect(x: point.x - 2, y: point.y - 2, width: 4, height: 4))
+            color.setFill()
+            dot.fill()
+        }
+    }
+
+    private func drawUtilityText(_ text: String, in rect: NSRect, size: CGFloat, weight: NSFont.Weight, color: NSColor) {
+        (text as NSString).draw(
+            in: rect,
+            withAttributes: [
+                .font: NSFont.systemFont(ofSize: size, weight: weight),
+                .foregroundColor: color,
+            ]
+        )
     }
 }
 
@@ -777,7 +900,7 @@ private final class SignalConsolePanelView: NSView {
         drawTrendSection()
         drawReportSection()
         drawHealthRibbon()
-        drawDivider(y: 510)
+        drawInstrumentDivider(y: 510)
     }
 
     private func drawPanelBackground() {
@@ -815,7 +938,8 @@ private final class SignalConsolePanelView: NSView {
         let title = layout.headerTitleRect
         let next = layout.headerSignalPillRect
         let source = layout.headerSourcePillRect
-        drawText("Codex Gauge  •  Signal Console", x: title.minX, y: title.minY, width: title.width, height: title.height, size: 15, weight: .semibold, color: textPrimary)
+        drawCircuitLogoMark(in: NSRect(x: title.minX, y: title.minY - 6, width: 30, height: 30), color: blueAccent)
+        drawText("Codex Gauge  •  Signal Console", x: title.minX + 40, y: title.minY, width: title.width - 40, height: title.height, size: 15, weight: .semibold, color: textPrimary)
         drawPill(text: headerSignalText(), rect: next, color: headerSignalColor().withAlphaComponent(0.12), dotColor: headerSignalColor())
         drawPill(text: model.sourcePill, rect: source, color: theme.secondaryButtonBackground)
     }
@@ -864,6 +988,7 @@ private final class SignalConsolePanelView: NSView {
             resetProgress: model.fiveHourResetProgress,
             rect: layout.fiveHourQuotaRowRect
         )
+        drawInstrumentDivider(y: layout.fiveHourQuotaRowRect.maxY + 8, xInset: 20)
         drawQuotaWindowRow(
             window: "7d",
             label: "7-day quota left",
@@ -875,7 +1000,7 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawQuotaWindowRow(window: String, label: String, value: Int?, resetText: String, resetProgress: Int?, rect: NSRect) {
-        drawRoundedRect(rect, radius: 13, fill: theme.commandButtonBackground, stroke: panelBorder.withAlphaComponent(0.48))
+        drawInstrumentRowBaseline(rect)
         drawText(window, x: rect.minX + 14, y: rect.minY + 13, width: 38, height: 22, size: 19, weight: .bold, color: textPrimary, mono: true)
         drawText("window", x: rect.minX + 14, y: rect.minY + 35, width: 48, height: 14, size: 8, weight: .bold, color: textSecondary)
         drawText(label, x: rect.minX + 70, y: rect.minY + 12, width: 160, height: 16, size: 11, weight: .medium, color: textSecondary)
@@ -884,6 +1009,21 @@ private final class SignalConsolePanelView: NSView {
         drawText("reset", x: rect.minX + 288, y: rect.minY + 12, width: 34, height: 16, size: 10, weight: .medium, color: textSecondary)
         drawText(resetText, x: rect.maxX - 76, y: rect.minY + 12, width: 60, height: 16, size: 10, weight: .semibold, color: resetTextColor(resetText), mono: true)
         drawResetCountdownLane(value: resetProgress, rect: NSRect(x: rect.minX + 288, y: rect.minY + 36, width: 146, height: 9))
+    }
+
+    private func drawInstrumentRowBaseline(_ rect: NSRect) {
+        let rules = NSBezierPath()
+        rules.move(to: NSPoint(x: rect.minX, y: rect.minY + 1))
+        rules.line(to: NSPoint(x: rect.maxX, y: rect.minY + 1))
+        rules.move(to: NSPoint(x: rect.minX, y: rect.maxY - 1))
+        rules.line(to: NSPoint(x: rect.maxX, y: rect.maxY - 1))
+        rules.move(to: NSPoint(x: rect.minX + 58, y: rect.minY + 10))
+        rules.line(to: NSPoint(x: rect.minX + 58, y: rect.maxY - 10))
+        rules.move(to: NSPoint(x: rect.minX + 274, y: rect.minY + 10))
+        rules.line(to: NSPoint(x: rect.minX + 274, y: rect.maxY - 10))
+        rules.lineWidth = 0.8
+        panelBorder.withAlphaComponent(0.44).setStroke()
+        rules.stroke()
     }
 
     private func drawBatteryModeStrip() {
@@ -895,7 +1035,8 @@ private final class SignalConsolePanelView: NSView {
         drawText("Battery mode", x: rect.minX + 66, y: rect.minY + 10, width: 96, height: 16, size: 12, weight: .bold, color: textPrimary)
         drawText(model.powerSaverText, x: rect.minX + 66, y: rect.minY + 27, width: 150, height: 12, size: 8.6, weight: .medium, color: textMuted)
         drawText(model.refreshCadenceText, x: rect.minX + 174, y: rect.minY + 11, width: 110, height: 16, size: 12, weight: .medium, color: color, mono: true)
-        drawText(model.batteryStatusText, x: rect.maxX - 108, y: rect.minY + 11, width: 86, height: 16, size: 11, weight: .semibold, color: textSecondary, mono: true)
+        drawCircuitTraceMotif(in: NSRect(x: rect.maxX - 140, y: rect.minY + 9, width: 104, height: 28), color: color.withAlphaComponent(0.28))
+        drawChevron(in: NSRect(x: rect.maxX - 22, y: rect.minY + 17, width: 8, height: 12), color: color)
     }
 
     private func batterySignalColorForPanel() -> NSColor {
@@ -1286,11 +1427,85 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawDivider(y: CGFloat) {
+        drawInstrumentDivider(y: y)
+    }
+
+    private func drawInstrumentDivider(y: CGFloat, xInset: CGFloat = 28) {
         let path = NSBezierPath()
-        path.move(to: NSPoint(x: 28, y: y))
-        path.line(to: NSPoint(x: bounds.width - 28, y: y))
+        path.move(to: NSPoint(x: xInset, y: y))
+        path.line(to: NSPoint(x: bounds.width - xInset, y: y))
         path.lineWidth = 1
-        panelBorder.setStroke()
+        panelBorder.withAlphaComponent(0.58).setStroke()
+        path.stroke()
+    }
+
+    private func drawCircuitLogoMark(in rect: NSRect, color: NSColor) {
+        let path = NSBezierPath()
+        path.move(to: NSPoint(x: rect.maxX - 6, y: rect.minY + 6))
+        path.line(to: NSPoint(x: rect.minX + 10, y: rect.minY + 6))
+        path.line(to: NSPoint(x: rect.minX + 4, y: rect.midY))
+        path.line(to: NSPoint(x: rect.minX + 10, y: rect.maxY - 6))
+        path.line(to: NSPoint(x: rect.maxX - 6, y: rect.maxY - 6))
+        path.lineWidth = 1.5
+        color.setStroke()
+        path.stroke()
+
+        let inner = NSBezierPath()
+        inner.move(to: NSPoint(x: rect.maxX - 11, y: rect.minY + 11))
+        inner.line(to: NSPoint(x: rect.minX + 15, y: rect.minY + 11))
+        inner.line(to: NSPoint(x: rect.minX + 10, y: rect.midY))
+        inner.line(to: NSPoint(x: rect.minX + 15, y: rect.maxY - 11))
+        inner.line(to: NSPoint(x: rect.maxX - 11, y: rect.maxY - 11))
+        inner.lineWidth = 0.9
+        color.withAlphaComponent(0.56).setStroke()
+        inner.stroke()
+
+        for point in [
+            NSPoint(x: rect.maxX - 4, y: rect.minY + 6),
+            NSPoint(x: rect.maxX - 4, y: rect.maxY - 6),
+            NSPoint(x: rect.minX + 4, y: rect.midY),
+        ] {
+            drawCircle(center: point, radius: 2, color: color, stroke: nil)
+        }
+    }
+
+    private func drawCircuitTraceMotif(in rect: NSRect, color: NSColor) {
+        let paths: [[NSPoint]] = [
+            [NSPoint(x: rect.minX, y: rect.midY), NSPoint(x: rect.minX + rect.width * 0.34, y: rect.midY), NSPoint(x: rect.minX + rect.width * 0.34, y: rect.minY + rect.height * 0.28), NSPoint(x: rect.maxX, y: rect.minY + rect.height * 0.28)],
+            [NSPoint(x: rect.minX + rect.width * 0.18, y: rect.minY + rect.height * 0.75), NSPoint(x: rect.minX + rect.width * 0.58, y: rect.minY + rect.height * 0.75), NSPoint(x: rect.minX + rect.width * 0.58, y: rect.maxY)],
+            [NSPoint(x: rect.minX + rect.width * 0.30, y: rect.minY), NSPoint(x: rect.minX + rect.width * 0.30, y: rect.minY + rect.height * 0.48), NSPoint(x: rect.maxX, y: rect.minY + rect.height * 0.48)],
+        ]
+        for points in paths {
+            drawCircuitPath(points, color: color)
+        }
+    }
+
+    private func drawCircuitPath(_ points: [NSPoint], color: NSColor) {
+        guard let first = points.first else {
+            return
+        }
+        let path = NSBezierPath()
+        path.move(to: first)
+        for point in points.dropFirst() {
+            path.line(to: point)
+        }
+        path.lineWidth = 0.8
+        color.setStroke()
+        path.stroke()
+        for point in points {
+            drawCircle(center: point, radius: 1.7, color: panelBackground.withAlphaComponent(0.1), stroke: color.withAlphaComponent(0.74))
+        }
+    }
+
+    private func drawChevron(in rect: NSRect, color: NSColor) {
+        let path = NSBezierPath()
+        path.move(to: NSPoint(x: rect.minX, y: rect.minY))
+        path.line(to: NSPoint(x: rect.maxX, y: rect.midY))
+        path.line(to: NSPoint(x: rect.minX, y: rect.maxY))
+        path.lineWidth = 1.7
+        path.lineCapStyle = .round
+        path.lineJoinStyle = .round
+        color.withAlphaComponent(0.82).setStroke()
         path.stroke()
     }
 
@@ -3026,6 +3241,21 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         preferencesWindow = nil
     }
 
+    @objc private func resetSessionPreferences() {
+        registerDefaultPreferences()
+        syncPreferencesControls()
+        refreshSignalPopoverIfNeeded()
+        rebuildMenu()
+        if let snapshot {
+            setStatusImage(title: statusTooltipTitle(snapshot), status: snapshot.codex)
+        } else {
+            setStatusImage(title: "Codex quota")
+        }
+        if !isRefreshing {
+            scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))
+        }
+    }
+
     private func showFirstRunSetupIfNeeded() {
         return
     }
@@ -3528,8 +3758,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func makePreferencesWindow() -> NSWindow {
         let theme = currentSignalConsoleTheme()
+        let size = NSSize(width: 640, height: 460)
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 380),
+            contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -3538,19 +3769,41 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         window.appearance = NSAppearance(named: theme.appearance)
         window.isReleasedWhenClosed = false
 
-        let content = makeThemedUtilityContentView(size: NSSize(width: 420, height: 380))
+        let content = makeThemedUtilityContentView(size: size)
         window.contentView = content
 
-        content.addSubview(utilityLabel("Codex Gauge", frame: NSRect(x: 24, y: 334, width: 220, height: 24), size: 16, weight: .semibold, color: theme.textPrimary))
+        let labelX: CGFloat = 184
+        let controlX: CGFloat = 392
+        let leftColumnX: CGFloat = labelX
+        let rightColumnX: CGFloat = 404
+        let controlWidth: CGFloat = 190
+        let columnWidth: CGFloat = 188
+        content.addSubview(utilityLabel("Codex Gauge  •  Preferences", frame: NSRect(x: labelX, y: 410, width: 278, height: 24), size: 16, weight: .semibold, color: theme.textPrimary))
 
-        let done = NSButton(title: "Done", target: self, action: #selector(closePreferences))
-        done.frame = NSRect(x: 326, y: 332, width: 70, height: 28)
-        styleUtilityButton(done)
-        content.addSubview(done)
+        content.addSubview(utilityLabel("Refresh", frame: NSRect(x: labelX, y: 364, width: 150, height: 18), size: 13, weight: .bold, color: theme.textPrimary))
+        content.addSubview(utilityLabel("Refresh cadence", frame: NSRect(x: labelX, y: 334, width: 150, height: 18), size: 12, weight: .regular, color: theme.textSecondary))
 
-        content.addSubview(utilityLabel("Theme", frame: NSRect(x: 24, y: 292, width: 96, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
+        let popup = NSPopUpButton(frame: NSRect(x: controlX, y: 330, width: controlWidth, height: 28), pullsDown: false)
+        popup.addItems(withTitles: ["Adaptive", "Every 5 minutes", "Every 10 minutes"])
+        popup.item(withTitle: "Adaptive")?.representedObject = adaptiveRefreshMode
+        popup.item(withTitle: "Every 5 minutes")?.representedObject = fiveMinuteRefreshMode
+        popup.item(withTitle: "Every 10 minutes")?.representedObject = tenMinuteRefreshMode
+        popup.target = self
+        popup.action = #selector(refreshPreferenceChanged)
+        content.addSubview(popup)
+        refreshPopup = popup
 
-        let themeSelect = NSPopUpButton(frame: NSRect(x: 132, y: 290, width: 180, height: 26), pullsDown: false)
+        content.addSubview(utilityLabel("Live signal source", frame: NSRect(x: labelX, y: 300, width: 150, height: 18), size: 12, weight: .regular, color: theme.textSecondary))
+        let sourceDisplay = NSPopUpButton(frame: NSRect(x: controlX, y: 296, width: controlWidth, height: 28), pullsDown: false)
+        sourceDisplay.addItems(withTitles: ["Menu Bar (Default)"])
+        sourceDisplay.isEnabled = false
+        content.addSubview(sourceDisplay)
+        content.addSubview(utilityLabel("Shorter intervals use more power.", frame: NSRect(x: labelX, y: 274, width: 220, height: 16), size: 10, weight: .regular, color: theme.textMuted))
+
+        content.addSubview(utilityLabel("Appearance", frame: NSRect(x: leftColumnX, y: 244, width: 150, height: 18), size: 13, weight: .bold, color: theme.textPrimary))
+        content.addSubview(utilityLabel("Signal Console theme", frame: NSRect(x: leftColumnX, y: 220, width: 150, height: 18), size: 11, weight: .regular, color: theme.textSecondary))
+
+        let themeSelect = NSPopUpButton(frame: NSRect(x: leftColumnX, y: 192, width: columnWidth, height: 28), pullsDown: false)
         themeSelect.addItems(withTitles: ["Blue Ceramic", "Porcelain Lab", "Signal Dark", "Mono Graphite"])
         themeSelect.item(withTitle: "Blue Ceramic")?.representedObject = blueCeramicThemeKey
         themeSelect.item(withTitle: "Porcelain Lab")?.representedObject = porcelainLabThemeKey
@@ -3561,67 +3814,77 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         content.addSubview(themeSelect)
         themePopup = themeSelect
 
-        content.addSubview(utilityLabel("Refresh", frame: NSRect(x: 24, y: 252, width: 96, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
-
-        let popup = NSPopUpButton(frame: NSRect(x: 132, y: 250, width: 180, height: 26), pullsDown: false)
-        popup.addItems(withTitles: ["Adaptive", "5 minutes", "10 minutes"])
-        popup.item(withTitle: "Adaptive")?.representedObject = adaptiveRefreshMode
-        popup.item(withTitle: "5 minutes")?.representedObject = fiveMinuteRefreshMode
-        popup.item(withTitle: "10 minutes")?.representedObject = tenMinuteRefreshMode
-        popup.target = self
-        popup.action = #selector(refreshPreferenceChanged)
-        content.addSubview(popup)
-        refreshPopup = popup
-
-        content.addSubview(utilityLabel("Menu bar", frame: NSRect(x: 24, y: 208, width: 110, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
-
         let showSSD = NSButton(checkboxWithTitle: "Show SSD temperature in menu bar", target: self, action: #selector(showSSDTemperaturePreferenceChanged))
-        showSSD.frame = NSRect(x: 132, y: 206, width: 250, height: 24)
+        showSSD.frame = NSRect(x: leftColumnX, y: 162, width: 214, height: 22)
         showSSD.contentTintColor = theme.textSecondary
         content.addSubview(showSSD)
         showSSDTemperatureCheckbox = showSSD
 
-        content.addSubview(utilityLabel("Notifications", frame: NSRect(x: 24, y: 168, width: 110, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
-
         let notifications = NSButton(checkboxWithTitle: "Quota notifications", target: self, action: #selector(notificationsPreferenceChanged))
-        notifications.frame = NSRect(x: 132, y: 166, width: 220, height: 24)
+        notifications.frame = NSRect(x: leftColumnX, y: 136, width: columnWidth, height: 22)
         notifications.contentTintColor = theme.textSecondary
         content.addSubview(notifications)
         notificationsCheckbox = notifications
 
-        content.addSubview(utilityLabel("Startup", frame: NSRect(x: 24, y: 128, width: 110, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
-
         let login = NSButton(checkboxWithTitle: "Launch at login disabled", target: self, action: #selector(launchAtLoginPreferenceChanged))
-        login.frame = NSRect(x: 132, y: 126, width: 220, height: 24)
+        login.frame = NSRect(x: leftColumnX, y: 110, width: columnWidth, height: 22)
         login.contentTintColor = theme.textSecondary
         login.isEnabled = false
         content.addSubview(login)
         launchAtLoginCheckbox = login
 
-        content.addSubview(utilityLabel("Diagnostics", frame: NSRect(x: 24, y: 82, width: 110, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
+        content.addSubview(utilityLabel("Battery", frame: NSRect(x: rightColumnX, y: 244, width: 150, height: 18), size: 13, weight: .bold, color: theme.textPrimary))
+        content.addSubview(utilityLabel("Battery Saver threshold", frame: NSRect(x: rightColumnX, y: 220, width: 150, height: 18), size: 11, weight: .regular, color: theme.textSecondary))
+        let threshold = NSPopUpButton(frame: NSRect(x: rightColumnX, y: 192, width: 130, height: 28), pullsDown: false)
+        threshold.addItems(withTitles: ["20%"])
+        threshold.isEnabled = false
+        content.addSubview(threshold)
 
-        let testRefresh = NSButton(title: "Test Refresh", target: self, action: #selector(refreshNow))
-        testRefresh.frame = NSRect(x: 132, y: 78, width: 92, height: 28)
-        styleUtilityButton(testRefresh)
-        content.addSubview(testRefresh)
+        let showBattery = NSButton(checkboxWithTitle: "Enable Battery Saver mode", target: nil, action: nil)
+        showBattery.frame = NSRect(x: rightColumnX, y: 162, width: columnWidth, height: 22)
+        showBattery.state = .on
+        showBattery.contentTintColor = theme.textSecondary
+        showBattery.isEnabled = false
+        content.addSubview(showBattery)
 
-        let setupDoctor = NSButton(title: "Setup Doctor", target: self, action: #selector(openSetupDoctor))
-        setupDoctor.frame = NSRect(x: 230, y: 78, width: 108, height: 28)
-        styleUtilityButton(setupDoctor)
-        content.addSubview(setupDoctor)
+        content.addSubview(utilityLabel("Extend refresh interval on battery", frame: NSRect(x: rightColumnX, y: 136, width: columnWidth, height: 18), size: 11, weight: .regular, color: theme.textSecondary))
+        let batteryInterval = NSPopUpButton(frame: NSRect(x: rightColumnX, y: 108, width: 130, height: 28), pullsDown: false)
+        batteryInterval.addItems(withTitles: ["60 minutes"])
+        batteryInterval.isEnabled = false
+        content.addSubview(batteryInterval)
 
-        let diagnostics = NSButton(title: "Copy Diagnostics", target: self, action: #selector(copyDiagnostics))
-        diagnostics.frame = NSRect(x: 132, y: 46, width: 136, height: 28)
-        styleUtilityButton(diagnostics)
-        content.addSubview(diagnostics)
+        content.addSubview(utilityLabel("Updates", frame: NSRect(x: rightColumnX, y: 80, width: 150, height: 18), size: 13, weight: .bold, color: theme.textPrimary))
+        let updates = NSButton(checkboxWithTitle: "Check automatically", target: nil, action: nil)
+        updates.frame = NSRect(x: rightColumnX, y: 54, width: 142, height: 22)
+        updates.state = .on
+        updates.contentTintColor = theme.textSecondary
+        updates.isEnabled = false
+        content.addSubview(updates)
 
         let updateCheck = NSButton(title: "Check Now", target: self, action: #selector(checkForUpdates))
-        updateCheck.frame = NSRect(x: 274, y: 46, width: 86, height: 28)
+        updateCheck.frame = NSRect(x: rightColumnX + 96, y: 50, width: 84, height: 28)
         styleUtilityButton(updateCheck)
         content.addSubview(updateCheck)
 
-        content.addSubview(utilityLabel("Zero persistence: no stored cache, snapshot, usage history, report file, or app log.", frame: NSRect(x: 24, y: 18, width: 372, height: 18), size: 11, weight: .regular, color: theme.textMuted))
-        content.addSubview(utilityLabel("No stored cache or snapshot", frame: NSRect(x: 24, y: 104, width: 194, height: 18), size: 10, weight: .medium, color: theme.blueAccent))
+        let storageCard = NSView(frame: NSRect(x: leftColumnX, y: 58, width: columnWidth, height: 46))
+        storageCard.wantsLayer = true
+        storageCard.layer?.cornerRadius = 8
+        storageCard.layer?.backgroundColor = theme.commandButtonBackground.cgColor
+        storageCard.layer?.borderColor = theme.panelBorder.withAlphaComponent(0.24).cgColor
+        storageCard.layer?.borderWidth = 1
+        content.addSubview(storageCard)
+        storageCard.addSubview(utilityLabel("Zero persistence", frame: NSRect(x: 12, y: 25, width: 150, height: 14), size: 10, weight: .semibold, color: theme.textPrimary))
+        storageCard.addSubview(utilityLabel("No stored cache or snapshot", frame: NSRect(x: 12, y: 11, width: 160, height: 12), size: 9, weight: .medium, color: theme.blueAccent))
+
+        let resetDefaults = NSButton(title: "Reset to Defaults...", target: self, action: #selector(resetSessionPreferences))
+        resetDefaults.frame = NSRect(x: labelX, y: 20, width: 126, height: 30)
+        styleUtilityButton(resetDefaults)
+        content.addSubview(resetDefaults)
+
+        let done = NSButton(title: "Done", target: self, action: #selector(closePreferences))
+        done.frame = NSRect(x: size.width - 106, y: 20, width: 78, height: 30)
+        styleUtilityButton(done, primary: true)
+        content.addSubview(done)
 
         return window
     }
@@ -3638,9 +3901,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func refreshTitle(for mode: String) -> String {
         switch mode {
         case fiveMinuteRefreshMode:
-            return "5 minutes"
+            return "Every 5 minutes"
         case tenMinuteRefreshMode:
-            return "10 minutes"
+            return "Every 10 minutes"
         default:
             return "Adaptive"
         }

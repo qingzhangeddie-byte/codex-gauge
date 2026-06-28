@@ -333,6 +333,59 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertLess(panel_body.index("drawSignalHeroCard()"), panel_body.index("drawBatteryModeStrip()"))
         self.assertLess(panel_body.index("drawBatteryModeStrip()"), panel_body.index("drawTrendSection()"))
 
+    def test_blue_ceramic_uses_selected_instrument_panel_visual_language(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "drawCircuitLogoMark",
+            "drawCircuitTraceMotif",
+            "drawInstrumentDivider",
+            "drawUtilitySidebar",
+            "drawUtilityCircuitMotif",
+            '"General"',
+            '"Appearance"',
+            '"Signals"',
+            '"Updates"',
+            '"Battery"',
+            '"Storage"',
+            '"Advanced"',
+            '"About"',
+        ]:
+            self.assertIn(token, source)
+
+        header_body = self._swift_function_body(source, "private func drawHeader()")
+        self.assertIn("drawCircuitLogoMark", header_body)
+
+        battery_body = self._swift_function_body(source, "private func drawBatteryModeStrip()")
+        self.assertIn("drawCircuitTraceMotif", battery_body)
+        self.assertIn("drawChevron", battery_body)
+
+        quota_row_body = self._swift_function_body(source, "private func drawQuotaWindowRow(window: String, label: String, value: Int?, resetText: String, resetProgress: Int?, rect: NSRect)")
+        self.assertIn("drawInstrumentRowBaseline", quota_row_body)
+        self.assertNotIn("drawRoundedRect(rect", quota_row_body)
+
+        instrument_body = self._swift_function_body(source, "private func drawInstrumentRowBaseline(_ rect: NSRect)")
+        self.assertNotIn(".fill()", instrument_body)
+
+        background_body = self._swift_function_body(source, "private func drawPanelBackground()")
+        self.assertNotIn("drawCircuitTraceMotif", background_body)
+
+        self.assertNotIn("drawText(model.batteryStatusText", battery_body)
+
+        preferences_body = self._swift_function_body(source, "private func makePreferencesWindow() -> NSWindow")
+        self.assertIn("width: 640, height: 460", preferences_body)
+        self.assertIn("drawUtilitySidebar", source)
+        self.assertIn('popup.addItems(withTitles: ["Adaptive", "Every 5 minutes", "Every 10 minutes"])', preferences_body)
+        self.assertIn("@objc private func resetSessionPreferences()", source)
+        self.assertIn("Reset to Defaults...", preferences_body)
+        self.assertNotIn("notifications.frame = NSRect(x: labelX, y: 164", preferences_body)
+        self.assertNotIn("updates.frame = NSRect(x: labelX, y: 164", preferences_body)
+        self.assertNotIn("let testRefresh = NSButton", preferences_body)
+
+        refresh_title_body = self._swift_function_body(source, "private func refreshTitle(for mode: String) -> String")
+        self.assertIn('return "Every 5 minutes"', refresh_title_body)
+        self.assertIn('return "Every 10 minutes"', refresh_title_body)
+
     def test_all_themes_use_opaque_panel_backgrounds(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
@@ -561,7 +614,7 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("copyDiagnostics", source)
         self.assertIn("safeDiagnosticsText", source)
         self.assertIn('"Copy Diagnostics"', source)
-        self.assertIn('"Test Refresh"', source)
+        self.assertIn('"Refresh Now"', source)
         for blocked in [
             "browser cookies",
             "~/.codex/auth.json",
