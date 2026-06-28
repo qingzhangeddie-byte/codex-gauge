@@ -4524,11 +4524,18 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         return "5h \(fiveHour), 7d \(sevenDay)\(temperatureSummary)\(systemSummary)\(batterySummary)"
     }
 
+    private func statusImageScale() -> CGFloat {
+        let buttonScale = statusItem.button?.window?.backingScaleFactor
+        let screenScale = NSScreen.main?.backingScaleFactor
+        return max(1.0, min(3.0, buttonScale ?? screenScale ?? 2.0))
+    }
+
     private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?, ssdTemperature: SSDTemperatureStatus?, systemMetric: SystemMetricSample?, batteryStatus: BatteryStatus?) -> NSImage {
+        let scale = statusImageScale()
         guard let bitmap = NSBitmapImageRep(
             bitmapDataPlanes: nil,
-            pixelsWide: Int(statusImageSize.width),
-            pixelsHigh: Int(statusImageSize.height),
+            pixelsWide: max(1, Int(ceil(statusImageSize.width * scale))),
+            pixelsHigh: max(1, Int(ceil(statusImageSize.height * scale))),
             bitsPerSample: 8,
             samplesPerPixel: 4,
             hasAlpha: true,
@@ -4542,9 +4549,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return image
         }
 
+        bitmap.size = statusImageSize
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = context
         context.shouldAntialias = true
+        context.cgContext.scaleBy(x: scale, y: scale)
 
         let image = NSImage(size: statusImageSize)
 

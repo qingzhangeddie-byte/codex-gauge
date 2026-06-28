@@ -150,6 +150,11 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertNotIn(".unlockFocus()", make_status_body)
         self.assertIn("NSBitmapImageRep", make_status_body)
         self.assertIn("NSGraphicsContext(bitmapImageRep:", make_status_body)
+        self.assertIn("let scale = statusImageScale()", make_status_body)
+        self.assertIn("pixelsWide: max(1, Int(ceil(statusImageSize.width * scale)))", make_status_body)
+        self.assertIn("pixelsHigh: max(1, Int(ceil(statusImageSize.height * scale)))", make_status_body)
+        self.assertIn("bitmap.size = statusImageSize", make_status_body)
+        self.assertIn("context.cgContext.scaleBy(x: scale, y: scale)", make_status_body)
         self.assertIn("guard animationTimer == nil", animation_body)
         self.assertNotIn("Timer(timeInterval: 0.18, repeats: true)", animation_body)
 
