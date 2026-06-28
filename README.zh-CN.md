@@ -95,7 +95,7 @@ bash install.sh
 
 从下载好的 release package 安装时，打开 `Install Codex Gauge.command`。
 
-安装后，菜单里的 **Check for Updates...** 会查询 GitHub Releases 的 latest 版本，并展示当前版本、最新版本、release 信息和更新说明。发现新版本 zip 时，**Download & Install** 会把更新包下载到临时目录，验证 release checksum、固定的发布者 Team ID 和 notarization，再替换 `CodexGauge.app` 并重新启动。Codex Gauge 不保存更新历史或 updater cache。
+安装后，菜单里的 **Check for Updates...** 会查询 GitHub Releases 的 latest 版本，并展示当前版本、最新版本、release 信息和更新说明。更新提示提供三个选择：**Install Update**、**Skip this version**、**Remind me later**。跳过只在当前 App 会话中生效，避免同一 release 反复提示。发现新版本 zip 时，**Install Update** 会把更新包下载到临时目录，验证 release checksum、固定的发布者 Team ID 和 notarization，再替换 `CodexGauge.app` 并重新启动。Codex Gauge 不保存更新历史、skipped-version records 或 updater cache。
 
 维护者生成 package 时使用：
 
@@ -114,7 +114,7 @@ open native/dist/release
 | 本地登录安全性 | 原生菜单栏 App 不读取 `~/.codex/auth.json` |
 | 打包方式 | helper 打包在 App bundle 内部 |
 | 菜单栏常驻 | 当前会话直接启动，不安装 LaunchAgent |
-| 更新 | 手动检查 GitHub release，确认后 Download & Install，只使用临时文件 |
+| 更新 | 手动检查 GitHub release，确认后 Install Update，只使用临时文件 |
 | 信息密度 | 同时展示 5 小时和 7 天额度 |
 | 刷新策略 | 根据额度余量自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后快速重试 |
 | 偏好设置 | 当前会话内的刷新频率、通知和主题控制 |

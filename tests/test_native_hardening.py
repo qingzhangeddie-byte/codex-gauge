@@ -367,12 +367,15 @@ class NativeHardeningTests(unittest.TestCase):
             "downloaded update zip",
             "temporary directory",
             "no update history",
-            "no dismissed-version record",
+            "session-only skipped update version",
+            "skipped-version records",
         ]:
             self.assertIn(phrase, privacy)
 
         self.assertIn("Check for Updates", readme)
-        self.assertIn("Download & Install", readme)
+        self.assertIn("Install Update", readme)
+        self.assertIn("Skip this version", readme)
+        self.assertIn("Remind me later", readme)
         self.assertIn("session-only update check while plugged in", readme)
         self.assertIn("temporary directory", readme)
         self.assertIn("does not keep update history", readme)

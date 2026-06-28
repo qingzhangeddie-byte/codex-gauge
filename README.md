@@ -153,7 +153,7 @@ Codex Gauge should appear in your menu bar with live Codex usage. The installer 
 
 From a downloaded release package, open `Install Codex Gauge.command`.
 
-After install, Codex Gauge can perform one session-only update check while plugged in, and **Check for Updates...** always queries the latest GitHub Releases entry on demand. Both paths show the current version, latest version, release info, and notes. When a newer release zip is available, **Download & Install** downloads it to a temporary directory, verifies the release checksum plus the pinned publisher Team ID/notarization, replaces `CodexGauge.app`, and relaunches. Codex Gauge does not keep update history, dismissed-version records, or an updater cache.
+After install, Codex Gauge can perform one session-only update check while plugged in, and **Check for Updates...** always queries the latest GitHub Releases entry on demand. Both paths show the current version, latest version, release info, and notes. Update prompts include release notes and three choices: **Install Update**, **Skip this version**, or **Remind me later**. Skipping is session-only and prevents repeat prompts for that release while the app is running. When a newer release zip is available, **Install Update** downloads it to a temporary directory, verifies the release checksum plus the pinned publisher Team ID/notarization, replaces `CodexGauge.app`, and relaunches. Codex Gauge does not keep update history, skipped-version records, or an updater cache.
 
 For maintainers creating that package:
 
@@ -172,7 +172,7 @@ The generated zip includes `CodexGauge.app`, `Install Codex Gauge.command`, and 
 | Local auth safety | No `~/.codex/auth.json` reads in the menu bar app |
 | Packaging | Self-contained app bundle with a bundled helper |
 | Menu bar persistence | Session-only direct launch; no LaunchAgent is installed |
-| Updates | Session-only plugged-in GitHub release check plus manual Check for Updates, with confirmed Download & Install and temporary files only |
+| Updates | Session-only plugged-in GitHub release check plus manual Check for Updates, with confirmed Install Update and temporary files only |
 | Signal quality | Shows both 5-hour and 7-day quota instead of one vague number |
 | Refresh behavior | Adaptive refresh instead of constant polling: 5 minutes normally, 3 minutes when low, 2 minutes when critical, with quick retry after transient errors |
 | Preferences | Session-only refresh cadence, notifications, and theme controls |

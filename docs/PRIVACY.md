@@ -25,7 +25,12 @@ Battery state is local hardware telemetry only: current battery percentage, whet
 
 When Power Saver is active on battery, Codex Gauge shows usage plus battery information only and stops SSD temperature and CPU/RAM sampling while on battery. Those hardware signals resume when external power returns.
 
-The updater is confirmation-based. The automatic check is session-only, runs only while plugged in, and stores no dismissed-version record. If you choose Download & Install, Codex Gauge saves the downloaded update zip to a temporary directory, verifies that it contains the Codex Gauge app bundle, replaces the installed app, and removes the temporary directory after relaunch. It keeps no update history, updater cache, or background update schedule.
+The updater is confirmation-based. The automatic check is session-only, runs only while plugged in, and does not write prompt decisions to app storage.
+
+- Codex Gauge may remember a session-only skipped update version in memory for the current app session so it does not keep prompting for the same release.
+- It writes no update history, skipped-version records, release notes, or downloaded update metadata to app storage.
+
+If you choose Install Update, Codex Gauge saves the downloaded update zip to a temporary directory, verifies that it contains the Codex Gauge app bundle, replaces the installed app, and removes the temporary directory after relaunch. It keeps no updater cache or background update schedule.
 
 Zero persistence is the default app mode. The app removes legacy Codex Gauge history, cache, report, log, and LaunchAgent files from earlier builds when it starts or when you choose Clear legacy data. It does not delete Codex auth/session data.
 

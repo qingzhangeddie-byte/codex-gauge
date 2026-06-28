@@ -2074,7 +2074,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var automaticUpdateTimer: Timer?
     private var automaticUpdateCheckDidRun = false
     private var automaticUpdateCheckPendingForPower = false
-    private var automaticUpdateDismissedTagName: String?
+    private var automaticUpdateSkippedTagName: String?
     private var runtimeLogMessages: [String] = []
     private var sessionSignalConsoleThemeKey = blueCeramicThemeKey
     private var sessionRefreshMode = "adaptive"
@@ -2650,7 +2650,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
         lastUpdateSummary = "Update available: \(release.tagName)"
         rebuildMenu()
-        if mode == .automatic, automaticUpdateDismissedTagName == release.tagName {
+        if mode == .automatic, automaticUpdateSkippedTagName == release.tagName {
             return
         }
         showUpdatePrompt(release: release, asset: asset, latestVersion: latestVersion, mode: mode)
@@ -2670,23 +2670,23 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func showUpdatePrompt(release: GitHubRelease, asset: GitHubReleaseAsset, latestVersion: String, mode: UpdateCheckMode) {
         let alert = NSAlert()
-        alert.messageText = "Codex Gauge \(release.tagName) is available"
+        alert.messageText = "Update Available"
         alert.informativeText = releaseInfoText(release: release, asset: asset, latestVersion: latestVersion)
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "Download & Install")
-        alert.addButton(withTitle: "Release Page")
-        alert.addButton(withTitle: "Not Now")
+        alert.addButton(withTitle: "Install Update")
+        alert.addButton(withTitle: "Skip this version")
+        alert.addButton(withTitle: "Remind me later")
         switch alert.runModal() {
         case .alertFirstButtonReturn:
             downloadAndInstallUpdate(release: release, asset: asset, latestVersion: latestVersion)
         case .alertSecondButtonReturn:
-            if mode == .automatic {
-                automaticUpdateDismissedTagName = release.tagName
-            }
-            openURL(release.htmlURL)
+            automaticUpdateSkippedTagName = release.tagName
+            lastUpdateSummary = "Update skipped: \(release.tagName)"
+            rebuildMenu()
         default:
             if mode == .automatic {
-                automaticUpdateDismissedTagName = release.tagName
+                lastUpdateSummary = "Update postponed: \(release.tagName)"
+                rebuildMenu()
             }
         }
     }
@@ -3019,6 +3019,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         window.center()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc private func closePreferences() {
+        preferencesWindow?.close()
+        preferencesWindow = nil
     }
 
     private func showFirstRunSetupIfNeeded() {
@@ -3538,6 +3543,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
         content.addSubview(utilityLabel("Codex Gauge", frame: NSRect(x: 24, y: 334, width: 220, height: 24), size: 16, weight: .semibold, color: theme.textPrimary))
 
+        let done = NSButton(title: "Done", target: self, action: #selector(closePreferences))
+        done.frame = NSRect(x: 326, y: 332, width: 70, height: 28)
+        styleUtilityButton(done)
+        content.addSubview(done)
+
         content.addSubview(utilityLabel("Theme", frame: NSRect(x: 24, y: 292, width: 96, height: 22), size: 13, weight: .medium, color: theme.textSecondary))
 
         let themeSelect = NSPopUpButton(frame: NSRect(x: 132, y: 290, width: 180, height: 26), pullsDown: false)
@@ -3605,7 +3615,13 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         styleUtilityButton(diagnostics)
         content.addSubview(diagnostics)
 
-        content.addSubview(utilityLabel("Zero persistence: no saved preferences, histories, caches, reports, or logs.", frame: NSRect(x: 24, y: 18, width: 372, height: 18), size: 11, weight: .regular, color: theme.textMuted))
+        let updateCheck = NSButton(title: "Check Now", target: self, action: #selector(checkForUpdates))
+        updateCheck.frame = NSRect(x: 274, y: 46, width: 86, height: 28)
+        styleUtilityButton(updateCheck)
+        content.addSubview(updateCheck)
+
+        content.addSubview(utilityLabel("Zero persistence: no stored cache, snapshot, usage history, report file, or app log.", frame: NSRect(x: 24, y: 18, width: 372, height: 18), size: 11, weight: .regular, color: theme.textMuted))
+        content.addSubview(utilityLabel("No stored cache or snapshot", frame: NSRect(x: 24, y: 104, width: 194, height: 18), size: 10, weight: .medium, color: theme.blueAccent))
 
         return window
     }
@@ -4282,13 +4298,13 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             y -= rowHeight
         }
 
-        let refresh = NSButton(title: "Run Check", target: self, action: #selector(openSetupDoctor))
-        refresh.frame = NSRect(x: 24, y: 20, width: 94, height: 28)
+        let refresh = NSButton(title: "Run Full Diagnostics", target: self, action: #selector(openSetupDoctor))
+        refresh.frame = NSRect(x: 24, y: 20, width: 144, height: 28)
         styleUtilityButton(refresh)
         content.addSubview(refresh)
 
         let diagnostics = NSButton(title: "Copy Diagnostics", target: self, action: #selector(copyDiagnostics))
-        diagnostics.frame = NSRect(x: 124, y: 20, width: 136, height: 28)
+        diagnostics.frame = NSRect(x: 176, y: 20, width: 136, height: 28)
         styleUtilityButton(diagnostics, primary: true)
         content.addSubview(diagnostics)
 
