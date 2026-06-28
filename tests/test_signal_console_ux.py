@@ -657,12 +657,30 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("if showSSDTemperatureInMenuBar() {", source)
         self.assertIn("ssdTemperatureDoctorCheck(ssdTemperature)", source)
 
+    def test_menu_bar_status_item_stays_compact_enough_to_remain_visible(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        status_width = self._first_float(r"statusItemWidth: CGFloat = ([0-9.]+)", source)
+        image_width = self._first_float(r"statusImageSize = NSSize\(width: ([0-9.]+)", source)
+
+        self.assertLessEqual(status_width, 184)
+        self.assertLessEqual(image_width, 178)
+
+        for rect_name in [
+            "menuBarTemperatureChipRect",
+            "menuBarSystemMetricStripRect",
+            "menuBarBatteryModeInfoRect",
+            "menuBarBatteryRect",
+        ]:
+            rect = self._swift_rect_constant(source, rect_name)
+            self.assertLessEqual(rect["max_x"], image_width - 2, rect_name)
+
     def test_menu_bar_integrates_ssd_temperature_without_removing_current_quota_info(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("statusItemWidth: CGFloat = 236", source)
-        self.assertIn("statusImageSize = NSSize(width: 230", source)
-        self.assertIn("private let quotaRailWidth: CGFloat = 28", source)
+        self.assertIn("statusItemWidth: CGFloat = 182", source)
+        self.assertIn("statusImageSize = NSSize(width: 176", source)
+        self.assertIn("private let quotaRailWidth: CGFloat = 24", source)
         self.assertIn("private let resetRailWidth: CGFloat = 18", source)
         self.assertIn("makeStatusImage(", source)
         self.assertIn("ssdTemperature: ssdTemperatureForDisplay()", source)
@@ -672,7 +690,7 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn('parts.append("SSD \\(temperature)")', source)
         self.assertIn("button.imagePosition = .imageOnly", source)
         self.assertIn("drawMenuBarSSDTemperature(status: ssdTemperature, rect: menuBarTemperatureChipRect, palette: palette)", source)
-        self.assertIn("private let menuBarTemperatureChipRect = NSRect(x: 82", source)
+        self.assertIn("private let menuBarTemperatureChipRect = NSRect(x: 70", source)
         self.assertIn("width: 27, height: 12.2", source)
         self.assertIn("let fontSize: CGFloat = text.count > 3 ? 6.6 : 7.2", source)
         self.assertIn("NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .bold)", source)
@@ -684,8 +702,8 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("drawPlanBRow(window: \"7d\"", source)
         self.assertIn("drawQuotaRail(value: quotaLeft", source)
         self.assertIn("drawResetMoodLane(value: resetProgress", source)
-        self.assertIn("fiveHourResetCountdown(resetEpoch)", source)
-        self.assertIn("sevenDayResetCountdown(resetEpoch)", source)
+        self.assertIn("fiveHourResetCountdown(status.fiveHourReset)", source)
+        self.assertIn("sevenDayResetCountdown(status.sevenDayReset)", source)
 
     def test_menu_bar_uses_blue_ceramic_instrument_strip_polish(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -712,7 +730,7 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("drawMenuBarCircuitAccent", chrome_body)
 
         separator_body = self._swift_function_body(source, "private func drawMenuBarZoneSeparators(palette: GaugePalette)")
-        for x in ["78", "112", "164", "202"]:
+        for x in ["68", "100", "122", "153"]:
             self.assertIn(f"drawMenuBarEtchedSeparator(x: {x}", separator_body)
 
     def test_reset_countdowns_use_progressive_units(self):
@@ -759,15 +777,15 @@ class SignalConsoleUXTests(unittest.TestCase):
         ]:
             self.assertIn(token, source)
 
-        self.assertIn("statusItemWidth: CGFloat = 236", source)
-        self.assertIn("statusImageSize = NSSize(width: 230", source)
+        self.assertIn("statusItemWidth: CGFloat = 182", source)
+        self.assertIn("statusImageSize = NSSize(width: 176", source)
         system_rect = self._swift_rect_constant(source, "menuBarSystemMetricStripRect")
         battery_rect = self._swift_rect_constant(source, "menuBarBatteryRect")
         self.assertLessEqual(system_rect["max_x"], battery_rect["x"])
-        self.assertLessEqual(battery_rect["max_x"], 230)
-        self.assertGreaterEqual(system_rect["x"], 168)
-        self.assertGreaterEqual(system_rect["width"], 34)
-        self.assertIn("let fontSize: CGFloat = 7.2", source)
+        self.assertLessEqual(battery_rect["max_x"], 176)
+        self.assertGreaterEqual(system_rect["x"], 124)
+        self.assertGreaterEqual(system_rect["width"], 28)
+        self.assertIn("let fontSize: CGFloat = 6.3", source)
         self.assertNotIn("text.count > 3 ? 5.1 : 5.6", source)
 
         movement_body = source.split("private func drawSystemMetricMovementRows", 1)[1].split("private func drawSystemMetricMovementRow", 1)[0]

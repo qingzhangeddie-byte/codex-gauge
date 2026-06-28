@@ -2313,14 +2313,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let maxSystemMetricSamples = 24 * 60 * 60 / 5
     private let ssdTemperatureReadTimeout: TimeInterval = 0.8
     private let ssdTemperatureDisplayGraceInterval: TimeInterval = 10 * 60
-    private let statusItemWidth: CGFloat = 236
-    private let statusImageSize = NSSize(width: 230, height: 22)
-    private let menuBarTemperatureChipRect = NSRect(x: 82, y: 4.9, width: 27, height: 12.2)
-    private let menuBarSystemMetricStripRect = NSRect(x: 168, y: 1.8, width: 34, height: 18.4)
-    private let menuBarBatteryModeInfoRect = NSRect(x: 168, y: 4.9, width: 34, height: 12.2)
-    private let menuBarBatteryRect = NSRect(x: 204, y: 4.2, width: 24, height: 13.8)
+    private let statusItemWidth: CGFloat = 182
+    private let statusImageSize = NSSize(width: 176, height: 22)
+    private let menuBarTemperatureChipRect = NSRect(x: 70, y: 4.9, width: 27, height: 12.2)
+    private let menuBarSystemMetricStripRect = NSRect(x: 124, y: 1.8, width: 28, height: 18.4)
+    private let menuBarBatteryModeInfoRect = NSRect(x: 124, y: 4.9, width: 28, height: 12.2)
+    private let menuBarBatteryRect = NSRect(x: 154, y: 4.2, width: 20, height: 13.8)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
-    private let quotaRailWidth: CGFloat = 28
+    private let quotaRailWidth: CGFloat = 24
     private let resetRailWidth: CGFloat = 18
     private let signalRailSegments = 10
     private let codexCliBundlePath = "/Applications/Codex.app/Contents/Resources/codex"
@@ -4965,10 +4965,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func drawMenuBarZoneSeparators(palette: GaugePalette) {
-        drawMenuBarEtchedSeparator(x: 78, palette: palette)
-        drawMenuBarEtchedSeparator(x: 112, palette: palette)
-        drawMenuBarEtchedSeparator(x: 164, palette: palette)
-        drawMenuBarEtchedSeparator(x: 202, palette: palette)
+        drawMenuBarEtchedSeparator(x: 68, palette: palette)
+        drawMenuBarEtchedSeparator(x: 100, palette: palette)
+        drawMenuBarEtchedSeparator(x: 122, palette: palette)
+        drawMenuBarEtchedSeparator(x: 153, palette: palette)
     }
 
     private func drawMenuBarEtchedSeparator(x: CGFloat, palette: GaugePalette) {
@@ -4990,18 +4990,18 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func drawMenuBarCircuitAccent(source: String?, palette: GaugePalette) {
         let color = sourceIndicatorColor(source) ?? currentSignalConsoleTheme().mintAccent
         let path = NSBezierPath()
-        path.move(to: NSPoint(x: 84.0, y: 18.1))
-        path.line(to: NSPoint(x: 92.5, y: 18.1))
-        path.line(to: NSPoint(x: 96.0, y: 16.3))
-        path.line(to: NSPoint(x: 104.5, y: 16.3))
+        path.move(to: NSPoint(x: 102.0, y: 18.1))
+        path.line(to: NSPoint(x: 109.5, y: 18.1))
+        path.line(to: NSPoint(x: 113.0, y: 16.3))
+        path.line(to: NSPoint(x: 120.0, y: 16.3))
         path.lineWidth = 0.6
         color.withAlphaComponent(isDarkMenuBar() ? 0.38 : 0.46).setStroke()
         path.stroke()
 
         for point in [
-            NSPoint(x: 84.0, y: 18.1),
-            NSPoint(x: 96.0, y: 16.3),
-            NSPoint(x: 104.5, y: 16.3),
+            NSPoint(x: 102.0, y: 18.1),
+            NSPoint(x: 113.0, y: 16.3),
+            NSPoint(x: 120.0, y: 16.3),
         ] {
             let node = NSBezierPath(ovalIn: NSRect(x: point.x - 1.0, y: point.y - 1.0, width: 2.0, height: 2.0))
             color.withAlphaComponent(isDarkMenuBar() ? 0.52 : 0.62).setFill()
@@ -5098,21 +5098,21 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         ("5h" as NSString).draw(at: NSPoint(x: 4, y: 10.5), withAttributes: labelAttrs)
         ("7d" as NSString).draw(at: NSPoint(x: 4, y: 2.0), withAttributes: labelAttrs)
 
-        drawGaugeRail(value: nil, rect: NSRect(x: 24, y: 13, width: quotaRailWidth, height: 3), palette: palette, fillColor: palette.mutedText)
-        drawGaugeRail(value: nil, rect: NSRect(x: 24, y: 4, width: quotaRailWidth, height: 3), palette: palette, fillColor: palette.mutedText)
+        drawGaugeRail(value: nil, rect: NSRect(x: 22, y: 13, width: quotaRailWidth, height: 3), palette: palette, fillColor: palette.mutedText)
+        drawGaugeRail(value: nil, rect: NSRect(x: 22, y: 4, width: quotaRailWidth, height: 3), palette: palette, fillColor: palette.mutedText)
 
         let dashAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 7.4, weight: .semibold),
             .foregroundColor: palette.mutedText,
         ]
-        ("--" as NSString).draw(at: NSPoint(x: 55, y: 9.9), withAttributes: dashAttrs)
-        ("--" as NSString).draw(at: NSPoint(x: 55, y: 1.0), withAttributes: dashAttrs)
+        ("--" as NSString).draw(at: NSPoint(x: 49, y: 9.9), withAttributes: dashAttrs)
+        ("--" as NSString).draw(at: NSPoint(x: 49, y: 1.0), withAttributes: dashAttrs)
 
         let actionAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 7.0, weight: .semibold),
             .foregroundColor: unavailableSourceColor(),
         ]
-        ("Open Codex" as NSString).draw(at: NSPoint(x: 116, y: 6.4), withAttributes: actionAttrs)
+        ("Open Codex" as NSString).draw(at: NSPoint(x: 102, y: 6.4), withAttributes: actionAttrs)
     }
 
     private func drawPlanBGauge(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, palette: GaugePalette) {
@@ -5127,24 +5127,17 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         ]
         (window as NSString).draw(at: NSPoint(x: 4, y: y - 2.5), withAttributes: windowAttrs)
 
-        drawQuotaRail(value: quotaLeft, rect: NSRect(x: 24, y: y, width: quotaRailWidth, height: 3), palette: palette)
+        drawQuotaRail(value: quotaLeft, rect: NSRect(x: 22, y: y, width: quotaRailWidth, height: 3), palette: palette)
 
         let percentText = quotaLeft.map { "\($0)%" } ?? "--"
         let valueAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 6.7, weight: .semibold),
             .foregroundColor: quotaLeft == nil ? palette.mutedText : palette.primaryText,
         ]
-        (percentText as NSString).draw(at: NSPoint(x: 55, y: y - 3.1), withAttributes: valueAttrs)
+        (percentText as NSString).draw(at: NSPoint(x: 49, y: y - 3.1), withAttributes: valueAttrs)
 
         let resetProgress = resetProgressPercent(epoch: resetEpoch, windowHours: windowHours)
-        drawResetMoodLane(value: resetProgress, rect: NSRect(x: 116, y: y, width: resetRailWidth + 6, height: 3), palette: palette)
-
-        let resetText = window == "5h" ? fiveHourResetCountdown(resetEpoch) : sevenDayResetCountdown(resetEpoch)
-        let resetAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 5.7, weight: .semibold),
-            .foregroundColor: resetEpoch == nil ? palette.mutedText : palette.secondaryText,
-        ]
-        (resetText as NSString).draw(at: NSPoint(x: 143, y: y - 2.9), withAttributes: resetAttrs)
+        drawResetMoodLane(value: resetProgress, rect: NSRect(x: 101, y: y, width: resetRailWidth + 2, height: 3), palette: palette)
     }
 
     private func drawMenuBarSSDTemperature(status: SSDTemperatureStatus?, rect: NSRect, palette: GaugePalette) {
@@ -5274,7 +5267,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func drawMenuBarSystemMetricText(_ text: String, rect: NSRect, color: NSColor) {
-        let fontSize: CGFloat = 7.2
+        let fontSize: CGFloat = 6.3
         let attrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .bold),
             .foregroundColor: color,
@@ -5286,7 +5279,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         guard let value else {
             return "\(prefix)--"
         }
-        return "\(prefix)\(max(0, min(100, value)))%"
+        return "\(prefix)\(max(0, min(100, value)))"
     }
 
     private func systemMetricMenuBarColor(label: String, value: Int?, palette: GaugePalette) -> NSColor {
