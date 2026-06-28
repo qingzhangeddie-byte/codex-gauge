@@ -104,7 +104,7 @@ class SignalConsoleUXTests(unittest.TestCase):
             "Live signal",
             "Quota movement",
             "Health",
-            "Usage Report",
+            "Usage summary",
             "this window",
             "in 24h",
             "Run Check",
@@ -130,7 +130,7 @@ class SignalConsoleUXTests(unittest.TestCase):
 
         for label in [
             "Based on",
-            "Usage Report",
+            "Usage summary",
             "Copy summary",
             "Health",
             "Clear legacy",
@@ -496,7 +496,7 @@ class SignalConsoleUXTests(unittest.TestCase):
     def test_usage_report_actions_do_not_overlap_source_text(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        card_height = self._first_float(r"var trendCardRect: NSRect \{\n        NSRect\(x: margin, y: 274, width: 248, height: ([0-9.]+)\)", source)
+        card_height = self._first_float(r"var trendCardRect: NSRect \{\n        NSRect\(x: margin, y: 328, width: 248, height: ([0-9.]+)\)", source)
         source_offset = self._first_float(r"var reportTodayTextRect: NSRect \{\n        let card = reportCardRect\n        return NSRect\(x: card\.minX \+ innerInset, y: card\.minY \+ ([0-9.]+), width: 212, height: 12\)", source)
         source_height = self._first_float(r"var reportTodayTextRect: NSRect \{\n        let card = reportCardRect\n        return NSRect\(x: card\.minX \+ innerInset, y: card\.minY \+ 34, width: 212, height: ([0-9.]+)\)", source)
         copy_from_bottom = self._first_float(r"return NSRect\(x: card\.minX \+ 18, y: card\.maxY - ([0-9.]+), width: 108, height: 30\)", source)
@@ -838,7 +838,7 @@ class SignalConsoleUXTests(unittest.TestCase):
             "private func hardwareSignalsVisible() -> Bool",
             "powerPolicy.hardwareSignalsVisible(powerSaverActive: powerSaverActive())",
             "if hardwareSignalsVisible() {",
-            "drawBatteryModeStatusRow(in: card)",
+            "drawBatteryOnlyMovementNote(in: card)",
             "plugged-in-full",
             "battery-mode",
         ]:
@@ -860,7 +860,7 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("drawSystemMetricMovementRows(in: card)", hardware_branch)
         self.assertIn("drawTemperatureMovementRow(in: card)", hardware_branch)
         self.assertIn("drawBatteryStatusRow(in: card)", hardware_branch)
-        self.assertIn("drawBatteryModeStatusRow(in: card)", battery_branch)
+        self.assertIn("drawBatteryOnlyMovementNote(in: card)", battery_branch)
         self.assertNotIn("drawSystemMetricMovementRows(in: card)", battery_branch)
         self.assertNotIn("drawTemperatureMovementRow(in: card)", battery_branch)
 

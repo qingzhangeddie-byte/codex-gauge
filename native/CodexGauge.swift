@@ -264,8 +264,12 @@ private struct SignalConsoleLayout {
         NSRect(x: margin + 14, y: 190, width: bounds.width - 68, height: 58)
     }
 
+    var batteryModeStripRect: NSRect {
+        NSRect(x: margin, y: 270, width: bounds.width - margin * 2, height: 46)
+    }
+
     var trendCardRect: NSRect {
-        NSRect(x: margin, y: 274, width: 248, height: 122)
+        NSRect(x: margin, y: 328, width: 248, height: 104)
     }
 
     var reportCardRect: NSRect {
@@ -298,7 +302,7 @@ private struct SignalConsoleLayout {
     }
 
     var healthRibbonRect: NSRect {
-        NSRect(x: margin, y: 410, width: bounds.width - margin * 2, height: 66)
+        NSRect(x: margin, y: 444, width: bounds.width - margin * 2, height: 54)
     }
 
     var healthStatusGridRect: NSRect {
@@ -313,10 +317,10 @@ private struct SignalConsoleLayout {
 
     var bottomCommandButtonRects: [NSRect] {
         [
-            NSRect(x: margin, y: 496, width: 122, height: 40),
-            NSRect(x: margin + 130, y: 496, width: 122, height: 40),
-            NSRect(x: margin + 260, y: 496, width: 122, height: 40),
-            NSRect(x: margin + 390, y: 496, width: 130, height: 40),
+            NSRect(x: margin, y: 508, width: 122, height: 36),
+            NSRect(x: margin + 130, y: 508, width: 122, height: 36),
+            NSRect(x: margin + 260, y: 508, width: 122, height: 36),
+            NSRect(x: margin + 390, y: 508, width: 130, height: 36),
         ]
     }
 }
@@ -769,10 +773,11 @@ private final class SignalConsolePanelView: NSView {
         drawHeader()
         drawStatusStrip()
         drawSignalHeroCard()
+        drawBatteryModeStrip()
         drawTrendSection()
         drawReportSection()
         drawHealthRibbon()
-        drawDivider(y: 486)
+        drawDivider(y: 502)
     }
 
     private func drawPanelBackground() {
@@ -881,6 +886,25 @@ private final class SignalConsolePanelView: NSView {
         drawResetCountdownLane(value: resetProgress, rect: NSRect(x: rect.minX + 288, y: rect.minY + 36, width: 146, height: 9))
     }
 
+    private func drawBatteryModeStrip() {
+        let layout = SignalConsoleLayout(bounds: bounds)
+        let rect = layout.batteryModeStripRect
+        let color = batterySignalColorForPanel()
+        drawRoundedRect(rect, radius: 14, fill: color.withAlphaComponent(0.10), stroke: color.withAlphaComponent(0.38))
+        drawSignalConsoleBatteryIcon(percent: model.batteryPercent, rect: NSRect(x: rect.minX + 16, y: rect.minY + 11, width: 38, height: 22), color: color)
+        drawText("Battery mode", x: rect.minX + 66, y: rect.minY + 10, width: 96, height: 16, size: 12, weight: .bold, color: textPrimary)
+        drawText(model.powerSaverText, x: rect.minX + 66, y: rect.minY + 27, width: 150, height: 12, size: 8.6, weight: .medium, color: textMuted)
+        drawText(model.refreshCadenceText, x: rect.minX + 174, y: rect.minY + 11, width: 110, height: 16, size: 12, weight: .medium, color: color, mono: true)
+        drawText(model.batteryStatusText, x: rect.maxX - 108, y: rect.minY + 11, width: 86, height: 16, size: 11, weight: .semibold, color: textSecondary, mono: true)
+    }
+
+    private func batterySignalColorForPanel() -> NSColor {
+        if let percent = model.batteryPercent, percent < 15 {
+            return coralAccent
+        }
+        return blueAccent
+    }
+
     private func drawTrendSection() {
         let layout = SignalConsoleLayout(bounds: bounds)
         let card = layout.trendCardRect
@@ -896,7 +920,7 @@ private final class SignalConsolePanelView: NSView {
             drawTemperatureMovementRow(in: card)
             drawBatteryStatusRow(in: card)
         } else {
-            drawBatteryModeStatusRow(in: card)
+            drawBatteryOnlyMovementNote(in: card)
         }
     }
 
@@ -1013,7 +1037,7 @@ private final class SignalConsolePanelView: NSView {
 
     private func drawBatteryStatusRow(in card: NSRect) {
         let chip = NSRect(x: card.maxX - 96, y: card.minY + 13, width: 80, height: 20)
-        let color = model.powerSaverText.contains("active") ? amberAccent : textSecondary
+        let color = batterySignalColorForPanel()
         drawRoundedRect(chip, radius: 10, fill: color.withAlphaComponent(0.10), stroke: color.withAlphaComponent(0.30))
         drawSignalConsoleBatteryIcon(percent: model.batteryPercent, rect: NSRect(x: chip.minX + 7, y: chip.minY + 2, width: 26, height: 16), color: color)
         drawText(compactSignalConsoleBatteryText(), x: chip.minX + 38, y: chip.minY + 4, width: 34, height: 12, size: 8.2, weight: .semibold, color: textPrimary, mono: true)
@@ -1023,23 +1047,9 @@ private final class SignalConsolePanelView: NSView {
         }
     }
 
-    private func drawBatteryModeStatusRow(in card: NSRect) {
-        let row = NSRect(x: card.minX + 16, y: card.minY + 90, width: card.width - 32, height: 26)
-        let color = amberAccent
-        drawRoundedGradient(
-            row,
-            radius: 12,
-            gradient: NSGradient(colors: [
-                amberAccent.withAlphaComponent(0.20),
-                theme.commandButtonBackground,
-            ]),
-            stroke: amberAccent.withAlphaComponent(0.34)
-        )
-        drawSignalConsoleBatteryIcon(percent: model.batteryPercent, rect: NSRect(x: row.minX + 8, y: row.minY + 4, width: 34, height: 18), color: color)
-        drawText("Battery mode", x: row.minX + 50, y: row.minY + 4, width: 84, height: 12, size: 8.7, weight: .bold, color: color)
-        drawText(model.powerSaverText, x: row.minX + 50, y: row.minY + 15, width: 92, height: 10, size: 7.0, weight: .medium, color: textPrimary)
-        drawText(model.batteryStatusText, x: row.maxX - 70, y: row.minY + 4, width: 62, height: 12, size: 8.4, weight: .bold, color: textPrimary, mono: true)
-        drawText(model.refreshCadenceText, x: row.maxX - 70, y: row.minY + 15, width: 62, height: 10, size: 7.0, weight: .medium, color: textMuted, mono: true)
+    private func drawBatteryOnlyMovementNote(in card: NSRect) {
+        drawText("Battery mode", x: card.minX + 16, y: card.minY + 91, width: 86, height: 12, size: 8.4, weight: .bold, color: blueAccent)
+        drawText("Extra hardware signals paused", x: card.minX + 96, y: card.minY + 91, width: card.width - 112, height: 12, size: 7.6, weight: .medium, color: textMuted)
     }
 
     private func compactSignalConsoleBatteryText() -> String {
@@ -1186,7 +1196,7 @@ private final class SignalConsolePanelView: NSView {
         let metricRects = layout.reportMetricRects
         let source = layout.reportTodayTextRect
         drawRoundedRect(card, radius: 15, fill: panelSoftBackground, stroke: panelBorder.withAlphaComponent(0.50))
-        drawText("Usage Report", x: card.minX + 16, y: card.minY + 14, width: 108, height: 18, size: 12, weight: .bold, color: textPrimary)
+        drawText("Usage summary", x: card.minX + 16, y: card.minY + 14, width: 118, height: 18, size: 12, weight: .bold, color: textPrimary)
         drawText("local only", x: card.maxX - 62, y: card.minY + 14, width: 46, height: 18, size: 10, weight: .regular, color: textMuted)
         drawText(model.reportTodaySummary, x: source.minX, y: source.minY, width: source.width, height: source.height, size: 8.8, weight: .regular, color: textMuted)
         drawReportMetric(label: "5h move", value: model.reportFiveHourMovement, rect: metricRects[0])
