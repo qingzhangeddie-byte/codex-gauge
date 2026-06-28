@@ -219,13 +219,15 @@ class SignalConsoleUXTests(unittest.TestCase):
     def test_signal_console_supports_session_only_selectable_themes(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
+        self.assertIn('blueCeramicThemeKey = "blueCeramic"', source)
         self.assertIn('porcelainLabThemeKey = "porcelainLab"', source)
         self.assertIn('paperConsoleThemeKey = "paperConsole"', source)
         self.assertIn('signalDarkThemeKey = "signalDark"', source)
         self.assertIn('monoGraphiteThemeKey = "monoGraphite"', source)
-        self.assertIn("private var sessionSignalConsoleThemeKey = porcelainLabThemeKey", source)
+        self.assertIn("private var sessionSignalConsoleThemeKey = blueCeramicThemeKey", source)
         self.assertIn("sessionSignalConsoleThemeKey = key", source)
         self.assertIn("currentSignalConsoleTheme()", source)
+        self.assertIn("Blue Ceramic", source)
         self.assertIn("Signal Dark", source)
         self.assertIn("Porcelain Lab", source)
         self.assertIn("Mono Graphite", source)
@@ -251,22 +253,85 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn('drawText("window", x: rect.minX + 14, y: rect.minY + 35, width: 48, height: 14, size: 8, weight: .bold, color: textSecondary)', source)
         self.assertIn('drawText("reset", x: rect.minX + 288, y: rect.minY + 12, width: 34, height: 16, size: 10, weight: .medium, color: textSecondary)', source)
 
-    def test_porcelain_lab_is_default_zero_persistence_theme(self):
+    def test_blue_ceramic_is_default_zero_persistence_theme(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn('porcelainLabThemeKey = "porcelainLab"', source)
-        self.assertIn("private var sessionSignalConsoleThemeKey = porcelainLabThemeKey", source)
-        self.assertIn("private func porcelainLabTheme() -> SignalConsoleTheme", source)
-        self.assertIn('name: "Porcelain Lab"', source)
-        self.assertIn("panelBackground: NSColor(calibratedRed: 0.96, green: 0.985, blue: 1.00, alpha: 1.0)", source)
-        self.assertIn("panelStrongBackground: NSColor(calibratedRed: 0.89, green: 0.94, blue: 0.97, alpha: 1.0)", source)
-        self.assertIn("mintAccent: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 0.96)", source)
-        self.assertIn("amberAccent: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.96)", source)
-        self.assertIn("coralAccent: NSColor(calibratedRed: 0.93, green: 0.27, blue: 0.31, alpha: 0.96)", source)
-        self.assertIn("blueAccent: NSColor(calibratedRed: 0.24, green: 0.37, blue: 0.92, alpha: 0.96)", source)
-        self.assertIn("buttonPrimaryText: NSColor(calibratedRed: 0.06, green: 0.11, blue: 0.12, alpha: 1.0)", source)
+        self.assertIn('blueCeramicThemeKey = "blueCeramic"', source)
+        self.assertIn("private var sessionSignalConsoleThemeKey = blueCeramicThemeKey", source)
+        self.assertIn("private func blueCeramicTheme() -> SignalConsoleTheme", source)
+        self.assertIn('name: "Blue Ceramic"', source)
         self.assertIn("drawPanelAccentRail()", source)
+        self.assertIn("currentSignalConsoleTheme()", source)
         self.assertNotIn("themePreferenceKey", source)
+        self.assertNotIn("UserDefaults.standard", source)
+
+    def test_blue_ceramic_is_default_redesign_theme(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            'blueCeramicThemeKey = "blueCeramic"',
+            "private var sessionSignalConsoleThemeKey = blueCeramicThemeKey",
+            "private func blueCeramicTheme() -> SignalConsoleTheme",
+            'name: "Blue Ceramic"',
+            "panelBackground: NSColor(calibratedRed: 0.965, green: 0.984, blue: 1.000, alpha: 1.0)",
+            "panelStrongBackground: NSColor(calibratedRed: 0.910, green: 0.953, blue: 0.980, alpha: 1.0)",
+            "mintAccent: NSColor(calibratedRed: 0.114, green: 0.733, blue: 0.718, alpha: 0.96)",
+            "amberAccent: NSColor(calibratedRed: 0.886, green: 0.651, blue: 0.208, alpha: 0.96)",
+            "coralAccent: NSColor(calibratedRed: 0.906, green: 0.384, blue: 0.361, alpha: 0.96)",
+            "blueAccent: NSColor(calibratedRed: 0.216, green: 0.424, blue: 0.561, alpha: 0.96)",
+        ]:
+            self.assertIn(token, source)
+
+        self.assertIn('"Blue Ceramic"', source)
+        self.assertIn("currentSignalConsoleTheme()", source)
+        self.assertNotIn("UserDefaults.standard", source)
+
+    def test_battery_uses_blue_semantics_not_amber_in_power_saver(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "private func batterySignalColor(_ status: BatteryStatus?) -> NSColor",
+            "private func batterySoftFillColor(_ status: BatteryStatus?) -> NSColor",
+            "return blueAccent",
+            "return theme.blueAccent",
+            "Battery mode",
+            "Refresh \\(minutes)m",
+        ]:
+            self.assertIn(token, source)
+
+        battery_color_body = self._swift_function_body(source, "private func batterySignalColor(_ status: BatteryStatus?) -> NSColor")
+        self.assertIn("if let percent = status.percent, percent < 15", battery_color_body)
+        self.assertIn("return coralAccent", battery_color_body)
+        self.assertIn("return blueAccent", battery_color_body)
+        self.assertNotIn("return amberAccent", battery_color_body)
+
+        menu_battery_body = self._swift_function_body(source, "private func batteryMenuBarColor(_ status: BatteryStatus?, palette: GaugePalette) -> NSColor")
+        self.assertIn("return currentSignalConsoleTheme().blueAccent", menu_battery_body)
+        self.assertNotIn("return warningQuotaColor", menu_battery_body)
+
+    def test_signal_console_has_dedicated_battery_mode_strip(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for token in [
+            "var batteryModeStripRect: NSRect",
+            "drawBatteryModeStrip()",
+            "drawSignalHeroCard()",
+            '"Battery mode"',
+            '"Power Saver active"',
+            "model.refreshCadenceText",
+            "blueSoft",
+        ]:
+            self.assertIn(token, source)
+
+        panel_body = self._swift_function_body(source, "private func drawSignalConsolePanel()")
+        for call in [
+            "drawSignalHeroCard()",
+            "drawBatteryModeStrip()",
+            "drawTrendSection()",
+        ]:
+            self.assertIn(call, panel_body)
+        self.assertLess(panel_body.index("drawSignalHeroCard()"), panel_body.index("drawBatteryModeStrip()"))
+        self.assertLess(panel_body.index("drawBatteryModeStrip()"), panel_body.index("drawTrendSection()"))
 
     def test_all_themes_use_opaque_panel_backgrounds(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()

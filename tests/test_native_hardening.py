@@ -188,6 +188,29 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertIn("try removeLegacySupportDirectory()", clear_data_body)
         self.assertIn("try? removeLegacySupportDirectory()", persistent_cleanup_body)
 
+    def test_utility_windows_use_blue_ceramic_privacy_safe_copy(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        for label in [
+            "Blue Ceramic",
+            "Battery mode",
+            "Zero persistence",
+            "No stored cache or snapshot",
+            "Run Full Diagnostics",
+            "Copy Diagnostics",
+            "Check Now",
+            "Done",
+        ]:
+            self.assertIn(f'"{label}"', source)
+
+        for blocked in [
+            '"/Users/',
+            '"Share Report"',
+            '"Open Support Folder"',
+            '"saved preferences, histories, caches, reports, or logs"',
+        ]:
+            self.assertNotIn(blocked, source)
+
     def test_battery_status_uses_native_iops_without_persisting_history(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
         build_script = pathlib.Path("script/build_and_run.sh").read_text()
@@ -353,6 +376,26 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertIn("session-only update check while plugged in", readme)
         self.assertIn("temporary directory", readme)
         self.assertIn("does not keep update history", readme)
+
+    def test_updater_prompt_uses_skip_later_install_without_persistent_history(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+        privacy = pathlib.Path("docs/PRIVACY.md").read_text(encoding="utf-8")
+        readme = pathlib.Path("README.md").read_text(encoding="utf-8")
+
+        for token in [
+            "automaticUpdateSkippedTagName",
+            "Skip this version",
+            "Remind me later",
+            "Install Update",
+            "mode == .automatic, automaticUpdateSkippedTagName == release.tagName",
+            "automaticUpdateSkippedTagName = release.tagName",
+        ]:
+            self.assertIn(token, source)
+
+        self.assertNotIn("UserDefaults.standard", source)
+        self.assertNotIn("dismissed-version record", privacy)
+        self.assertIn("session-only skipped update version", privacy)
+        self.assertIn("Skip this version", readme)
 
     def test_updater_pins_release_checksum_and_publisher_before_install(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
