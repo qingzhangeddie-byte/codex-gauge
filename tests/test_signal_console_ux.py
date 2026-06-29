@@ -306,7 +306,7 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertNotIn("return amberAccent", battery_color_body)
 
         menu_battery_body = self._swift_function_body(source, "private func batteryMenuBarColor(_ status: BatteryStatus?, palette: GaugePalette) -> NSColor")
-        self.assertIn("return currentSignalConsoleTheme().blueAccent", menu_battery_body)
+        self.assertIn("return morandiMenuBarMist()", menu_battery_body)
         self.assertNotIn("return warningQuotaColor", menu_battery_body)
 
     def test_signal_console_has_dedicated_battery_mode_strip(self):
@@ -663,8 +663,8 @@ class SignalConsoleUXTests(unittest.TestCase):
         status_width = self._first_float(r"statusItemWidth: CGFloat = ([0-9.]+)", source)
         image_width = self._first_float(r"statusImageSize = NSSize\(width: ([0-9.]+)", source)
 
-        self.assertLessEqual(status_width, 184)
-        self.assertLessEqual(image_width, 178)
+        self.assertLessEqual(status_width, 210)
+        self.assertLessEqual(image_width, 204)
 
         for rect_name in [
             "menuBarTemperatureChipRect",
@@ -678,8 +678,8 @@ class SignalConsoleUXTests(unittest.TestCase):
     def test_menu_bar_integrates_ssd_temperature_without_removing_current_quota_info(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("statusItemWidth: CGFloat = 182", source)
-        self.assertIn("statusImageSize = NSSize(width: 176", source)
+        self.assertIn("statusItemWidth: CGFloat = 208", source)
+        self.assertIn("statusImageSize = NSSize(width: 202", source)
         self.assertIn("private let quotaRailWidth: CGFloat = 24", source)
         self.assertIn("private let resetRailWidth: CGFloat = 18", source)
         self.assertIn("makeStatusImage(", source)
@@ -690,7 +690,7 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn('parts.append("SSD \\(temperature)")', source)
         self.assertIn("button.imagePosition = .imageOnly", source)
         self.assertIn("drawMenuBarSSDTemperature(status: ssdTemperature, rect: menuBarTemperatureChipRect, palette: palette)", source)
-        self.assertIn("private let menuBarTemperatureChipRect = NSRect(x: 70", source)
+        self.assertIn("private let menuBarTemperatureChipRect = NSRect(x: 72", source)
         self.assertIn("width: 27, height: 12.2", source)
         self.assertIn("let fontSize: CGFloat = text.count > 3 ? 6.6 : 7.2", source)
         self.assertIn("NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .bold)", source)
@@ -705,14 +705,24 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("fiveHourResetCountdown(status.fiveHourReset)", source)
         self.assertIn("sevenDayResetCountdown(status.sevenDayReset)", source)
 
-    def test_menu_bar_uses_blue_ceramic_instrument_strip_polish(self):
+        row_body = self._swift_function_body(
+            source,
+            "private func drawPlanBRow(window: String, quotaLeft: Int?, resetEpoch: Double?, windowHours: Double, y: CGFloat, palette: GaugePalette)"
+        )
+        self.assertIn('let resetText = window == "5h" ? fiveHourResetCountdown(resetEpoch) : sevenDayResetCountdown(resetEpoch)', row_body)
+        self.assertIn("drawMenuBarCountdownPill(text: resetText", row_body)
+        self.assertIn("(resetText as NSString).draw", source)
+
+    def test_menu_bar_uses_minimal_morandi_countdown_design(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         for token in [
-            "drawMenuBarPorcelainCapsule",
-            "drawMenuBarEtchedSeparator",
-            "drawMenuBarCircuitAccent",
-            "drawMenuBarZoneSeparators",
+            "drawMenuBarMinimalMorandiPill",
+            "drawMenuBarMorandiDivider",
+            "morandiMenuBarShellTop",
+            "morandiMenuBarSage",
+            "morandiMenuBarMist",
+            "morandiMenuBarClay",
             "drawMenuBarChrome",
         ]:
             self.assertIn(token, source)
@@ -725,13 +735,10 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertNotIn("frame.fill()", make_status_body)
 
         chrome_body = self._swift_function_body(source, "private func drawMenuBarChrome(source: String?, nonLiveMode: Bool, palette: GaugePalette)")
-        self.assertIn("drawMenuBarPorcelainCapsule", chrome_body)
-        self.assertIn("drawMenuBarZoneSeparators", chrome_body)
-        self.assertIn("drawMenuBarCircuitAccent", chrome_body)
-
-        separator_body = self._swift_function_body(source, "private func drawMenuBarZoneSeparators(palette: GaugePalette)")
-        for x in ["68", "100", "122", "153"]:
-            self.assertIn(f"drawMenuBarEtchedSeparator(x: {x}", separator_body)
+        self.assertIn("drawMenuBarMinimalMorandiPill", chrome_body)
+        self.assertIn("drawMenuBarMorandiDivider", chrome_body)
+        self.assertNotIn("drawMenuBarCircuitAccent", chrome_body)
+        self.assertNotIn("drawMenuBarZoneSeparators", chrome_body)
 
     def test_reset_countdowns_use_progressive_units(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -777,13 +784,13 @@ class SignalConsoleUXTests(unittest.TestCase):
         ]:
             self.assertIn(token, source)
 
-        self.assertIn("statusItemWidth: CGFloat = 182", source)
-        self.assertIn("statusImageSize = NSSize(width: 176", source)
+        self.assertIn("statusItemWidth: CGFloat = 208", source)
+        self.assertIn("statusImageSize = NSSize(width: 202", source)
         system_rect = self._swift_rect_constant(source, "menuBarSystemMetricStripRect")
         battery_rect = self._swift_rect_constant(source, "menuBarBatteryRect")
         self.assertLessEqual(system_rect["max_x"], battery_rect["x"])
-        self.assertLessEqual(battery_rect["max_x"], 176)
-        self.assertGreaterEqual(system_rect["x"], 124)
+        self.assertLessEqual(battery_rect["max_x"], 202)
+        self.assertGreaterEqual(system_rect["x"], 148)
         self.assertGreaterEqual(system_rect["width"], 28)
         self.assertIn("let fontSize: CGFloat = 6.3", source)
         self.assertNotIn("text.count > 3 ? 5.1 : 5.6", source)

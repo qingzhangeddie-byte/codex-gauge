@@ -143,7 +143,7 @@ func drawMenuBarSegmentedRail(value: CGFloat, rect: NSRect, fill: NSColor, track
     }
 }
 
-func drawMenuBarResetLane(value: CGFloat, rect: NSRect, marker: NSColor, track: NSColor, face: String) {
+func drawMenuBarResetLane(value: CGFloat, rect: NSRect, marker: NSColor, track: NSColor) {
     let lane = NSBezierPath()
     lane.move(to: NSPoint(x: rect.minX, y: rect.midY))
     lane.line(to: NSPoint(x: rect.maxX, y: rect.midY))
@@ -161,17 +161,16 @@ func drawMenuBarResetLane(value: CGFloat, rect: NSRect, marker: NSColor, track: 
     marker.withAlphaComponent(0.70).setStroke()
     fill.stroke()
 
-    let faceRect = NSRect(x: fillEnd - 11, y: rect.midY - 11, width: 22, height: 22)
+    let faceRect = NSRect(x: fillEnd - 7, y: rect.midY - 7, width: 14, height: 14)
     let facePath = NSBezierPath(ovalIn: faceRect)
     marker.setFill()
     facePath.fill()
-    NSColor(calibratedRed: 0.14, green: 0.20, blue: 0.25, alpha: 0.86).setStroke()
-    facePath.lineWidth = 1
+    marker.withAlphaComponent(0.45).setStroke()
+    facePath.lineWidth = 0.8
     facePath.stroke()
-    menuBarText(face, at: NSPoint(x: faceRect.minX + 5.4, y: faceRect.minY + 4.0), size: 11, weight: .bold, color: NSColor(calibratedRed: 0.12, green: 0.18, blue: 0.24, alpha: 0.82), mono: true)
 }
 
-func drawMenuBarEtchedSeparator(_ x: CGFloat, in rect: NSRect, line: NSColor) {
+func drawMenuBarMorandiDivider(_ x: CGFloat, in rect: NSRect, line: NSColor) {
     let shadow = NSBezierPath()
     shadow.move(to: NSPoint(x: x - 0.5, y: rect.minY + 10))
     shadow.line(to: NSPoint(x: x - 0.5, y: rect.maxY - 10))
@@ -185,28 +184,6 @@ func drawMenuBarEtchedSeparator(_ x: CGFloat, in rect: NSRect, line: NSColor) {
     highlight.lineWidth = 1
     NSColor.white.withAlphaComponent(0.62).setStroke()
     highlight.stroke()
-}
-
-func drawMenuBarCircuitAccent(in rect: NSRect, color: NSColor) {
-    let jointX = rect.minX + rect.width * 0.55
-    let path = NSBezierPath()
-    path.move(to: NSPoint(x: rect.minX, y: rect.midY + 2.5))
-    path.line(to: NSPoint(x: jointX - 3, y: rect.midY + 2.5))
-    path.line(to: NSPoint(x: jointX, y: rect.midY - 2.5))
-    path.line(to: NSPoint(x: rect.maxX, y: rect.midY - 2.5))
-    path.lineWidth = 1.2
-    color.withAlphaComponent(0.62).setStroke()
-    path.stroke()
-
-    for point in [
-        NSPoint(x: rect.minX, y: rect.midY + 2.5),
-        NSPoint(x: jointX, y: rect.midY - 2.5),
-        NSPoint(x: rect.maxX, y: rect.midY - 2.5),
-    ] {
-        let node = NSBezierPath(ovalIn: NSRect(x: point.x - 2.2, y: point.y - 2.2, width: 4.4, height: 4.4))
-        color.setFill()
-        node.fill()
-    }
 }
 
 func writeMenuBarPNG(_ path: String) throws {
@@ -226,15 +203,14 @@ func writeMenuBarPNG(_ path: String) throws {
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
 
-    let porcelain = NSColor(calibratedRed: 0.965, green: 0.984, blue: 1.000, alpha: 1.0)
-    let frost = NSColor(calibratedRed: 0.910, green: 0.953, blue: 0.980, alpha: 1.0)
-    let ink = NSColor(calibratedRed: 0.063, green: 0.137, blue: 0.227, alpha: 0.98)
-    let muted = NSColor(calibratedRed: 0.360, green: 0.492, blue: 0.580, alpha: 0.82)
-    let line = NSColor(calibratedRed: 0.659, green: 0.749, blue: 0.816, alpha: 0.88)
-    let teal = NSColor(calibratedRed: 0.114, green: 0.733, blue: 0.718, alpha: 0.96)
-    let blue = NSColor(calibratedRed: 0.216, green: 0.424, blue: 0.561, alpha: 0.96)
-    let amber = NSColor(calibratedRed: 0.886, green: 0.651, blue: 0.208, alpha: 0.96)
-    let coral = NSColor(calibratedRed: 0.906, green: 0.384, blue: 0.361, alpha: 0.96)
+    let shellTop = NSColor(calibratedRed: 0.91, green: 0.91, blue: 0.87, alpha: 1.0)
+    let shellBottom = NSColor(calibratedRed: 0.82, green: 0.85, blue: 0.80, alpha: 1.0)
+    let ink = NSColor(calibratedRed: 0.22, green: 0.26, blue: 0.25, alpha: 0.98)
+    let line = NSColor(calibratedRed: 0.52, green: 0.48, blue: 0.42, alpha: 0.62)
+    let sage = NSColor(calibratedRed: 0.45, green: 0.56, blue: 0.48, alpha: 0.96)
+    let mist = NSColor(calibratedRed: 0.39, green: 0.52, blue: 0.57, alpha: 0.96)
+    let clay = NSColor(calibratedRed: 0.63, green: 0.42, blue: 0.39, alpha: 0.96)
+    let taupe = NSColor(calibratedRed: 0.52, green: 0.48, blue: 0.42, alpha: 0.96)
 
     NSGradient(colors: [
         NSColor(calibratedRed: 0.86, green: 0.93, blue: 0.97, alpha: 1.0),
@@ -252,53 +228,67 @@ func writeMenuBarPNG(_ path: String) throws {
     NSGraphicsContext.restoreGraphicsState()
 
     let capsule = NSBezierPath(roundedRect: strip, xRadius: 12, yRadius: 12)
-    NSGradient(colors: [porcelain, frost])?.draw(in: capsule, angle: 90)
+    NSGradient(colors: [shellTop, shellBottom])?.draw(in: capsule, angle: 90)
+    sage.withAlphaComponent(0.08).setFill()
+    capsule.fill()
     line.setStroke()
     capsule.lineWidth = 1.2
     capsule.stroke()
 
     let topRail = NSBezierPath(roundedRect: NSRect(x: strip.minX + 28, y: strip.maxY - 7, width: strip.width - 56, height: 2.2), xRadius: 1.1, yRadius: 1.1)
-    teal.withAlphaComponent(0.42).setFill()
+    sage.withAlphaComponent(0.28).setFill()
     topRail.fill()
-    drawMenuBarCircuitAccent(in: NSRect(x: 386, y: strip.maxY - 18, width: 22, height: 10), color: blue)
 
-    drawMenuBarEtchedSeparator(382, in: strip, line: line)
-    drawMenuBarEtchedSeparator(610, in: strip, line: line)
-    drawMenuBarEtchedSeparator(681, in: strip, line: line)
+    for x in [278, 386, 552, 658] as [CGFloat] {
+        drawMenuBarMorandiDivider(x, in: strip, line: line)
+    }
 
     menuBarText("5h", at: NSPoint(x: 58, y: 48), size: 24, weight: .bold, color: ink, mono: true)
     menuBarText("7d", at: NSPoint(x: 58, y: 24), size: 24, weight: .bold, color: ink, mono: true)
-    drawMenuBarSegmentedRail(value: 0.90, rect: NSRect(x: 132, y: 56, width: 170, height: 8), fill: teal, track: line.withAlphaComponent(0.28))
-    drawMenuBarSegmentedRail(value: 0.80, rect: NSRect(x: 132, y: 32, width: 170, height: 8), fill: teal.withAlphaComponent(0.88), track: line.withAlphaComponent(0.28))
-    menuBarText("90%", at: NSPoint(x: 322, y: 47), size: 24, weight: .bold, color: ink, mono: true)
-    menuBarText("80%", at: NSPoint(x: 322, y: 23), size: 24, weight: .bold, color: ink, mono: true)
+    drawMenuBarSegmentedRail(value: 0.90, rect: NSRect(x: 132, y: 56, width: 88, height: 8), fill: sage, track: line.withAlphaComponent(0.20))
+    drawMenuBarSegmentedRail(value: 0.80, rect: NSRect(x: 132, y: 32, width: 88, height: 8), fill: mist.withAlphaComponent(0.88), track: line.withAlphaComponent(0.20))
+    menuBarText("90%", at: NSPoint(x: 236, y: 47), size: 22, weight: .bold, color: ink, mono: true)
+    menuBarText("80%", at: NSPoint(x: 236, y: 23), size: 22, weight: .bold, color: ink, mono: true)
 
-    menuBarText("R", at: NSPoint(x: 410, y: 46), size: 13, weight: .bold, color: muted, mono: true)
-    menuBarText("R", at: NSPoint(x: 410, y: 22), size: 13, weight: .bold, color: muted, mono: true)
-    drawMenuBarResetLane(value: 0.58, rect: NSRect(x: 436, y: 58, width: 98, height: 5), marker: amber, track: amber.withAlphaComponent(0.24), face: ":")
-    drawMenuBarResetLane(value: 0.24, rect: NSRect(x: 436, y: 34, width: 98, height: 5), marker: coral, track: amber.withAlphaComponent(0.24), face: "x")
-    menuBarText("4h", at: NSPoint(x: 556, y: 47), size: 22, weight: .bold, color: ink, mono: true)
-    menuBarText("6d8h", at: NSPoint(x: 548, y: 23), size: 22, weight: .bold, color: ink, mono: true)
+    let temp = NSBezierPath(roundedRect: NSRect(x: 302, y: 34, width: 72, height: 28), xRadius: 9, yRadius: 9)
+    mist.withAlphaComponent(0.18).setFill()
+    temp.fill()
+    mist.withAlphaComponent(0.58).setStroke()
+    temp.lineWidth = 1
+    temp.stroke()
+    menuBarText("45°", at: NSPoint(x: 316, y: 40), size: 18, weight: .bold, color: ink, mono: true)
 
-    let battery = NSBezierPath(roundedRect: NSRect(x: 626, y: 38, width: 42, height: 22), xRadius: 5, yRadius: 5)
-    blue.withAlphaComponent(0.13).setFill()
-    battery.fill()
-    blue.withAlphaComponent(0.78).setStroke()
-    battery.lineWidth = 1.4
-    battery.stroke()
-    NSBezierPath(roundedRect: NSRect(x: 666, y: 45, width: 4, height: 8), xRadius: 2, yRadius: 2).fill()
-    blue.withAlphaComponent(0.70).setFill()
-    NSBezierPath(roundedRect: NSRect(x: 633, y: 45, width: 28, height: 8), xRadius: 3, yRadius: 3).fill()
-    menuBarText("42°", at: NSPoint(x: 626, y: 21), size: 14, weight: .bold, color: blue, mono: true)
+    drawMenuBarResetLane(value: 0.58, rect: NSRect(x: 404, y: 58, width: 60, height: 5), marker: taupe, track: taupe.withAlphaComponent(0.20))
+    drawMenuBarResetLane(value: 0.24, rect: NSRect(x: 404, y: 34, width: 60, height: 5), marker: clay, track: taupe.withAlphaComponent(0.20))
+    for rect in [NSRect(x: 480, y: 45, width: 62, height: 20), NSRect(x: 480, y: 21, width: 62, height: 20)] {
+        let pill = NSBezierPath(roundedRect: rect, xRadius: 7, yRadius: 7)
+        taupe.withAlphaComponent(0.13).setFill()
+        pill.fill()
+        taupe.withAlphaComponent(0.28).setStroke()
+        pill.lineWidth = 1
+        pill.stroke()
+    }
+    menuBarText("4h", at: NSPoint(x: 498, y: 47), size: 18, weight: .bold, color: ink, mono: true)
+    menuBarText("6d8h", at: NSPoint(x: 490, y: 23), size: 18, weight: .bold, color: ink, mono: true)
 
-    let chip = NSBezierPath(roundedRect: NSRect(x: 696, y: 29, width: 46, height: 39), xRadius: 9, yRadius: 9)
-    blue.withAlphaComponent(0.12).setFill()
+    let chip = NSBezierPath(roundedRect: NSRect(x: 574, y: 28, width: 64, height: 40), xRadius: 9, yRadius: 9)
+    mist.withAlphaComponent(0.11).setFill()
     chip.fill()
-    blue.withAlphaComponent(0.42).setStroke()
+    mist.withAlphaComponent(0.36).setStroke()
     chip.lineWidth = 1
     chip.stroke()
-    menuBarText("C75", at: NSPoint(x: 704, y: 47), size: 16, weight: .bold, color: ink, mono: true)
-    menuBarText("R83", at: NSPoint(x: 704, y: 29), size: 16, weight: .bold, color: ink, mono: true)
+    menuBarText("C43", at: NSPoint(x: 584, y: 47), size: 15, weight: .bold, color: ink, mono: true)
+    menuBarText("R80", at: NSPoint(x: 584, y: 29), size: 15, weight: .bold, color: ink, mono: true)
+
+    let battery = NSBezierPath(roundedRect: NSRect(x: 675, y: 38, width: 48, height: 22), xRadius: 5, yRadius: 5)
+    mist.withAlphaComponent(0.13).setFill()
+    battery.fill()
+    mist.withAlphaComponent(0.68).setStroke()
+    battery.lineWidth = 1.4
+    battery.stroke()
+    NSBezierPath(roundedRect: NSRect(x: 721, y: 45, width: 4, height: 8), xRadius: 2, yRadius: 2).fill()
+    mist.withAlphaComponent(0.68).setFill()
+    NSBezierPath(roundedRect: NSRect(x: 682, y: 45, width: 32, height: 8), xRadius: 3, yRadius: 3).fill()
 
     NSGraphicsContext.restoreGraphicsState()
 

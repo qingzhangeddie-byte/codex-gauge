@@ -2313,12 +2313,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let maxSystemMetricSamples = 24 * 60 * 60 / 5
     private let ssdTemperatureReadTimeout: TimeInterval = 0.8
     private let ssdTemperatureDisplayGraceInterval: TimeInterval = 10 * 60
-    private let statusItemWidth: CGFloat = 182
-    private let statusImageSize = NSSize(width: 176, height: 22)
-    private let menuBarTemperatureChipRect = NSRect(x: 70, y: 4.9, width: 27, height: 12.2)
-    private let menuBarSystemMetricStripRect = NSRect(x: 124, y: 1.8, width: 28, height: 18.4)
-    private let menuBarBatteryModeInfoRect = NSRect(x: 124, y: 4.9, width: 28, height: 12.2)
-    private let menuBarBatteryRect = NSRect(x: 154, y: 4.2, width: 20, height: 13.8)
+    private let statusItemWidth: CGFloat = 208
+    private let statusImageSize = NSSize(width: 202, height: 22)
+    private let menuBarTemperatureChipRect = NSRect(x: 72, y: 4.9, width: 27, height: 12.2)
+    private let menuBarSystemMetricStripRect = NSRect(x: 148, y: 1.8, width: 28, height: 18.4)
+    private let menuBarBatteryModeInfoRect = NSRect(x: 148, y: 4.9, width: 28, height: 12.2)
+    private let menuBarBatteryRect = NSRect(x: 180, y: 4.2, width: 20, height: 13.8)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
     private let quotaRailWidth: CGFloat = 24
     private let resetRailWidth: CGFloat = 18
@@ -4935,78 +4935,76 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func drawMenuBarChrome(source: String?, nonLiveMode: Bool, palette: GaugePalette) {
-        drawMenuBarPorcelainCapsule(nonLiveMode: nonLiveMode, palette: palette)
-        drawMenuBarZoneSeparators(palette: palette)
-        drawMenuBarCircuitAccent(source: source, palette: palette)
+        drawMenuBarMinimalMorandiPill(source: source, nonLiveMode: nonLiveMode, palette: palette)
+        for x in [68, 101, 146, 178] as [CGFloat] {
+            drawMenuBarMorandiDivider(x: x, palette: palette)
+        }
     }
 
-    private func drawMenuBarPorcelainCapsule(nonLiveMode: Bool, palette: GaugePalette) {
+    private func drawMenuBarMinimalMorandiPill(source: String?, nonLiveMode: Bool, palette: GaugePalette) {
         let rect = NSRect(x: 0.5, y: 0.5, width: statusImageSize.width - 1, height: statusImageSize.height - 1)
-        let capsule = NSBezierPath(roundedRect: rect, xRadius: 5.8, yRadius: 5.8)
-        let theme = currentSignalConsoleTheme()
-        let top = isDarkMenuBar()
-            ? palette.background.blended(withFraction: 0.10, of: theme.blueAccent) ?? palette.background
-            : NSColor.white.withAlphaComponent(0.78)
-        let bottom = isDarkMenuBar()
-            ? palette.background.blended(withFraction: 0.10, of: NSColor.black) ?? palette.background
-            : palette.background.blended(withFraction: 0.10, of: theme.blueSoft) ?? palette.background
-        NSGradient(colors: [top, bottom])?.draw(in: capsule, angle: 90)
+        let capsule = NSBezierPath(roundedRect: rect, xRadius: 6.0, yRadius: 6.0)
+        NSGradient(colors: [morandiMenuBarShellTop(), morandiMenuBarShellBottom()])?.draw(in: capsule, angle: 90)
 
-        (nonLiveMode ? palette.border.withAlphaComponent(0.34) : palette.border).setStroke()
-        capsule.lineWidth = 0.9
+        let sourceWash = sourceIndicatorColor(source) ?? morandiMenuBarSage()
+        sourceWash.withAlphaComponent(nonLiveMode ? 0.11 : 0.07).setFill()
+        capsule.fill()
+
+        (nonLiveMode ? morandiMenuBarClay() : morandiMenuBarTaupe()).withAlphaComponent(isDarkMenuBar() ? 0.54 : 0.62).setStroke()
+        capsule.lineWidth = 0.85
         capsule.stroke()
 
         let highlight = NSBezierPath()
-        highlight.move(to: NSPoint(x: rect.minX + 9, y: rect.maxY - 2.5))
-        highlight.line(to: NSPoint(x: rect.maxX - 9, y: rect.maxY - 2.5))
-        highlight.lineWidth = 0.6
-        (isDarkMenuBar() ? NSColor.white.withAlphaComponent(0.10) : NSColor.white.withAlphaComponent(0.58)).setStroke()
-        highlight.stroke()
-    }
-
-    private func drawMenuBarZoneSeparators(palette: GaugePalette) {
-        drawMenuBarEtchedSeparator(x: 68, palette: palette)
-        drawMenuBarEtchedSeparator(x: 100, palette: palette)
-        drawMenuBarEtchedSeparator(x: 122, palette: palette)
-        drawMenuBarEtchedSeparator(x: 153, palette: palette)
-    }
-
-    private func drawMenuBarEtchedSeparator(x: CGFloat, palette: GaugePalette) {
-        let shadow = NSBezierPath()
-        shadow.move(to: NSPoint(x: x - 0.5, y: 4.7))
-        shadow.line(to: NSPoint(x: x - 0.5, y: statusImageSize.height - 5.0))
-        shadow.lineWidth = 0.45
-        palette.border.withAlphaComponent(isDarkMenuBar() ? 0.22 : 0.34).setStroke()
-        shadow.stroke()
-
-        let highlight = NSBezierPath()
-        highlight.move(to: NSPoint(x: x + 0.5, y: 4.7))
-        highlight.line(to: NSPoint(x: x + 0.5, y: statusImageSize.height - 5.0))
+        highlight.move(to: NSPoint(x: rect.minX + 8, y: rect.maxY - 2.7))
+        highlight.line(to: NSPoint(x: rect.maxX - 8, y: rect.maxY - 2.7))
         highlight.lineWidth = 0.45
-        (isDarkMenuBar() ? NSColor.white.withAlphaComponent(0.06) : NSColor.white.withAlphaComponent(0.58)).setStroke()
+        (isDarkMenuBar() ? NSColor.white.withAlphaComponent(0.07) : NSColor.white.withAlphaComponent(0.38)).setStroke()
         highlight.stroke()
     }
 
-    private func drawMenuBarCircuitAccent(source: String?, palette: GaugePalette) {
-        let color = sourceIndicatorColor(source) ?? currentSignalConsoleTheme().mintAccent
-        let path = NSBezierPath()
-        path.move(to: NSPoint(x: 102.0, y: 18.1))
-        path.line(to: NSPoint(x: 109.5, y: 18.1))
-        path.line(to: NSPoint(x: 113.0, y: 16.3))
-        path.line(to: NSPoint(x: 120.0, y: 16.3))
-        path.lineWidth = 0.6
-        color.withAlphaComponent(isDarkMenuBar() ? 0.38 : 0.46).setStroke()
-        path.stroke()
+    private func drawMenuBarMorandiDivider(x: CGFloat, palette: GaugePalette) {
+        let divider = NSBezierPath()
+        divider.move(to: NSPoint(x: x, y: 5.8))
+        divider.line(to: NSPoint(x: x, y: statusImageSize.height - 5.8))
+        divider.lineWidth = 0.45
+        morandiMenuBarTaupe().withAlphaComponent(isDarkMenuBar() ? 0.30 : 0.38).setStroke()
+        divider.stroke()
+    }
 
-        for point in [
-            NSPoint(x: 102.0, y: 18.1),
-            NSPoint(x: 113.0, y: 16.3),
-            NSPoint(x: 120.0, y: 16.3),
-        ] {
-            let node = NSBezierPath(ovalIn: NSRect(x: point.x - 1.0, y: point.y - 1.0, width: 2.0, height: 2.0))
-            color.withAlphaComponent(isDarkMenuBar() ? 0.52 : 0.62).setFill()
-            node.fill()
-        }
+    private func morandiMenuBarShellTop() -> NSColor {
+        isDarkMenuBar()
+            ? NSColor(calibratedRed: 0.18, green: 0.22, blue: 0.22, alpha: 0.92)
+            : NSColor(calibratedRed: 0.91, green: 0.91, blue: 0.87, alpha: 0.96)
+    }
+
+    private func morandiMenuBarShellBottom() -> NSColor {
+        isDarkMenuBar()
+            ? NSColor(calibratedRed: 0.13, green: 0.16, blue: 0.17, alpha: 0.92)
+            : NSColor(calibratedRed: 0.82, green: 0.85, blue: 0.80, alpha: 0.96)
+    }
+
+    private func morandiMenuBarSage() -> NSColor {
+        isDarkMenuBar()
+            ? NSColor(calibratedRed: 0.55, green: 0.64, blue: 0.56, alpha: 0.96)
+            : NSColor(calibratedRed: 0.45, green: 0.56, blue: 0.48, alpha: 0.96)
+    }
+
+    private func morandiMenuBarMist() -> NSColor {
+        isDarkMenuBar()
+            ? NSColor(calibratedRed: 0.55, green: 0.64, blue: 0.67, alpha: 0.96)
+            : NSColor(calibratedRed: 0.39, green: 0.52, blue: 0.57, alpha: 0.96)
+    }
+
+    private func morandiMenuBarClay() -> NSColor {
+        isDarkMenuBar()
+            ? NSColor(calibratedRed: 0.69, green: 0.54, blue: 0.50, alpha: 0.96)
+            : NSColor(calibratedRed: 0.63, green: 0.42, blue: 0.39, alpha: 0.96)
+    }
+
+    private func morandiMenuBarTaupe() -> NSColor {
+        isDarkMenuBar()
+            ? NSColor(calibratedRed: 0.64, green: 0.59, blue: 0.53, alpha: 0.96)
+            : NSColor(calibratedRed: 0.52, green: 0.48, blue: 0.42, alpha: 0.96)
     }
 
     private func drawSourceIndicator(source: String?, palette: GaugePalette) {
@@ -5057,7 +5055,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func drawSignalSourceRail(source: String?, palette: GaugePalette) {
-        let color = sourceIndicatorColor(source) ?? currentSignalConsoleTheme().mintAccent
+        let color = sourceIndicatorColor(source) ?? morandiMenuBarSage()
         let alpha: CGFloat = isNonLiveSource(source) ? 0.36 : 0.58
         let rail = NSBezierPath(
             roundedRect: NSRect(x: 7, y: statusImageSize.height - 2.8, width: statusImageSize.width - 14, height: 1.2),
@@ -5069,21 +5067,20 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func sourceIndicatorColor(_ source: String?) -> NSColor? {
-        let theme = currentSignalConsoleTheme()
         switch source {
         case "last_live":
-            return theme.amberAccent
+            return morandiMenuBarClay()
         case "local_snapshot":
-            return theme.blueAccent.withAlphaComponent(0.72)
+            return morandiMenuBarMist().withAlphaComponent(0.78)
         case .some:
-            return theme.textMuted.withAlphaComponent(0.70)
+            return morandiMenuBarSage().withAlphaComponent(0.84)
         case .none:
             return unavailableSourceColor()
         }
     }
 
     private func unavailableSourceColor() -> NSColor {
-        currentSignalConsoleTheme().amberAccent.withAlphaComponent(0.90)
+        morandiMenuBarClay().withAlphaComponent(0.88)
     }
 
     private func isUnavailableStatus(fiveHourLeft: Int?, sevenDayLeft: Int?, source: String?) -> Bool {
@@ -5098,8 +5095,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         ("5h" as NSString).draw(at: NSPoint(x: 4, y: 10.5), withAttributes: labelAttrs)
         ("7d" as NSString).draw(at: NSPoint(x: 4, y: 2.0), withAttributes: labelAttrs)
 
-        drawGaugeRail(value: nil, rect: NSRect(x: 22, y: 13, width: quotaRailWidth, height: 3), palette: palette, fillColor: palette.mutedText)
-        drawGaugeRail(value: nil, rect: NSRect(x: 22, y: 4, width: quotaRailWidth, height: 3), palette: palette, fillColor: palette.mutedText)
+        drawGaugeRail(value: nil, rect: NSRect(x: 22, y: 13, width: quotaRailWidth, height: 3), palette: palette, fillColor: morandiMenuBarTaupe().withAlphaComponent(0.58))
+        drawGaugeRail(value: nil, rect: NSRect(x: 22, y: 4, width: quotaRailWidth, height: 3), palette: palette, fillColor: morandiMenuBarTaupe().withAlphaComponent(0.58))
 
         let dashAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 7.4, weight: .semibold),
@@ -5112,7 +5109,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             .font: NSFont.systemFont(ofSize: 7.0, weight: .semibold),
             .foregroundColor: unavailableSourceColor(),
         ]
-        ("Open Codex" as NSString).draw(at: NSPoint(x: 102, y: 6.4), withAttributes: actionAttrs)
+        ("Open Codex" as NSString).draw(at: NSPoint(x: 118, y: 6.4), withAttributes: actionAttrs)
     }
 
     private func drawPlanBGauge(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, palette: GaugePalette) {
@@ -5137,11 +5134,29 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         (percentText as NSString).draw(at: NSPoint(x: 49, y: y - 3.1), withAttributes: valueAttrs)
 
         let resetProgress = resetProgressPercent(epoch: resetEpoch, windowHours: windowHours)
-        drawResetMoodLane(value: resetProgress, rect: NSRect(x: 101, y: y, width: resetRailWidth + 2, height: 3), palette: palette)
+        drawResetMoodLane(value: resetProgress, rect: NSRect(x: 102, y: y, width: resetRailWidth, height: 3), palette: palette)
+
+        let resetText = window == "5h" ? fiveHourResetCountdown(resetEpoch) : sevenDayResetCountdown(resetEpoch)
+        drawMenuBarCountdownPill(text: resetText, rect: NSRect(x: 121, y: y - 4.4, width: 26, height: 9.4), palette: palette)
+    }
+
+    private func drawMenuBarCountdownPill(text resetText: String, rect: NSRect, palette: GaugePalette) {
+        let pill = NSBezierPath(roundedRect: rect, xRadius: 3.0, yRadius: 3.0)
+        morandiMenuBarTaupe().withAlphaComponent(isDarkMenuBar() ? 0.16 : 0.13).setFill()
+        pill.fill()
+        morandiMenuBarTaupe().withAlphaComponent(isDarkMenuBar() ? 0.36 : 0.28).setStroke()
+        pill.lineWidth = 0.45
+        pill.stroke()
+
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: resetText.count > 3 ? 5.3 : 6.0, weight: .bold),
+            .foregroundColor: palette.primaryText.withAlphaComponent(isDarkMenuBar() ? 0.84 : 0.78),
+        ]
+        (resetText as NSString).draw(at: NSPoint(x: rect.minX + 2.5, y: rect.minY + 1.4), withAttributes: attrs)
     }
 
     private func drawMenuBarSSDTemperature(status: SSDTemperatureStatus?, rect: NSRect, palette: GaugePalette) {
-        let color = ssdTemperatureColor(status)
+        let color = menuBarTemperatureColor(status)
         let path = NSBezierPath(roundedRect: rect, xRadius: 4.0, yRadius: 4.0)
         color.withAlphaComponent(ssdTemperatureFillAlpha(status)).setFill()
         path.fill()
@@ -5239,9 +5254,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return palette.mutedText
         }
         if let percent = status.percent, percent < 15 {
-            return criticalQuotaColor
+            return morandiMenuBarClay()
         }
-        return currentSignalConsoleTheme().blueAccent
+        return morandiMenuBarMist()
     }
 
     private func drawMenuBarSystemMetricStrip(sample: SystemMetricSample?, rect: NSRect, palette: GaugePalette) {
@@ -5289,10 +5304,23 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         if currentSignalConsoleThemeKey() == monoGraphiteThemeKey {
             return palette.primaryText.withAlphaComponent(0.82)
         }
-        let theme = currentSignalConsoleTheme()
         return label == "CPU"
-            ? theme.blueAccent.withAlphaComponent(isDarkMenuBar() ? 0.95 : 0.82)
-            : theme.mintAccent.withAlphaComponent(isDarkMenuBar() ? 0.95 : 0.86)
+            ? morandiMenuBarMist().withAlphaComponent(isDarkMenuBar() ? 0.95 : 0.86)
+            : morandiMenuBarSage().withAlphaComponent(isDarkMenuBar() ? 0.95 : 0.88)
+    }
+
+    private func menuBarTemperatureColor(_ status: SSDTemperatureStatus?) -> NSColor {
+        guard let status, status.ok, let temperature = status.temperatureC else {
+            return morandiMenuBarTaupe()
+        }
+        switch temperature {
+        case 70...:
+            return morandiMenuBarClay()
+        case 55..<70:
+            return morandiMenuBarTaupe()
+        default:
+            return morandiMenuBarMist()
+        }
     }
 
     private func ssdTemperatureDisplayText(_ status: SSDTemperatureStatus?) -> String {
@@ -5360,7 +5388,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func drawSegmentedQuotaRail(value: Int?, rect: NSRect, palette: GaugePalette) {
-        drawSignalSegmentedRail(value: value, rect: rect, palette: palette, fillColor: quotaColor(value))
+        drawSignalSegmentedRail(value: value, rect: rect, palette: palette, fillColor: menuBarQuotaColor(value, palette: palette))
     }
 
     private func drawSignalSegmentedRail(value: Int?, rect: NSRect, palette: GaugePalette, fillColor: NSColor) {
@@ -5387,7 +5415,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         track.line(to: NSPoint(x: rect.maxX, y: midY))
         track.lineCapStyle = .round
         track.lineWidth = rect.height
-        palette.resetTrack.setStroke()
+        morandiMenuBarTaupe().withAlphaComponent(isDarkMenuBar() ? 0.26 : 0.20).setStroke()
         track.stroke()
 
         guard let value else {
@@ -5398,7 +5426,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let fraction = clampedFraction(value)
         let markerX = rect.minX + (rect.width - markerWidth) * fraction
         let markerCenterX = markerX + markerWidth * 0.5
-        let laneColor = resetLaneColor(value)
+        let laneColor = menuBarResetColor(value, palette: palette)
         let tail = NSBezierPath()
         tail.move(to: NSPoint(x: rect.minX, y: midY))
         tail.line(to: NSPoint(x: max(rect.minX, markerCenterX - 1), y: midY))
@@ -5409,12 +5437,43 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
         let phase = animationTimer == nil ? 0 : sin(Double(moodPulseStep) * .pi / 4.0)
         let yOffset = CGFloat(max(0, phase)) * 0.45
-        drawResetMoodFace(
-            value: value,
-            center: NSPoint(x: markerCenterX, y: midY + yOffset),
-            radius: 3.45,
-            fill: laneColor
-        )
+        drawResetMinimalMarker(center: NSPoint(x: markerCenterX, y: midY + yOffset), radius: 2.45, fill: laneColor)
+    }
+
+    private func menuBarQuotaColor(_ value: Int?, palette: GaugePalette) -> NSColor {
+        guard let value else {
+            return palette.mutedText
+        }
+        switch max(0, min(100, value)) {
+        case 0..<20:
+            return morandiMenuBarClay()
+        case 20..<55:
+            return morandiMenuBarTaupe()
+        case 55..<78:
+            return morandiMenuBarMist()
+        default:
+            return morandiMenuBarSage()
+        }
+    }
+
+    private func menuBarResetColor(_ value: Int?, palette: GaugePalette) -> NSColor {
+        guard let value else {
+            return palette.mutedText
+        }
+        switch max(0, min(100, value)) {
+        case 0..<25:
+            return morandiMenuBarMist()
+        case 25..<75:
+            return morandiMenuBarTaupe()
+        default:
+            return morandiMenuBarClay()
+        }
+    }
+
+    private func drawResetMinimalMarker(center: NSPoint, radius: CGFloat, fill: NSColor) {
+        let marker = NSBezierPath(ovalIn: NSRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
+        fill.withAlphaComponent(0.92).setFill()
+        marker.fill()
     }
 
     private func drawResetMoodFace(value: Int, center: NSPoint, radius: CGFloat, fill: NSColor) {

@@ -191,8 +191,9 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         script = pathlib.Path("script/generate_public_assets.swift").read_text()
 
         self.assertIn("writeMenuBarPNG(menuBarPath)", script)
-        self.assertIn("drawMenuBarEtchedSeparator", script)
-        self.assertIn("drawMenuBarCircuitAccent", script)
+        self.assertIn("drawMenuBarMorandiDivider", script)
+        self.assertIn("drawMenuBarResetLane(value:", script)
+        self.assertNotIn("drawMenuBarCircuitAccent", script)
 
     def test_theme_state_visual_fixture_generator_covers_all_states(self):
         script = pathlib.Path("script/generate_theme_state_previews.swift")

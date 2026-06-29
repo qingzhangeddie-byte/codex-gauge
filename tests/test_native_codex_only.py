@@ -91,8 +91,8 @@ class NativeCodexOnlyTests(unittest.TestCase):
     def test_native_app_draws_plan_b_four_bar_status_image(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("statusItemWidth: CGFloat = 182", source)
-        self.assertIn("statusImageSize = NSSize(width: 176, height: 22)", source)
+        self.assertIn("statusItemWidth: CGFloat = 208", source)
+        self.assertIn("statusImageSize = NSSize(width: 202, height: 22)", source)
         self.assertIn("quotaRailWidth: CGFloat = 24", source)
         self.assertIn("resetRailWidth: CGFloat = 18", source)
         self.assertIn("makeStatusImage", source)
@@ -106,8 +106,9 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("drawResetMoodFace", source)
         self.assertIn("NSBezierPath(ovalIn: faceRect)", source)
         self.assertIn("mouth.curve(", source)
-        self.assertIn("NSRect(x: 101, y: y, width: resetRailWidth + 2, height: 3)", source)
-        self.assertNotIn("NSPoint(x: 143, y: y - 2.9)", source)
+        self.assertIn("NSRect(x: 102, y: y, width: resetRailWidth, height: 3)", source)
+        self.assertIn("drawMenuBarCountdownPill(text: resetText", source)
+        self.assertIn("(resetText as NSString).draw", source)
         self.assertNotIn("private func resetMoodFace", source)
         for emoji in ["😡", "😟", "🙁", "😐", "🙂", "😊", "😄"]:
             self.assertNotIn(emoji, source)
@@ -116,7 +117,9 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("resetProgressPercent", source)
         self.assertIn("bucketedGaugeColor", source)
         self.assertIn("resetLaneColor", source)
-        self.assertIn("fillColor: quotaColor(value)", source)
+        self.assertIn("fillColor: menuBarQuotaColor(value, palette: palette)", source)
+        self.assertIn("menuBarResetColor(value, palette: palette)", source)
+        self.assertIn("drawResetMinimalMarker", source)
         self.assertIn("markerX = rect.minX + (rect.width - markerWidth) * fraction", source)
         self.assertIn("laneColor.withAlphaComponent(0.68)", source)
         self.assertIn("moodPulseStep", source)
