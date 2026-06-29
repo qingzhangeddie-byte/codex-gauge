@@ -62,7 +62,7 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("drawSignalSourceRail", source)
         self.assertIn("drawSegmentedQuotaRail", source)
         self.assertIn("drawSignalSegmentedRail", source)
-        self.assertIn("drawQuotaRail(value: quotaLeft", source)
+        self.assertIn("drawMenuBarUsagePercentBar(value: value", source)
         self.assertIn("drawSignalSourceRail(source: source", source)
 
     def test_native_app_uses_custom_signal_console_popover(self):
@@ -654,7 +654,12 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("private func showSSDTemperatureInMenuBar() -> Bool", source)
         self.assertIn("sessionShowSSDTemperatureInMenuBar", source)
         self.assertNotIn("UserDefaults.standard.bool(forKey: showSSDTemperatureInMenuBarKey)", source)
-        self.assertIn("if showSSDTemperatureInMenuBar() {", source)
+        make_status_body = self._swift_function_body(
+            source,
+            "private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?, ssdTemperature: SSDTemperatureStatus?, systemMetric: SystemMetricSample?, batteryStatus: BatteryStatus?) -> NSImage",
+        )
+        self.assertNotIn("showSSDTemperatureInMenuBar()", make_status_body)
+        self.assertNotIn("drawMenuBarSSDTemperature", make_status_body)
         self.assertIn("ssdTemperatureDoctorCheck(ssdTemperature)", source)
 
     def test_menu_bar_status_item_stays_compact_enough_to_remain_visible(self):
@@ -663,25 +668,24 @@ class SignalConsoleUXTests(unittest.TestCase):
         status_width = self._first_float(r"statusItemWidth: CGFloat = ([0-9.]+)", source)
         image_width = self._first_float(r"statusImageSize = NSSize\(width: ([0-9.]+)", source)
 
-        self.assertLessEqual(status_width, 210)
-        self.assertLessEqual(image_width, 204)
+        self.assertLessEqual(status_width, 166)
+        self.assertLessEqual(image_width, 160)
 
         for rect_name in [
-            "menuBarTemperatureChipRect",
-            "menuBarSystemMetricStripRect",
-            "menuBarBatteryModeInfoRect",
-            "menuBarBatteryRect",
+            "menuBarUsagePercentRect",
+            "menuBarRefreshCountdownRect",
         ]:
             rect = self._swift_rect_constant(source, rect_name)
             self.assertLessEqual(rect["max_x"], image_width - 2, rect_name)
 
-    def test_menu_bar_integrates_ssd_temperature_without_removing_current_quota_info(self):
+    def test_menu_bar_focuses_usage_percentage_and_refresh_countdown(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("statusItemWidth: CGFloat = 208", source)
-        self.assertIn("statusImageSize = NSSize(width: 202", source)
-        self.assertIn("private let quotaRailWidth: CGFloat = 24", source)
-        self.assertIn("private let resetRailWidth: CGFloat = 18", source)
+        self.assertIn("statusItemWidth: CGFloat = 164", source)
+        self.assertIn("statusImageSize = NSSize(width: 158", source)
+        self.assertIn("private let menuBarUsagePercentRect = NSRect(x: 7", source)
+        self.assertIn("private let menuBarRefreshCountdownRect = NSRect(x: 101", source)
+        self.assertIn("private let quotaRailWidth: CGFloat = 42", source)
         self.assertIn("makeStatusImage(", source)
         self.assertIn("ssdTemperature: ssdTemperatureForDisplay()", source)
         self.assertIn("menuBarAccessibilitySummary", source)
@@ -689,28 +693,32 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("menuBarTooltipTitle(title: title, status: status)", source)
         self.assertIn('parts.append("SSD \\(temperature)")', source)
         self.assertIn("button.imagePosition = .imageOnly", source)
-        self.assertIn("drawMenuBarSSDTemperature(status: ssdTemperature, rect: menuBarTemperatureChipRect, palette: palette)", source)
-        self.assertIn("private let menuBarTemperatureChipRect = NSRect(x: 72", source)
-        self.assertIn("width: 27, height: 12.2", source)
-        self.assertIn("let fontSize: CGFloat = text.count > 3 ? 6.6 : 7.2", source)
-        self.assertIn("NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .bold)", source)
-        self.assertIn("ssdTemperatureFillAlpha(status)", source)
-        self.assertIn("private func drawMenuBarSSDTemperature", source)
-        self.assertIn("private func ssdTemperatureColor", source)
         self.assertIn("drawPlanBGauge(", source)
-        self.assertIn("drawPlanBRow(window: \"5h\"", source)
-        self.assertIn("drawPlanBRow(window: \"7d\"", source)
-        self.assertIn("drawQuotaRail(value: quotaLeft", source)
-        self.assertIn("drawResetMoodLane(value: resetProgress", source)
+        self.assertIn("drawMenuBarUsagePercentBars(", source)
+        self.assertIn("drawMenuBarUsagePercentRow(window: \"5h\"", source)
+        self.assertIn("drawMenuBarUsagePercentRow(window: \"7d\"", source)
+        self.assertIn("drawMenuBarUsagePercentBar(value:", source)
+        self.assertIn("drawMenuBarRefreshCountdown(", source)
         self.assertIn("fiveHourResetCountdown(status.fiveHourReset)", source)
         self.assertIn("sevenDayResetCountdown(status.sevenDayReset)", source)
 
-        row_body = self._swift_function_body(
+        make_status_body = self._swift_function_body(
             source,
-            "private func drawPlanBRow(window: String, quotaLeft: Int?, resetEpoch: Double?, windowHours: Double, y: CGFloat, palette: GaugePalette)"
+            "private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?, ssdTemperature: SSDTemperatureStatus?, systemMetric: SystemMetricSample?, batteryStatus: BatteryStatus?) -> NSImage"
         )
-        self.assertIn('let resetText = window == "5h" ? fiveHourResetCountdown(resetEpoch) : sevenDayResetCountdown(resetEpoch)', row_body)
-        self.assertIn("drawMenuBarCountdownPill(text: resetText", row_body)
+        self.assertNotIn("drawMenuBarSSDTemperature", make_status_body)
+        self.assertNotIn("drawMenuBarSystemMetricStrip", make_status_body)
+        self.assertNotIn("drawMenuBarBatteryModeInfo", make_status_body)
+        self.assertNotIn("drawMenuBarBattery(status:", make_status_body)
+
+        refresh_body = self._swift_function_body(
+            source,
+            "private func drawMenuBarRefreshCountdown(fiveHourReset: Double?, sevenDayReset: Double?, palette: GaugePalette)"
+        )
+        self.assertIn("fiveHourResetCountdown(fiveHourReset)", refresh_body)
+        self.assertIn("sevenDayResetCountdown(sevenDayReset)", refresh_body)
+        self.assertIn("drawMenuBarCountdownPill(text: fiveHourText", refresh_body)
+        self.assertIn("drawMenuBarCountdownPill(text: sevenDayText", refresh_body)
         self.assertIn("(resetText as NSString).draw", source)
 
     def test_menu_bar_uses_minimal_morandi_countdown_design(self):
@@ -737,6 +745,7 @@ class SignalConsoleUXTests(unittest.TestCase):
         chrome_body = self._swift_function_body(source, "private func drawMenuBarChrome(source: String?, nonLiveMode: Bool, palette: GaugePalette)")
         self.assertIn("drawMenuBarMinimalMorandiPill", chrome_body)
         self.assertIn("drawMenuBarMorandiDivider", chrome_body)
+        self.assertIn("for x in [96]", chrome_body)
         self.assertNotIn("drawMenuBarCircuitAccent", chrome_body)
         self.assertNotIn("drawMenuBarZoneSeparators", chrome_body)
 
@@ -771,8 +780,6 @@ class SignalConsoleUXTests(unittest.TestCase):
             "cpuUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.cpuPercent)",
             "ramUsageText: systemMetricPercentText(retainedSystemMetricHistory.last?.ramPercent)",
             "systemMetric: systemMetricSampleForDisplay()",
-            "private let menuBarSystemMetricStripRect",
-            "drawMenuBarSystemMetricStrip(sample: systemMetric, rect: menuBarSystemMetricStripRect, palette: palette)",
             "systemMetricMenuBarText(prefix: \"C\", value: sample?.cpuPercent)",
             "systemMetricMenuBarText(prefix: \"R\", value: sample?.ramPercent)",
             "drawSystemMetricMovementRows",
@@ -784,14 +791,13 @@ class SignalConsoleUXTests(unittest.TestCase):
         ]:
             self.assertIn(token, source)
 
-        self.assertIn("statusItemWidth: CGFloat = 208", source)
-        self.assertIn("statusImageSize = NSSize(width: 202", source)
-        system_rect = self._swift_rect_constant(source, "menuBarSystemMetricStripRect")
-        battery_rect = self._swift_rect_constant(source, "menuBarBatteryRect")
-        self.assertLessEqual(system_rect["max_x"], battery_rect["x"])
-        self.assertLessEqual(battery_rect["max_x"], 202)
-        self.assertGreaterEqual(system_rect["x"], 148)
-        self.assertGreaterEqual(system_rect["width"], 28)
+        self.assertIn("statusItemWidth: CGFloat = 164", source)
+        self.assertIn("statusImageSize = NSSize(width: 158", source)
+        make_status_body = self._swift_function_body(
+            source,
+            "private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?, ssdTemperature: SSDTemperatureStatus?, systemMetric: SystemMetricSample?, batteryStatus: BatteryStatus?) -> NSImage",
+        )
+        self.assertNotIn("drawMenuBarSystemMetricStrip", make_status_body)
         self.assertIn("let fontSize: CGFloat = 6.3", source)
         self.assertNotIn("text.count > 3 ? 5.1 : 5.6", source)
 
@@ -884,7 +890,7 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("let interval = batterySampleIntervalForCurrentUI()", start_battery_body)
         self.assertIn("Timer(timeInterval: interval, repeats: false)", start_battery_body)
 
-    def test_battery_signal_appears_in_menu_bar_console_diagnostics_and_doctor(self):
+    def test_battery_signal_appears_in_console_diagnostics_and_tooltip(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         for token in [
@@ -898,10 +904,6 @@ class SignalConsoleUXTests(unittest.TestCase):
             "refreshCadenceStatusText()",
             "batteryStatus: batteryStatus",
             "drawBatteryStatusRow(in: card)",
-            "drawMenuBarBattery(status: batteryStatus, rect: menuBarBatteryRect, palette: palette)",
-            "drawMenuBarBatteryModeInfo(status: batteryStatus, rect: menuBarBatteryModeInfoRect, palette: palette)",
-            "private let menuBarBatteryRect",
-            "private let menuBarBatteryModeInfoRect",
             "private func drawMenuBarBattery",
             "private func drawMenuBarBatteryModeInfo",
             "private func drawSignalConsoleBatteryIcon",
@@ -920,6 +922,12 @@ class SignalConsoleUXTests(unittest.TestCase):
 
         make_status_signature = source.split("private func makeStatusImage(", 1)[1].split(") -> NSImage", 1)[0]
         self.assertIn("batteryStatus: BatteryStatus?", make_status_signature)
+        make_status_body = self._swift_function_body(
+            source,
+            "private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?, ssdTemperature: SSDTemperatureStatus?, systemMetric: SystemMetricSample?, batteryStatus: BatteryStatus?) -> NSImage",
+        )
+        self.assertNotIn("drawMenuBarBattery(status:", make_status_body)
+        self.assertNotIn("drawMenuBarBatteryModeInfo", make_status_body)
 
         codex_detail_body = self._swift_function_body(source, "private func addCodexDetail(_ snapshot: UsageSnapshot)")
         self.assertIn('addDisabled("Battery \\(batteryDisplayText(batteryStatus))")', codex_detail_body)
@@ -954,11 +962,10 @@ class SignalConsoleUXTests(unittest.TestCase):
             source,
             "private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?, ssdTemperature: SSDTemperatureStatus?, systemMetric: SystemMetricSample?, batteryStatus: BatteryStatus?) -> NSImage",
         )
-        hardware_branch = make_status_body.split("if hardwareSignalsVisible() {", 1)[1].split("drawMenuBarBattery", 1)[0]
-        self.assertIn("drawMenuBarSSDTemperature", hardware_branch)
-        self.assertIn("drawMenuBarSystemMetricStrip", hardware_branch)
-        self.assertNotIn("drawMenuBarBattery", hardware_branch)
-        self.assertIn("drawMenuBarBatteryModeInfo", make_status_body)
+        self.assertNotIn("hardwareSignalsVisible()", make_status_body)
+        self.assertNotIn("drawMenuBarSSDTemperature", make_status_body)
+        self.assertNotIn("drawMenuBarSystemMetricStrip", make_status_body)
+        self.assertNotIn("drawMenuBarBattery", make_status_body)
 
         trend_body = self._swift_function_body(source, "private func drawTrendSection()")
         hardware_branch = trend_body.split("if hardwareSignalsVisible() {", 1)[1].split("} else {", 1)[0]

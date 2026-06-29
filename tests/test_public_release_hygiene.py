@@ -192,7 +192,12 @@ class PublicReleaseHygieneTests(unittest.TestCase):
 
         self.assertIn("writeMenuBarPNG(menuBarPath)", script)
         self.assertIn("drawMenuBarMorandiDivider", script)
-        self.assertIn("drawMenuBarResetLane(value:", script)
+        self.assertIn("drawMenuBarUsagePercentBar(value:", script)
+        self.assertIn("drawMenuBarRefreshCountdown", script)
+        self.assertIn("drawMenuBarCountdownPill", script)
+        self.assertNotIn('menuBarText("45°"', script)
+        self.assertNotIn('menuBarText("C43"', script)
+        self.assertNotIn("let battery = NSBezierPath", script)
         self.assertNotIn("drawMenuBarCircuitAccent", script)
 
     def test_theme_state_visual_fixture_generator_covers_all_states(self):

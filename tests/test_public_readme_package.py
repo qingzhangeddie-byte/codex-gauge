@@ -48,7 +48,7 @@ class PublicReadmePackageTests(unittest.TestCase):
 
         for phrase in [
             "Stop guessing how much Codex you have left.",
-            "Codex Gauge puts your 5-hour and 7-day quota directly in the macOS menu bar",
+            "Codex Gauge puts your 5-hour and 7-day usage percentages directly in the macOS menu bar",
             "Open Codex once, keep Codex Gauge running, and the menu bar refreshes hands-free.",
             "No browser cookies. No `~/.codex/auth.json`. No prompt or response logging.",
             "Install from source with one command:",
@@ -67,11 +67,11 @@ class PublicReadmePackageTests(unittest.TestCase):
         for phrase in [
             "Codex Gauge 是一个**非官方** macOS 菜单栏工具",
             "它可以直接显示 Codex 5 小时剩余额度和 Codex 7 天剩余额度",
-            "菜单栏紧凑显示 Codex 5 小时额度和 7 天额度",
+            "菜单栏紧凑显示 Codex 5 小时和 7 天使用百分比",
             "SSD 温度显示可以在 Preferences 里关闭",
             "下拉菜单显示额度重置时间和上次刷新时间",
-            "紧凑菜单栏仪表使用 mood-lane 设计",
-            "四个信号分别是 5 小时额度剩余",
+            "紧凑菜单栏仪表使用极简 Morandi 设计",
+            "刷新倒计时胶囊",
             "很多使用量工具是大而全的 dashboard",
             "## SEO Keywords",
         ]:
@@ -91,7 +91,7 @@ class PublicReadmePackageTests(unittest.TestCase):
             "1-second SSD temperature samples",
             "smooth 10-minute Movement curve",
             "local CPU and RAM percentages",
-            "CPU/RAM system strip",
+            "menu bar stays focused on quota",
             "10-minute in-memory movement view",
             "Zero persistence mode",
             "native battery signal",
@@ -142,43 +142,31 @@ class PublicReadmePackageTests(unittest.TestCase):
             self.assertNotIn("Claude", text)
             self.assertNotIn("claude", text)
 
-    def test_readmes_explain_mood_lane_menu_bar_signal(self):
+    def test_readmes_explain_focused_menu_bar_signal(self):
         readme = pathlib.Path("README.md").read_text(encoding="utf-8")
         zh_readme = pathlib.Path("README.zh-CN.md").read_text(encoding="utf-8")
 
         for phrase in [
-            "Four-signal menu bar",
-            "docs/design/codex-gauge-four-bar-mockup.svg",
-            "5-hour quota left",
-            "5-hour reset countdown",
-            "7-day quota left",
-            "7-day reset countdown",
-            "mood-lane design",
-            "red through coral and orange into warm yellow",
-            "tiny vector face",
-            "slides right",
-            "frown to smile",
-            "docs/assets/codex-gauge-color-states.svg",
-            "healthy, watch, and critical states",
-            "simulated",
+            "Focused menu bar",
+            "minimal Morandi design",
+            "usage percentage bars on the left",
+            "refresh countdown pills on the right",
+            "5-hour usage and 7-day usage",
+            "5-hour reset and 7-day reset",
+            "without adding hardware chips to the menu bar",
+            "green, blue-grey, taupe, and clay states",
         ]:
             self.assertIn(phrase, readme)
 
         for phrase in [
-            "四条菜单栏信号",
-            "docs/design/codex-gauge-four-bar-mockup.svg",
-            "5 小时额度剩余",
-            "5 小时重置倒计时",
-            "7 天额度剩余",
-            "7 天重置倒计时",
-            "mood-lane",
-            "红色过渡到珊瑚色、橙色",
-            "温暖黄色",
-            "矢量脸",
-            "向右移动",
-            "从皱眉过渡到微笑",
-            "docs/assets/codex-gauge-color-states.svg",
-            "模拟示例",
+            "聚焦菜单栏",
+            "极简 Morandi 设计",
+            "使用百分比条",
+            "刷新倒计时胶囊",
+            "5 小时使用量和 7 天使用量",
+            "5 小时重置和 7 天重置",
+            "不再把硬件 chip 塞进菜单栏",
+            "绿色、蓝灰、灰褐和陶土色状态",
         ]:
             self.assertIn(phrase, zh_readme)
 

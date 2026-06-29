@@ -1,6 +1,6 @@
 # Codex Gauge
 
-![Codex Gauge 菜单栏：额度、重置、SSD 温度、CPU 和 RAM](docs/assets/codex-gauge-menubar-live.png)
+![Codex Gauge 菜单栏：使用百分比条和刷新倒计时](docs/assets/codex-gauge-menubar-live.png)
 
 [English](README.md) | 中文说明
 
@@ -10,7 +10,7 @@ Codex Gauge 是一个**简单、安全的 Codex 菜单栏额度仪表**，用于
 
 不用再猜自己还剩多少 Codex。
 
-Codex Gauge 会把 Codex 5 小时额度、7 天额度、重置倒计时和数据来源直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态。
+Codex Gauge 会把 Codex 5 小时和 7 天使用百分比、重置倒计时和数据来源直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态。
 
 打开一次 Codex 后保持 Codex Gauge 运行，菜单栏就会自动刷新，不需要额外设置浏览器或复制登录信息。
 
@@ -31,14 +31,14 @@ bash install.sh
 
 ## 核心特点
 
-- 菜单栏同时显示 5 小时和 7 天额度
-- 分段信号条让菜单栏里的额度健康状态更直观，同时不会变成很占位置的大组件
-- 可选 SSD 温度后缀会在 macOS 暴露传感器时显示本机硬盘温度，也可以在 Preferences 里关闭
+- 菜单栏同时显示 5 小时和 7 天使用百分比，以及刷新倒计时
+- Morandi 色系百分比条让菜单栏里的额度健康状态更直观，同时不会变成很占位置的大组件
+- 可选 SSD 温度会在 Signal Console、诊断和 Setup Doctor 中显示，也可以在 Preferences 里关闭
 - 下拉菜单、诊断和 Setup Doctor 会把 SSD 温度标注为 Normal、Warm 或 Hot
 - 1 秒 SSD 温度采样会在 Movement 区域显示为平滑的 10 分钟温度曲线，并且只保存在内存中
-- 本地 CPU 和 RAM 百分比会以很小的 CPU/RAM 系统条显示在菜单栏里，并在 Signal Console 中显示为趋势脉冲线
+- 本地 CPU 和 RAM 百分比会在 Signal Console 中显示为趋势脉冲线，菜单栏保持专注显示额度
 - 每 5 秒采样一次本地 CPU/RAM，保留 10 分钟内存趋势视图，不写入磁盘
-- 原生电池信号会用熟悉的电池图形显示本机电量和供电状态
+- 原生电池信号会在 Signal Console 和诊断中显示本机电量和供电状态
 - 电池供电时 Power Saver 会把额度刷新降低到通常 20 分钟、额度偏低 10 分钟、严重偏低 5 分钟；电池模式只显示用量和电池/Power Saver 信息，并停止 SSD 温度和 CPU/RAM 采样，直到重新接入外部电源
 - 自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口
 - Signal Console 显示真实的下次刷新倒计时，不再只是静态刷新标签
@@ -61,17 +61,13 @@ bash install.sh
 
 ![Codex Gauge Signal Console](docs/assets/codex-gauge-signal-console.png)
 
-上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 示例额度数值；安装后的 App 会显示你本机的实时额度、重置倒计时、可选 SSD 温度，以及本地 CPU/RAM 汇总百分比。
+上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 示例额度数值；安装后的 App 会把使用百分比和重置倒计时放在菜单栏，并在弹出面板里显示可选 SSD 温度和本地 CPU/RAM 汇总百分比。
 
-## 四条菜单栏信号
+## 聚焦菜单栏
 
-![Codex Gauge 四条信号示意](docs/design/codex-gauge-four-bar-mockup.svg)
+紧凑菜单栏仪表使用极简 Morandi 设计：左侧显示使用百分比条，右侧显示刷新倒计时胶囊。
 
-紧凑菜单栏仪表使用已选中的 mood-lane 设计：一行显示 5 小时窗口，一行显示 7 天窗口。四条信号分别是 5 小时额度剩余、5 小时重置倒计时、7 天额度剩余、7 天重置倒计时。额度条使用分段信号格，并保留绿色到红色的健康刻度；重置轨道从红色过渡到珊瑚色、橙色，最后变成温暖黄色。小表情是原生绘制的矢量脸，会随着重置临近向右移动，并从皱眉过渡到微笑，所以倒计时读起来是时间移动，不是危险警报。
-
-![Codex Gauge color states](docs/assets/codex-gauge-color-states.svg)
-
-颜色状态图是模拟示例，用来展示健康、偏低、严重偏低时的视觉变化，不假装这些就是当前实时额度。
+两行分别是 5 小时使用量和 7 天使用量。倒计时区域显示 5 小时重置和 7 天重置，不再把硬件 chip 塞进菜单栏。额度条使用柔和的绿色、蓝灰、灰褐和陶土色状态，让偏低额度清晰可见但不吵。
 
 ## 快速安装
 
@@ -118,9 +114,9 @@ open native/dist/release
 | 信息密度 | 同时展示 5 小时和 7 天额度 |
 | 刷新策略 | 根据额度余量自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后快速重试 |
 | 偏好设置 | 当前会话内的刷新频率、通知和主题控制 |
-| 可选 SSD 温度 | 菜单栏 SSD 温度 chip 可以隐藏；诊断里仍会标注 Normal、Warm 或 Hot；Signal Console 会显示本地 10 分钟内存温度曲线 |
-| 本地 CPU/RAM 状态 | 菜单栏显示极小 CPU/RAM 系统条，Signal Console 显示趋势脉冲，只保存在内存中 |
-| 电池 Power Saver | 原生电池图形加自动电池供电省电模式；电池供电时只显示用量和电池信息，并停止 SSD 温度与 CPU/RAM 采样 |
+| 可选 SSD 温度 | 诊断里仍会标注 Normal、Warm 或 Hot；Signal Console 会显示本地 10 分钟内存温度曲线 |
+| 本地 CPU/RAM 状态 | Signal Console 显示趋势脉冲，只保存在内存中；紧凑菜单栏保持专注显示额度 |
+| 电池 Power Saver | 原生电池信息加自动电池供电省电模式；电池供电时会降低刷新并停止 SSD 温度与 CPU/RAM 采样 |
 | 通知 | 只在用户主动开启后提醒关键额度状态 |
 | Signal Console | 直接说明数据是实时还是不可用 |
 | Setup Doctor | 检查 Codex App、helper、实时数据、Zero persistence 和通知权限 |

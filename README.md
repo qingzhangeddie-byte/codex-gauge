@@ -5,15 +5,15 @@
 [![License](https://img.shields.io/github/license/qingzhangeddie-byte/codex-gauge)](LICENSE)
 ![macOS 13+](https://img.shields.io/badge/macOS-13%2B-0f766e)
 
-![Codex Gauge live menu bar with quota, reset, SSD temperature, CPU, and RAM](docs/assets/codex-gauge-menubar-live.png)
+![Codex Gauge live menu bar with usage percentage bars and refresh countdown](docs/assets/codex-gauge-menubar-live.png)
 
 **A simple, safe macOS menu bar app to check Codex usage, track the Codex 5-hour limit, and watch your Codex 7-day quota at a glance.**
 
 Stop guessing how much Codex you have left.
 
-Codex Gauge puts your 5-hour and 7-day quota directly in the macOS menu bar, with reset countdowns, live-source labels, and a compact Signal Console when you need more detail.
+Codex Gauge puts your 5-hour and 7-day usage percentages directly in the macOS menu bar, with reset countdowns, live-source labels, and a compact Signal Console when you need more detail.
 
-Codex Gauge 会把 Codex 5 小时额度、7 天额度、重置倒计时和数据来源直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态。
+Codex Gauge 会把 Codex 5 小时和 7 天使用百分比、重置倒计时和数据来源直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态。
 
 Open Codex once, keep Codex Gauge running, and the menu bar refreshes hands-free.
 
@@ -50,22 +50,22 @@ Search phrases this project is designed to answer naturally: **check Codex usage
 
 ## What You Get
 
-- Compact menu bar gauge for Codex 5-hour and 7-day quota  
-  菜单栏紧凑显示 Codex 5 小时额度和 7 天额度
-- Segmented live signal rails make quota health readable in the menu bar without turning it into a large widget
-  分段信号条让菜单栏里的额度健康状态更直观，同时不会变成很占位置的大组件
-- Optional SSD temperature suffix shows a local hardware signal when macOS exposes the sensor
-  可选 SSD 温度后缀会在 macOS 暴露传感器时显示本机硬盘温度；SSD 温度显示可以在 Preferences 里关闭
+- Compact menu bar gauge for Codex 5-hour and 7-day usage percentages plus refresh countdowns
+  菜单栏紧凑显示 Codex 5 小时和 7 天使用百分比，以及刷新倒计时
+- Morandi percentage bars keep quota health readable without turning the menu bar into a large widget
+  Morandi 色系百分比条让菜单栏里的额度健康状态更直观，同时不会变成很占位置的大组件
+- Optional SSD temperature stays in Signal Console, diagnostics, and Setup Doctor when macOS exposes the sensor
+  可选 SSD 温度会在 Signal Console、诊断和 Setup Doctor 中显示；SSD 温度显示可以在 Preferences 里关闭
 - SSD temperature is explained as Normal, Warm, or Hot in the dropdown, diagnostics, and Setup Doctor
   SSD 温度会在下拉菜单、诊断和 Setup Doctor 里标注为 Normal、Warm 或 Hot
 - 1-second SSD temperature samples render a smooth 10-minute Movement curve in memory only
   1 秒 SSD 温度采样会在 Movement 区域显示为平滑的 10 分钟曲线，并且只保存在内存中
-- Local CPU and RAM percentages appear as a tiny CPU/RAM system strip in the menu bar and as pulse lines in Signal Console
-  本地 CPU 和 RAM 百分比会以很小的 CPU/RAM 系统条显示在菜单栏里，并在 Signal Console 中显示为趋势脉冲线
+- Local CPU and RAM percentages appear as pulse lines in Signal Console while the menu bar stays focused on quota
+  本地 CPU 和 RAM 百分比会在 Signal Console 中显示为趋势脉冲线，菜单栏保持专注显示额度
 - 5-second local CPU/RAM samples keep a 10-minute in-memory movement view with no disk writes
   每 5 秒采样一次本地 CPU/RAM，保留 10 分钟内存趋势视图，不写入磁盘
-- A native battery signal shows local charge and power-source state with a familiar battery glyph
-  原生电池信号会用熟悉的电池图形显示本机电量和供电状态
+- A native battery signal shows local charge and power-source state in Signal Console and diagnostics
+  原生电池信号会在 Signal Console 和诊断中显示本机电量和供电状态
 - Power Saver on battery slows quota refresh to 20 minutes normally on battery, 10 minutes when low, and 5 minutes when critical; on battery it shows usage plus battery/Power Saver info only and stops SSD temperature plus CPU/RAM sampling until external power returns
   电池供电时 Power Saver 会把额度刷新降低到通常 20 分钟、额度偏低 10 分钟、严重偏低 5 分钟；电池模式只显示用量和电池/Power Saver 信息，并停止 SSD 温度和 CPU/RAM 采样，直到重新接入外部电源
 - Custom Signal Console popover with status, quota, reset timing, trend, doctor checks, diagnostics, and actions
@@ -103,35 +103,24 @@ Search phrases this project is designed to answer naturally: **check Codex usage
 
 ![Codex Gauge Signal Console](docs/assets/codex-gauge-signal-console.png)
 
-This is an actual app-rendered Signal Console screenshot generated from the native macOS view. It uses sample quota values for the README; the installed app shows your local live quota, reset countdowns, optional SSD temperature, and aggregate CPU/RAM percentages.
+This is an actual app-rendered Signal Console screenshot generated from the native macOS view. It uses sample quota values for the README; the installed app keeps usage percentages and reset countdowns in the menu bar, with optional SSD temperature and aggregate CPU/RAM percentages in the popover.
 
-上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 示例额度数值；安装后的 App 会显示你本机的实时额度、重置倒计时、可选 SSD 温度，以及本地 CPU/RAM 汇总百分比。
+上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 示例额度数值；安装后的 App 会把使用百分比和重置倒计时放在菜单栏，并在弹出面板里显示可选 SSD 温度和本地 CPU/RAM 汇总百分比。
 
-## Four-signal menu bar
+## Focused menu bar
 
-![Codex Gauge four-bar mockup](docs/design/codex-gauge-four-bar-mockup.svg)
+The compact menu bar gauge uses a minimal Morandi design: usage percentage bars on the left, refresh countdown pills on the right.
 
-The compact menu bar gauge uses the selected mood-lane design: one row for 5-hour quota and one row for 7-day quota.
+紧凑菜单栏仪表使用极简 Morandi 设计：左侧显示使用百分比条，右侧显示刷新倒计时胶囊。
 
-紧凑菜单栏仪表使用 mood-lane 设计：一行显示 5 小时窗口，一行显示 7 天窗口。
+The two rows are 5-hour usage and 7-day usage. The countdown area shows the 5-hour reset and 7-day reset without adding hardware chips to the menu bar.
 
-The four signals are 5-hour quota left, 5-hour reset countdown, 7-day quota left, and 7-day reset countdown.
+两行分别是 5 小时使用量和 7 天使用量。倒计时区域显示 5 小时重置和 7 天重置，不再把硬件 chip 塞进菜单栏。
 
-四个信号分别是 5 小时额度剩余、5 小时重置倒计时、7 天额度剩余、7 天重置倒计时。
+Quota rails use calm green, blue-grey, taupe, and clay states so low usage is visible without becoming noisy.
 
-Quota rails use segmented signal cells with a green-to-red health scale; reset lanes move from red through coral and orange into warm yellow.
+额度条使用柔和的绿色、蓝灰、灰褐和陶土色状态，让偏低额度清晰可见但不吵。
 
-额度条使用分段信号格，并保留绿色到红色的健康刻度；重置轨道从红色过渡到珊瑚色、橙色，最后变成温暖黄色。
-
-The tiny vector face slides right and morphs from frown to smile as reset approaches, so countdown reads as time movement instead of danger.
-
-小表情是原生绘制的矢量脸，会随着重置临近向右移动，并从皱眉过渡到微笑，所以倒计时读起来是时间移动，不是危险警报。
-
-![Codex Gauge color states](docs/assets/codex-gauge-color-states.svg)
-
-The color-state preview is simulated so the README can show healthy, watch, and critical states without pretending those are your current live quota values.
-
-颜色状态图是模拟示例，用来展示健康、偏低、严重偏低时的视觉变化，不假装这些就是当前实时额度。
 
 ## Quick Start
 
@@ -176,9 +165,9 @@ The generated zip includes `CodexGauge.app`, `Install Codex Gauge.command`, and 
 | Signal quality | Shows both 5-hour and 7-day quota instead of one vague number |
 | Refresh behavior | Adaptive refresh instead of constant polling: 5 minutes normally, 3 minutes when low, 2 minutes when critical, with quick retry after transient errors |
 | Preferences | Session-only refresh cadence, notifications, and theme controls |
-| Optional SSD temperature | Menu bar SSD chip can be hidden; diagnostics still label the sensor as Normal, Warm, or Hot, and the Signal Console can draw a local 10-minute in-memory curve |
-| Local CPU/RAM context | Tiny menu-bar CPU/RAM system strip plus Signal Console movement pulses, kept in memory only |
-| Battery Power Saver | Native battery glyph plus automatic on-battery Power Saver that keeps quota useful while reducing background hardware sampling |
+| Optional SSD temperature | Diagnostics still label the sensor as Normal, Warm, or Hot, and the Signal Console can draw a local 10-minute in-memory curve |
+| Local CPU/RAM context | Signal Console movement pulses, kept in memory only, while the compact menu bar stays focused on quota |
+| Battery Power Saver | Native battery context plus automatic on-battery Power Saver that keeps quota useful while reducing background hardware sampling |
 | Notifications | Opt-in alerts for the moments users actually care about |
 | Signal Console | Explains whether data is live or unavailable |
 | Setup Doctor | Local checks for Codex app, helper, live data, zero persistence, and notifications |
@@ -212,7 +201,7 @@ For live Codex quota, the app talks to the local Codex app-server through the bu
 
 It does **not** read browser cookies, does **not** read `~/.codex/auth.json`, and does **not** scan unrelated project folders, browser profiles, or Keychain.
 
-The CPU/RAM display is local CPU and RAM percentages only. Codex Gauge samples it every 5 seconds for the live strip while external power is connected, keeps only the in-memory movement view, and stores no process list, app names, command lines, or file paths.
+The CPU/RAM display is local CPU and RAM percentages only. Codex Gauge samples it every 5 seconds for the Signal Console movement view while external power is connected, keeps only the in-memory movement view, and stores no process list, app names, command lines, or file paths.
 
 Battery display is local battery percentage and power-source state only. Codex Gauge does not store battery history.
 

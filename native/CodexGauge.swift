@@ -2313,15 +2313,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let maxSystemMetricSamples = 24 * 60 * 60 / 5
     private let ssdTemperatureReadTimeout: TimeInterval = 0.8
     private let ssdTemperatureDisplayGraceInterval: TimeInterval = 10 * 60
-    private let statusItemWidth: CGFloat = 208
-    private let statusImageSize = NSSize(width: 202, height: 22)
-    private let menuBarTemperatureChipRect = NSRect(x: 72, y: 4.9, width: 27, height: 12.2)
-    private let menuBarSystemMetricStripRect = NSRect(x: 148, y: 1.8, width: 28, height: 18.4)
-    private let menuBarBatteryModeInfoRect = NSRect(x: 148, y: 4.9, width: 28, height: 12.2)
-    private let menuBarBatteryRect = NSRect(x: 180, y: 4.2, width: 20, height: 13.8)
+    private let statusItemWidth: CGFloat = 164
+    private let statusImageSize = NSSize(width: 158, height: 22)
+    private let menuBarUsagePercentRect = NSRect(x: 7, y: 3, width: 88, height: 16)
+    private let menuBarRefreshCountdownRect = NSRect(x: 101, y: 2.2, width: 54, height: 17.6)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
-    private let quotaRailWidth: CGFloat = 24
-    private let resetRailWidth: CGFloat = 18
+    private let quotaRailWidth: CGFloat = 42
     private let signalRailSegments = 10
     private let codexCliBundlePath = "/Applications/Codex.app/Contents/Resources/codex"
     private let normalQuotaColor = NSColor(calibratedRed: 0.58, green: 1.00, blue: 0.89, alpha: 0.95)
@@ -4918,16 +4915,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 palette: palette
             )
         }
-        if hardwareSignalsVisible() {
-            if showSSDTemperatureInMenuBar() {
-                drawMenuBarSSDTemperature(status: ssdTemperature, rect: menuBarTemperatureChipRect, palette: palette)
-            }
-            drawMenuBarSystemMetricStrip(sample: systemMetric, rect: menuBarSystemMetricStripRect, palette: palette)
-        } else {
-            drawMenuBarBatteryModeInfo(status: batteryStatus, rect: menuBarBatteryModeInfoRect, palette: palette)
-        }
-        drawMenuBarBattery(status: batteryStatus, rect: menuBarBatteryRect, palette: palette)
-
         NSGraphicsContext.restoreGraphicsState()
         image.addRepresentation(bitmap)
         image.isTemplate = false
@@ -4936,7 +4923,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func drawMenuBarChrome(source: String?, nonLiveMode: Bool, palette: GaugePalette) {
         drawMenuBarMinimalMorandiPill(source: source, nonLiveMode: nonLiveMode, palette: palette)
-        for x in [68, 101, 146, 178] as [CGFloat] {
+        for x in [96] as [CGFloat] {
             drawMenuBarMorandiDivider(x: x, palette: palette)
         }
     }
@@ -5088,56 +5075,105 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func drawUnavailableGauge(palette: GaugePalette) {
-        let labelAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 7.4, weight: .bold),
-            .foregroundColor: palette.primaryText,
-        ]
-        ("5h" as NSString).draw(at: NSPoint(x: 4, y: 10.5), withAttributes: labelAttrs)
-        ("7d" as NSString).draw(at: NSPoint(x: 4, y: 2.0), withAttributes: labelAttrs)
-
-        drawGaugeRail(value: nil, rect: NSRect(x: 22, y: 13, width: quotaRailWidth, height: 3), palette: palette, fillColor: morandiMenuBarTaupe().withAlphaComponent(0.58))
-        drawGaugeRail(value: nil, rect: NSRect(x: 22, y: 4, width: quotaRailWidth, height: 3), palette: palette, fillColor: morandiMenuBarTaupe().withAlphaComponent(0.58))
-
-        let dashAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 7.4, weight: .semibold),
-            .foregroundColor: palette.mutedText,
-        ]
-        ("--" as NSString).draw(at: NSPoint(x: 49, y: 9.9), withAttributes: dashAttrs)
-        ("--" as NSString).draw(at: NSPoint(x: 49, y: 1.0), withAttributes: dashAttrs)
-
-        let actionAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 7.0, weight: .semibold),
-            .foregroundColor: unavailableSourceColor(),
-        ]
-        ("Open Codex" as NSString).draw(at: NSPoint(x: 118, y: 6.4), withAttributes: actionAttrs)
+        drawMenuBarUsagePercentBars(fiveHourLeft: nil, sevenDayLeft: nil, palette: palette)
+        drawMenuBarRefreshCountdown(fiveHourReset: nil, sevenDayReset: nil, palette: palette)
     }
 
     private func drawPlanBGauge(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, palette: GaugePalette) {
-        drawPlanBRow(window: "5h", quotaLeft: fiveHourLeft, resetEpoch: fiveHourReset, windowHours: 5, y: 13, palette: palette)
-        drawPlanBRow(window: "7d", quotaLeft: sevenDayLeft, resetEpoch: sevenDayReset, windowHours: 24 * 7, y: 4, palette: palette)
+        drawMenuBarUsagePercentBars(fiveHourLeft: fiveHourLeft, sevenDayLeft: sevenDayLeft, palette: palette)
+        drawMenuBarRefreshCountdown(fiveHourReset: fiveHourReset, sevenDayReset: sevenDayReset, palette: palette)
     }
 
-    private func drawPlanBRow(window: String, quotaLeft: Int?, resetEpoch: Double?, windowHours: Double, y: CGFloat, palette: GaugePalette) {
+    private func drawMenuBarUsagePercentBars(fiveHourLeft: Int?, sevenDayLeft: Int?, palette: GaugePalette) {
+        drawMenuBarUsagePercentRow(window: "5h", quotaLeft: fiveHourLeft, y: 13.1, palette: palette)
+        drawMenuBarUsagePercentRow(window: "7d", quotaLeft: sevenDayLeft, y: 4.1, palette: palette)
+    }
+
+    private func drawMenuBarUsagePercentRow(window: String, quotaLeft: Int?, y: CGFloat, palette: GaugePalette) {
+        let value = quotaLeft
         let windowAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 7.2, weight: .bold),
             .foregroundColor: palette.primaryText,
         ]
-        (window as NSString).draw(at: NSPoint(x: 4, y: y - 2.5), withAttributes: windowAttrs)
+        (window as NSString).draw(at: NSPoint(x: menuBarUsagePercentRect.minX, y: y - 3.0), withAttributes: windowAttrs)
 
-        drawQuotaRail(value: quotaLeft, rect: NSRect(x: 22, y: y, width: quotaRailWidth, height: 3), palette: palette)
+        let railRect = NSRect(x: menuBarUsagePercentRect.minX + 18, y: y, width: quotaRailWidth, height: 3.4)
+        drawMenuBarUsagePercentBar(value: value, rect: railRect, palette: palette, fillColor: menuBarQuotaColor(value, palette: palette))
 
-        let percentText = quotaLeft.map { "\($0)%" } ?? "--"
+        let percentText = value.map { "\($0)%" } ?? "--%"
+        let fontSize: CGFloat = percentText.count > 3 ? 5.8 : 6.4
         let valueAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 6.7, weight: .semibold),
-            .foregroundColor: quotaLeft == nil ? palette.mutedText : palette.primaryText,
+            .font: NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .semibold),
+            .foregroundColor: value == nil ? palette.mutedText : palette.primaryText,
         ]
-        (percentText as NSString).draw(at: NSPoint(x: 49, y: y - 3.1), withAttributes: valueAttrs)
+        (percentText as NSString).draw(at: NSPoint(x: menuBarUsagePercentRect.minX + 64, y: y - 3.1), withAttributes: valueAttrs)
+    }
 
-        let resetProgress = resetProgressPercent(epoch: resetEpoch, windowHours: windowHours)
-        drawResetMoodLane(value: resetProgress, rect: NSRect(x: 102, y: y, width: resetRailWidth, height: 3), palette: palette)
+    private func drawMenuBarUsagePercentBar(value: Int?, rect: NSRect, palette: GaugePalette, fillColor: NSColor) {
+        let track = NSBezierPath(roundedRect: rect, xRadius: rect.height / 2, yRadius: rect.height / 2)
+        morandiMenuBarTaupe().withAlphaComponent(isDarkMenuBar() ? 0.28 : 0.20).setFill()
+        track.fill()
 
-        let resetText = window == "5h" ? fiveHourResetCountdown(resetEpoch) : sevenDayResetCountdown(resetEpoch)
-        drawMenuBarCountdownPill(text: resetText, rect: NSRect(x: 121, y: y - 4.4, width: 26, height: 9.4), palette: palette)
+        guard let value else {
+            return
+        }
+
+        let fraction = clampedFraction(value)
+        let width = max(rect.height, rect.width * fraction)
+        let fillRect = NSRect(x: rect.minX, y: rect.minY, width: min(rect.width, width), height: rect.height)
+        let fill = NSBezierPath(roundedRect: fillRect, xRadius: rect.height / 2, yRadius: rect.height / 2)
+        fillColor.withAlphaComponent(0.88).setFill()
+        fill.fill()
+
+        let capCenter = NSPoint(x: min(rect.maxX - 1.2, fillRect.maxX), y: rect.midY)
+        drawResetMinimalMarker(center: capCenter, radius: 1.15, fill: fillColor)
+    }
+
+    private func drawMenuBarRefreshCountdown(fiveHourReset: Double?, sevenDayReset: Double?, palette: GaugePalette) {
+        let fiveHourProgress = resetProgressPercent(epoch: fiveHourReset, windowHours: 5)
+        drawMenuBarRefreshCountdownRing(value: fiveHourProgress, rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 6.6, width: 9.2, height: 9.2), palette: palette)
+
+        let fiveHourText = fiveHourResetCountdown(fiveHourReset)
+        let sevenDayText = sevenDayResetCountdown(sevenDayReset)
+        drawMenuBarCountdownPill(text: fiveHourText, rect: NSRect(x: menuBarRefreshCountdownRect.minX + 13, y: 11.0, width: 39, height: 8.0), palette: palette)
+        drawMenuBarCountdownPill(text: sevenDayText, rect: NSRect(x: menuBarRefreshCountdownRect.minX + 13, y: 2.8, width: 39, height: 8.0), palette: palette)
+    }
+
+    private func drawMenuBarRefreshCountdownRing(value: Int?, rect: NSRect, palette: GaugePalette) {
+        let center = NSPoint(x: rect.midX, y: rect.midY)
+        let radius = min(rect.width, rect.height) / 2 - 0.8
+        let track = NSBezierPath(ovalIn: rect.insetBy(dx: 0.8, dy: 0.8))
+        morandiMenuBarTaupe().withAlphaComponent(isDarkMenuBar() ? 0.26 : 0.22).setStroke()
+        track.lineWidth = 1.0
+        track.stroke()
+
+        guard let value else {
+            return
+        }
+
+        let fraction = clampedFraction(value)
+        let laneColor = menuBarResetColor(value, palette: palette)
+        let startAngle: CGFloat = 90
+        let endAngle = startAngle - 360 * CGFloat(fraction)
+        let arc = NSBezierPath()
+        arc.appendArc(withCenter: center, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: true)
+        laneColor.withAlphaComponent(0.78).setStroke()
+        arc.lineWidth = 1.35
+        arc.lineCapStyle = .round
+        arc.stroke()
+
+        let markerAngle = (Double(endAngle) * .pi) / 180
+        let markerCenter = NSPoint(
+            x: center.x + CGFloat(cos(markerAngle)) * radius,
+            y: center.y + CGFloat(sin(markerAngle)) * radius
+        )
+        drawResetMinimalMarker(center: markerCenter, radius: 1.15, fill: laneColor)
+
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 4.6, weight: .bold),
+            .foregroundColor: palette.primaryText.withAlphaComponent(0.74),
+        ]
+        ("R" as NSString).draw(at: NSPoint(x: rect.minX + 2.8, y: rect.minY + 2.1), withAttributes: attrs)
     }
 
     private func drawMenuBarCountdownPill(text resetText: String, rect: NSRect, palette: GaugePalette) {
