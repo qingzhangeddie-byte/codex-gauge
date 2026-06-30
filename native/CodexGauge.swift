@@ -2014,7 +2014,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             statusDetail: "Read from local Codex app-server",
             fiveHourLeft: 82,
             sevenDayLeft: 76,
-            fiveHourResetText: "5h",
+            fiveHourResetText: "4h59m",
             sevenDayResetText: "6d23h",
             fiveHourResetProgress: 18,
             sevenDayResetProgress: 52,
@@ -2048,7 +2048,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             statusDetail: "Zero persistence keeps no cached fallback",
             fiveHourLeft: 58,
             sevenDayLeft: 63,
-            fiveHourResetText: "3h",
+            fiveHourResetText: "2h14m",
             sevenDayResetText: "4d8h",
             fiveHourResetProgress: 62,
             sevenDayResetProgress: 39,
@@ -2065,7 +2065,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             statusDetail: "Read from local Codex app-server",
             fiveHourLeft: 9,
             sevenDayLeft: 44,
-            fiveHourResetText: "1h",
+            fiveHourResetText: "38m",
             sevenDayResetText: "2d4h",
             fiveHourResetProgress: 86,
             sevenDayResetProgress: 70,
@@ -2082,7 +2082,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             statusDetail: "Read from local Codex app-server",
             fiveHourLeft: 82,
             sevenDayLeft: 76,
-            fiveHourResetText: "5h",
+            fiveHourResetText: "4h59m",
             sevenDayResetText: "6d23h",
             fiveHourResetProgress: 18,
             sevenDayResetProgress: 52,
@@ -2104,7 +2104,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             statusDetail: "Battery mode keeps only usage and battery signals visible.",
             fiveHourLeft: 80,
             sevenDayLeft: 79,
-            fiveHourResetText: "5h",
+            fiveHourResetText: "4h59m",
             sevenDayResetText: "6d23h",
             fiveHourResetProgress: 22,
             sevenDayResetProgress: 54,
@@ -5137,50 +5137,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func drawMenuBarRefreshCountdown(fiveHourReset: Double?, sevenDayReset: Double?, palette: GaugePalette) {
-        let fiveHourProgress = resetProgressPercent(epoch: fiveHourReset, windowHours: 5)
-        drawMenuBarRefreshCountdownRing(value: fiveHourProgress, rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 6.6, width: 9.2, height: 9.2), palette: palette)
-
         let fiveHourText = fiveHourResetCountdown(fiveHourReset)
         let sevenDayText = sevenDayResetCountdown(sevenDayReset)
-        drawMenuBarCountdownPill(text: fiveHourText, rect: NSRect(x: menuBarRefreshCountdownRect.minX + 13, y: 11.0, width: 39, height: 8.0), palette: palette)
-        drawMenuBarCountdownPill(text: sevenDayText, rect: NSRect(x: menuBarRefreshCountdownRect.minX + 13, y: 2.8, width: 39, height: 8.0), palette: palette)
-    }
-
-    private func drawMenuBarRefreshCountdownRing(value: Int?, rect: NSRect, palette: GaugePalette) {
-        let center = NSPoint(x: rect.midX, y: rect.midY)
-        let radius = min(rect.width, rect.height) / 2 - 0.8
-        let track = NSBezierPath(ovalIn: rect.insetBy(dx: 0.8, dy: 0.8))
-        morandiMenuBarTaupe().withAlphaComponent(isDarkMenuBar() ? 0.26 : 0.22).setStroke()
-        track.lineWidth = 1.0
-        track.stroke()
-
-        guard let value else {
-            return
-        }
-
-        let fraction = clampedFraction(value)
-        let laneColor = menuBarResetColor(value, palette: palette)
-        let startAngle: CGFloat = 90
-        let endAngle = startAngle - 360 * CGFloat(fraction)
-        let arc = NSBezierPath()
-        arc.appendArc(withCenter: center, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: true)
-        laneColor.withAlphaComponent(0.78).setStroke()
-        arc.lineWidth = 1.35
-        arc.lineCapStyle = .round
-        arc.stroke()
-
-        let markerAngle = (Double(endAngle) * .pi) / 180
-        let markerCenter = NSPoint(
-            x: center.x + CGFloat(cos(markerAngle)) * radius,
-            y: center.y + CGFloat(sin(markerAngle)) * radius
-        )
-        drawResetMinimalMarker(center: markerCenter, radius: 1.15, fill: laneColor)
-
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 4.6, weight: .bold),
-            .foregroundColor: palette.primaryText.withAlphaComponent(0.74),
-        ]
-        ("R" as NSString).draw(at: NSPoint(x: rect.minX + 2.8, y: rect.minY + 2.1), withAttributes: attrs)
+        drawMenuBarCountdownPill(text: fiveHourText, rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 11.0, width: menuBarRefreshCountdownRect.width, height: 8.0), palette: palette)
+        drawMenuBarCountdownPill(text: sevenDayText, rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 2.8, width: menuBarRefreshCountdownRect.width, height: 8.0), palette: palette)
     }
 
     private func drawMenuBarCountdownPill(text resetText: String, rect: NSRect, palette: GaugePalette) {
@@ -5688,7 +5648,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func fiveHourResetCountdown(_ epoch: Double?) -> String {
-        compactResetCountdown(epoch, includeMinutes: false, includeDays: false)
+        compactResetCountdown(epoch, includeMinutes: true, includeDays: false)
     }
 
     private func sevenDayResetCountdown(_ epoch: Double?) -> String {

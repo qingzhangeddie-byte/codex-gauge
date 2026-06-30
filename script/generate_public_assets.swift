@@ -156,26 +156,9 @@ func drawMenuBarCountdownPill(_ value: String, rect: NSRect, fill: NSColor, stro
     menuBarText(value, at: NSPoint(x: rect.minX + 10, y: rect.minY + 5), size: value.count > 3 ? 14 : 16, weight: .bold, color: text, mono: true)
 }
 
-func drawMenuBarRefreshCountdown(in rect: NSRect, ring: NSColor, track: NSColor, ink: NSColor, fill: NSColor, stroke: NSColor) {
-    let ringRect = NSRect(x: rect.minX, y: rect.midY - 12, width: 24, height: 24)
-    let center = NSPoint(x: ringRect.midX, y: ringRect.midY)
-    let baseRing = NSBezierPath(ovalIn: ringRect.insetBy(dx: 2, dy: 2))
-    track.setStroke()
-    baseRing.lineWidth = 3
-    baseRing.stroke()
-
-    let arc = NSBezierPath()
-    arc.appendArc(withCenter: center, radius: 10, startAngle: 90, endAngle: -160, clockwise: true)
-    ring.setStroke()
-    arc.lineWidth = 3.4
-    arc.lineCapStyle = .round
-    arc.stroke()
-    ring.setFill()
-    NSBezierPath(ovalIn: NSRect(x: center.x - 3, y: center.y + 7, width: 6, height: 6)).fill()
-    menuBarText("R", at: NSPoint(x: ringRect.minX + 8, y: ringRect.minY + 7), size: 10, weight: .bold, color: ink, mono: true)
-
-    drawMenuBarCountdownPill("5h", rect: NSRect(x: rect.minX + 34, y: rect.midY + 4, width: 70, height: 22), fill: fill, stroke: stroke, text: ink)
-    drawMenuBarCountdownPill("6d23h", rect: NSRect(x: rect.minX + 34, y: rect.midY - 26, width: 70, height: 22), fill: fill, stroke: stroke, text: ink)
+func drawMenuBarRefreshCountdown(in rect: NSRect, ink: NSColor, fill: NSColor, stroke: NSColor) {
+    drawMenuBarCountdownPill("4h59m", rect: NSRect(x: rect.minX, y: rect.midY + 4, width: 104, height: 22), fill: fill, stroke: stroke, text: ink)
+    drawMenuBarCountdownPill("6d23h", rect: NSRect(x: rect.minX, y: rect.midY - 26, width: 104, height: 22), fill: fill, stroke: stroke, text: ink)
 }
 
 func drawMenuBarMorandiDivider(_ x: CGFloat, in rect: NSRect, line: NSColor) {
@@ -284,8 +267,6 @@ func writeMenuBarPNG(_ path: String) throws {
 
     drawMenuBarRefreshCountdown(
         in: NSRect(x: strip.minX + 316, y: 23, width: 126, height: 50),
-        ring: taupe,
-        track: taupe.withAlphaComponent(0.20),
         ink: ink,
         fill: taupe.withAlphaComponent(0.13),
         stroke: taupe.withAlphaComponent(0.28)
@@ -353,7 +334,7 @@ try writePNG(heroOutputPath) {
     drawText("5h", in: NSRect(x: 710, y: 318, width: 42, height: 24), size: 22, weight: .bold, color: NSColor(calibratedRed: 0.13, green: 0.18, blue: 0.18, alpha: 1.0), mono: true)
     drawText("usage", in: NSRect(x: 710, y: 348, width: 78, height: 18), size: 12, weight: .medium, color: NSColor(calibratedRed: 0.36, green: 0.44, blue: 0.42, alpha: 0.86))
     drawText("90%", in: NSRect(x: 788, y: 318, width: 72, height: 28), size: 24, weight: .bold, color: NSColor(calibratedRed: 0.23, green: 0.32, blue: 0.28, alpha: 1.0), mono: true)
-    drawText("5h", in: NSRect(x: 788, y: 350, width: 72, height: 18), size: 12, weight: .semibold, color: NSColor(calibratedRed: 0.45, green: 0.41, blue: 0.35, alpha: 0.92), mono: true)
+    drawText("4h59m", in: NSRect(x: 788, y: 350, width: 72, height: 18), size: 12, weight: .semibold, color: NSColor(calibratedRed: 0.45, green: 0.41, blue: 0.35, alpha: 0.92), mono: true)
 
     drawRoundedRect(NSRect(x: 910, y: 294, width: 194, height: 96), radius: 18, fill: NSColor.white.withAlphaComponent(0.46), stroke: NSColor(calibratedRed: 0.26, green: 0.36, blue: 0.36, alpha: 0.15))
     drawText("7d", in: NSRect(x: 934, y: 318, width: 42, height: 24), size: 22, weight: .bold, color: NSColor(calibratedRed: 0.13, green: 0.18, blue: 0.18, alpha: 1.0), mono: true)
