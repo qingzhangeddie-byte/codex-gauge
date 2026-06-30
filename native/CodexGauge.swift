@@ -1799,12 +1799,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let watchRefreshInterval: TimeInterval = 3 * 60
     private let criticalRefreshInterval: TimeInterval = 2 * 60
     private let tenMinuteRefreshInterval: TimeInterval = 10 * 60
-    private let statusItemWidth: CGFloat = 154
-    private let statusImageSize = NSSize(width: 148, height: 22)
-    private let menuBarUsagePercentRect = NSRect(x: 7, y: 3, width: 82, height: 16)
-    private let menuBarRefreshCountdownRect = NSRect(x: 94, y: 2.2, width: 46, height: 17.6)
+    private let statusItemWidth: CGFloat = 142
+    private let statusImageSize = NSSize(width: 136, height: 22)
+    private let menuBarUsagePercentRect = NSRect(x: 7, y: 3, width: 76, height: 16)
+    private let menuBarRefreshCountdownRect = NSRect(x: 88, y: 2.2, width: 40, height: 17.6)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
-    private let quotaRailWidth: CGFloat = 36
+    private let quotaRailWidth: CGFloat = 32
     private let signalRailSegments = 10
     private let codexCliBundlePath = "/Applications/Codex.app/Contents/Resources/codex"
     private let normalQuotaColor = NSColor(calibratedRed: 0.58, green: 1.00, blue: 0.89, alpha: 0.95)
@@ -3730,7 +3730,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func drawMenuBarChrome(source: String?, nonLiveMode: Bool, palette: GaugePalette) {
         drawMenuBarMinimalMorandiPill(source: source, nonLiveMode: nonLiveMode, palette: palette)
-        for x in [90] as [CGFloat] {
+        for x in [84] as [CGFloat] {
             drawMenuBarMorandiDivider(x: x, palette: palette)
         }
     }
@@ -3913,7 +3913,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             .font: NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .semibold),
             .foregroundColor: value == nil ? palette.mutedText : palette.primaryText,
         ]
-        (percentText as NSString).draw(at: NSPoint(x: menuBarUsagePercentRect.minX + 64, y: y - 3.1), withAttributes: valueAttrs)
+        (percentText as NSString).draw(at: NSPoint(x: menuBarUsagePercentRect.minX + 58, y: y - 3.1), withAttributes: valueAttrs)
     }
 
     private func drawMenuBarUsagePercentBar(value: Int?, rect: NSRect, palette: GaugePalette, fillColor: NSColor) {
@@ -3952,10 +3952,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         pill.stroke()
 
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: resetText.count > 3 ? 5.3 : 6.0, weight: .bold),
+            .font: NSFont.monospacedDigitSystemFont(ofSize: resetText.count > 3 ? 5.1 : 5.8, weight: .bold),
             .foregroundColor: palette.primaryText.withAlphaComponent(isDarkMenuBar() ? 0.84 : 0.78),
         ]
-        (resetText as NSString).draw(at: NSPoint(x: rect.minX + 2.5, y: rect.minY + 1.4), withAttributes: attrs)
+        (resetText as NSString).draw(at: NSPoint(x: rect.minX + 2.2, y: rect.minY + 1.4), withAttributes: attrs)
     }
 
     private func drawQuotaRail(value: Int?, rect: NSRect, palette: GaugePalette) {

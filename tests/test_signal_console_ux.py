@@ -55,10 +55,10 @@ class SignalConsoleUXTests(unittest.TestCase):
         countdown_body = swift_function_body(source, "private func drawMenuBarRefreshCountdown(")
 
         for token in [
-            "statusItemWidth: CGFloat = 154",
-            "statusImageSize = NSSize(width: 148, height: 22)",
-            "menuBarUsagePercentRect = NSRect(x: 7, y: 3, width: 82, height: 16)",
-            "menuBarRefreshCountdownRect = NSRect(x: 94, y: 2.2, width: 46, height: 17.6)",
+            "statusItemWidth: CGFloat = 142",
+            "statusImageSize = NSSize(width: 136, height: 22)",
+            "menuBarUsagePercentRect = NSRect(x: 7, y: 3, width: 76, height: 16)",
+            "menuBarRefreshCountdownRect = NSRect(x: 88, y: 2.2, width: 40, height: 17.6)",
             "drawMenuBarMinimalMorandiPill",
             "drawMenuBarUsagePercentBars",
             "drawMenuBarCountdownPill",

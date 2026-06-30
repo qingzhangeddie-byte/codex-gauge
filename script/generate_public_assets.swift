@@ -157,8 +157,8 @@ func drawMenuBarCountdownPill(_ value: String, rect: NSRect, fill: NSColor, stro
 }
 
 func drawMenuBarRefreshCountdown(in rect: NSRect, ink: NSColor, fill: NSColor, stroke: NSColor) {
-    drawMenuBarCountdownPill("4h59m", rect: NSRect(x: rect.minX + 8, y: rect.midY + 4, width: 96, height: 22), fill: fill, stroke: stroke, text: ink)
-    drawMenuBarCountdownPill("6d23h", rect: NSRect(x: rect.minX + 8, y: rect.midY - 26, width: 96, height: 22), fill: fill, stroke: stroke, text: ink)
+    drawMenuBarCountdownPill("4h59m", rect: NSRect(x: rect.minX + 6, y: rect.midY + 4, width: 86, height: 22), fill: fill, stroke: stroke, text: ink)
+    drawMenuBarCountdownPill("6d23h", rect: NSRect(x: rect.minX + 6, y: rect.midY - 26, width: 86, height: 22), fill: fill, stroke: stroke, text: ink)
 }
 
 func drawMenuBarMorandiDivider(_ x: CGFloat, in rect: NSRect, line: NSColor) {
@@ -207,7 +207,7 @@ func writeMenuBarPNG(_ path: String) throws {
         NSColor(calibratedRed: 0.77, green: 0.84, blue: 0.84, alpha: 1.0),
     ])?.draw(in: NSBezierPath(rect: NSRect(origin: .zero, size: menuBarSize)), angle: 0)
 
-    let strip = NSRect(x: 160, y: 20, width: 470, height: 56)
+    let strip = NSRect(x: 200, y: 20, width: 390, height: 56)
     let shadow = NSShadow()
     shadow.shadowColor = NSColor.black.withAlphaComponent(0.16)
     shadow.shadowBlurRadius = 12
@@ -229,19 +229,19 @@ func writeMenuBarPNG(_ path: String) throws {
     sage.withAlphaComponent(0.28).setFill()
     topRail.fill()
 
-    for x in [strip.minX + 290] as [CGFloat] {
+    for x in [strip.minX + 260] as [CGFloat] {
         drawMenuBarMorandiDivider(x, in: strip, line: line)
     }
 
     menuBarText("5h", at: NSPoint(x: strip.minX + 24, y: 48), size: 24, weight: .bold, color: ink, mono: true)
     menuBarText("7d", at: NSPoint(x: strip.minX + 24, y: 24), size: 24, weight: .bold, color: ink, mono: true)
-    drawMenuBarUsagePercentBar(value: 0.90, rect: NSRect(x: strip.minX + 84, y: 56, width: 116, height: 8), fill: sage, track: line.withAlphaComponent(0.20))
-    drawMenuBarUsagePercentBar(value: 0.80, rect: NSRect(x: strip.minX + 84, y: 32, width: 116, height: 8), fill: mist.withAlphaComponent(0.88), track: line.withAlphaComponent(0.20))
-    menuBarText("90%", at: NSPoint(x: strip.minX + 220, y: 47), size: 22, weight: .bold, color: ink, mono: true)
-    menuBarText("80%", at: NSPoint(x: strip.minX + 220, y: 23), size: 22, weight: .bold, color: ink, mono: true)
+    drawMenuBarUsagePercentBar(value: 0.90, rect: NSRect(x: strip.minX + 78, y: 56, width: 104, height: 8), fill: sage, track: line.withAlphaComponent(0.20))
+    drawMenuBarUsagePercentBar(value: 0.80, rect: NSRect(x: strip.minX + 78, y: 32, width: 104, height: 8), fill: mist.withAlphaComponent(0.88), track: line.withAlphaComponent(0.20))
+    menuBarText("90%", at: NSPoint(x: strip.minX + 202, y: 47), size: 22, weight: .bold, color: ink, mono: true)
+    menuBarText("80%", at: NSPoint(x: strip.minX + 202, y: 23), size: 22, weight: .bold, color: ink, mono: true)
 
     drawMenuBarRefreshCountdown(
-        in: NSRect(x: strip.minX + 316, y: 23, width: 126, height: 50),
+        in: NSRect(x: strip.minX + 284, y: 23, width: 110, height: 50),
         ink: ink,
         fill: taupe.withAlphaComponent(0.13),
         stroke: taupe.withAlphaComponent(0.28)
