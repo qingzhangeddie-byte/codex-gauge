@@ -11,6 +11,8 @@ PACKAGE_NAME="CodexGauge-$APP_VERSION"
 PACKAGE_DIR="$RELEASE_DIR/$PACKAGE_NAME"
 ZIP_PATH="$RELEASE_DIR/CodexGauge-$APP_VERSION.zip"
 CHECKSUM_PATH="$ZIP_PATH.sha256"
+ZIP_FILE="$(basename "$ZIP_PATH")"
+CHECKSUM_FILE="$(basename "$CHECKSUM_PATH")"
 
 ./script/build_and_run.sh --build-only
 
@@ -101,8 +103,8 @@ README
 
 (
   cd "$RELEASE_DIR"
-  COPYFILE_DISABLE=1 ditto --norsrc --noextattr -c -k --keepParent "$PACKAGE_NAME" "$ZIP_PATH"
-  shasum -a 256 "$ZIP_PATH" >"$CHECKSUM_PATH"
+  COPYFILE_DISABLE=1 ditto --norsrc --noextattr -c -k --keepParent "$PACKAGE_NAME" "$ZIP_FILE"
+  shasum -a 256 "$ZIP_FILE" >"$CHECKSUM_FILE"
 )
 
 printf "Release package: %s\n" "$ZIP_PATH"
