@@ -194,7 +194,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
             text=True,
             stdout=subprocess.PIPE,
         )
-        self.assertIn("pixelWidth: 790", live_result.stdout)
+        self.assertIn("pixelWidth: 430", live_result.stdout)
         self.assertIn("pixelHeight: 96", live_result.stdout)
 
     def test_public_asset_generator_draws_menu_bar_strip(self):

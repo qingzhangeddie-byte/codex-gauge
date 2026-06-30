@@ -10,7 +10,7 @@ let menuBarPath = "docs/assets/codex-gauge-menubar-live.png"
 let consoleOutputPath = "docs/assets/codex-gauge-signal-console.png"
 let socialOutputPath = "docs/assets/codex-gauge-social-preview.png"
 let provenanceText = "actual app-rendered Signal Console"
-let menuBarSize = NSSize(width: 790, height: 96)
+let menuBarSize = NSSize(width: 430, height: 96)
 
 func canvasRect(_ rect: NSRect) -> NSRect {
     NSRect(x: rect.minX, y: canvasSize.height - rect.maxY, width: rect.width, height: rect.height)
@@ -157,8 +157,8 @@ func drawMenuBarCountdownPill(_ value: String, rect: NSRect, fill: NSColor, stro
 }
 
 func drawMenuBarRefreshCountdown(in rect: NSRect, ink: NSColor, fill: NSColor, stroke: NSColor) {
-    drawMenuBarCountdownPill("4h59m", rect: NSRect(x: rect.minX + 6, y: rect.midY + 4, width: 86, height: 22), fill: fill, stroke: stroke, text: ink)
-    drawMenuBarCountdownPill("6d23h", rect: NSRect(x: rect.minX + 6, y: rect.midY - 26, width: 86, height: 22), fill: fill, stroke: stroke, text: ink)
+    drawMenuBarCountdownPill("4h59m", rect: NSRect(x: rect.minX + 6, y: rect.midY + 4, width: 80, height: 22), fill: fill, stroke: stroke, text: ink)
+    drawMenuBarCountdownPill("6d23h", rect: NSRect(x: rect.minX + 6, y: rect.midY - 26, width: 80, height: 22), fill: fill, stroke: stroke, text: ink)
 }
 
 func drawMenuBarMorandiDivider(_ x: CGFloat, in rect: NSRect, line: NSColor) {
@@ -207,7 +207,7 @@ func writeMenuBarPNG(_ path: String) throws {
         NSColor(calibratedRed: 0.77, green: 0.84, blue: 0.84, alpha: 1.0),
     ])?.draw(in: NSBezierPath(rect: NSRect(origin: .zero, size: menuBarSize)), angle: 0)
 
-    let strip = NSRect(x: 200, y: 20, width: 390, height: 56)
+    let strip = NSRect(x: 88, y: 20, width: 254, height: 56)
     let shadow = NSShadow()
     shadow.shadowColor = NSColor.black.withAlphaComponent(0.16)
     shadow.shadowBlurRadius = 12
@@ -229,19 +229,17 @@ func writeMenuBarPNG(_ path: String) throws {
     sage.withAlphaComponent(0.28).setFill()
     topRail.fill()
 
-    for x in [strip.minX + 260] as [CGFloat] {
+    for x in [strip.minX + 138] as [CGFloat] {
         drawMenuBarMorandiDivider(x, in: strip, line: line)
     }
 
-    menuBarText("5h", at: NSPoint(x: strip.minX + 24, y: 48), size: 24, weight: .bold, color: ink, mono: true)
-    menuBarText("7d", at: NSPoint(x: strip.minX + 24, y: 24), size: 24, weight: .bold, color: ink, mono: true)
-    drawMenuBarUsagePercentBar(value: 0.90, rect: NSRect(x: strip.minX + 78, y: 56, width: 104, height: 8), fill: sage, track: line.withAlphaComponent(0.20))
-    drawMenuBarUsagePercentBar(value: 0.80, rect: NSRect(x: strip.minX + 78, y: 32, width: 104, height: 8), fill: mist.withAlphaComponent(0.88), track: line.withAlphaComponent(0.20))
-    menuBarText("90%", at: NSPoint(x: strip.minX + 202, y: 47), size: 22, weight: .bold, color: ink, mono: true)
-    menuBarText("80%", at: NSPoint(x: strip.minX + 202, y: 23), size: 22, weight: .bold, color: ink, mono: true)
+    menuBarText("5h", at: NSPoint(x: strip.minX + 16, y: 48), size: 24, weight: .bold, color: ink, mono: true)
+    menuBarText("7d", at: NSPoint(x: strip.minX + 16, y: 24), size: 24, weight: .bold, color: ink, mono: true)
+    drawMenuBarUsagePercentBar(value: 0.90, rect: NSRect(x: strip.minX + 54, y: 56, width: 76, height: 8), fill: sage, track: line.withAlphaComponent(0.20))
+    drawMenuBarUsagePercentBar(value: 0.80, rect: NSRect(x: strip.minX + 54, y: 32, width: 76, height: 8), fill: mist.withAlphaComponent(0.88), track: line.withAlphaComponent(0.20))
 
     drawMenuBarRefreshCountdown(
-        in: NSRect(x: strip.minX + 284, y: 23, width: 110, height: 50),
+        in: NSRect(x: strip.minX + 142, y: 23, width: 92, height: 50),
         ink: ink,
         fill: taupe.withAlphaComponent(0.13),
         stroke: taupe.withAlphaComponent(0.28)
@@ -290,7 +288,7 @@ try writePNG(heroOutputPath) {
 
     drawRoundedRect(NSRect(x: 642, y: 116, width: 548, height: 340), radius: 30, fill: NSColor.white.withAlphaComponent(0.52), stroke: NSColor(calibratedRed: 0.26, green: 0.36, blue: 0.36, alpha: 0.20))
     drawText("menu bar signal", in: NSRect(x: 686, y: 154, width: 220, height: 22), size: 14, weight: .semibold, color: NSColor(calibratedRed: 0.35, green: 0.43, blue: 0.40, alpha: 0.92))
-    drawImage(menuBar, in: NSRect(x: 674, y: 190, width: 500, height: 55))
+    drawImage(menuBar, in: NSRect(x: 732, y: 178, width: 360, height: 80))
     drawRoundedRect(NSRect(x: 686, y: 294, width: 194, height: 96), radius: 18, fill: NSColor.white.withAlphaComponent(0.46), stroke: NSColor(calibratedRed: 0.26, green: 0.36, blue: 0.36, alpha: 0.15))
     drawText("5h", in: NSRect(x: 710, y: 318, width: 42, height: 24), size: 22, weight: .bold, color: NSColor(calibratedRed: 0.13, green: 0.18, blue: 0.18, alpha: 1.0), mono: true)
     drawText("usage", in: NSRect(x: 710, y: 348, width: 78, height: 18), size: 12, weight: .medium, color: NSColor(calibratedRed: 0.36, green: 0.44, blue: 0.42, alpha: 0.86))
@@ -321,7 +319,7 @@ try writePNG(consoleOutputPath) {
     drawPill("Live summary", rect: NSRect(x: 352, y: 280, width: 144, height: 38), fill: NSColor(calibratedRed: 0.216, green: 0.424, blue: 0.561, alpha: 0.09), stroke: NSColor(calibratedRed: 0.216, green: 0.424, blue: 0.561, alpha: 0.20), text: NSColor(calibratedRed: 0.063, green: 0.137, blue: 0.227, alpha: 1.0))
 
     drawRoundedRect(NSRect(x: 72, y: 382, width: 468, height: 84), radius: 26, fill: NSColor.white.withAlphaComponent(0.48), stroke: NSColor(calibratedRed: 0.10, green: 0.19, blue: 0.23, alpha: 0.16))
-    drawImage(menuBar, in: NSRect(x: 92, y: 405, width: 395, height: 48))
+    drawImage(menuBar, in: NSRect(x: 160, y: 398, width: 260, height: 58))
     drawText("Menu bar first. Fuller detail when you click.", in: NSRect(x: 78, y: 490, width: 420, height: 24), size: 16, weight: .medium, color: NSColor(calibratedRed: 0.42, green: 0.50, blue: 0.53, alpha: 0.90))
 
     let shadow = NSShadow()

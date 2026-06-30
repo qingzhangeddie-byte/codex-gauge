@@ -50,7 +50,7 @@ class PublicReadmePackageTests(unittest.TestCase):
 
         for phrase in [
             "Stop guessing how much Codex you have left.",
-            "Codex Gauge puts your 5-hour and 7-day usage percentages directly in the macOS menu bar",
+            "Codex Gauge puts your 5-hour and 7-day usage bars directly in the macOS menu bar",
             "Open Codex once, keep Codex Gauge running, and the menu bar refreshes hands-free.",
             "No browser cookies. No `~/.codex/auth.json`. No prompt or response logging.",
             "Install from source with one command:",
@@ -70,7 +70,7 @@ class PublicReadmePackageTests(unittest.TestCase):
         for phrase in [
             "Codex Gauge 是一个**非官方** macOS 菜单栏工具",
             "它可以直接显示 Codex 5 小时剩余额度和 Codex 7 天剩余额度",
-            "菜单栏紧凑显示 Codex 5 小时和 7 天使用百分比",
+            "菜单栏紧凑显示 Codex 5 小时和 7 天使用百分比条",
             "下拉菜单显示额度重置时间和上次刷新时间",
             "紧凑菜单栏仪表使用极简 Morandi 设计",
             "重置倒计时胶囊",

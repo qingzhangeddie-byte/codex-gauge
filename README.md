@@ -7,15 +7,15 @@
 
 ![Codex Gauge rendered GitHub hero with Morandi menu bar quota bars](docs/assets/codex-gauge-github-hero.png)
 
-_Rendered public image with static sample values. The installed app renders your live Codex usage percentages and reset countdowns._
+_Rendered public image with static sample values. The installed app renders your live Codex usage bars and reset countdowns._
 
 **A calm, safe macOS menu bar app to check Codex usage: 5-hour and 7-day quota, live reset countdowns, and no browser-cookie reads.**
 
 Stop guessing how much Codex you have left.
 
-Codex Gauge puts your 5-hour and 7-day usage percentages directly in the macOS menu bar, with reset countdowns that keep moving and a compact Signal Console when you need more detail.
+Codex Gauge puts your 5-hour and 7-day usage bars directly in the macOS menu bar, with reset countdowns that keep moving and a compact Signal Console when you need exact percentages.
 
-Codex Gauge 会把 Codex 5 小时和 7 天使用百分比、重置倒计时和数据来源直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态。
+Codex Gauge 会把 Codex 5 小时和 7 天使用百分比条、重置倒计时和数据来源直接放进 macOS 菜单栏；需要精确百分比时，点开 Signal Console 就能看到完整状态。
 
 Open Codex once, keep Codex Gauge running, and the menu bar refreshes hands-free.
 
@@ -57,8 +57,8 @@ _Menu bar strip render. Static sample values; live values update in the installe
 
 ## What You Get
 
-- Compact menu bar gauge for Codex 5-hour and 7-day usage percentages plus refresh countdowns
-  菜单栏紧凑显示 Codex 5 小时和 7 天使用百分比，以及刷新倒计时
+- Compact menu bar gauge for Codex 5-hour and 7-day usage bars plus refresh countdowns
+  菜单栏紧凑显示 Codex 5 小时和 7 天使用百分比条，以及刷新倒计时
 - Morandi percentage bars keep quota health readable without turning the menu bar into a large widget
   Morandi 色系百分比条让菜单栏里的额度健康状态更直观，同时不会变成很占位置的大组件
 - Custom Signal Console popover with status, quota, reset timing, trend, doctor checks, diagnostics, and actions
@@ -96,9 +96,9 @@ _Menu bar strip render. Static sample values; live values update in the installe
 
 ![Codex Gauge Signal Console](docs/assets/codex-gauge-signal-console.png)
 
-This is an actual app-rendered Signal Console screenshot generated from the native macOS view. It uses static sample quota values for the README, not live account data; the installed app keeps usage percentages and reset countdowns in the menu bar, with fuller Codex detail in the popover.
+This is an actual app-rendered Signal Console screenshot generated from the native macOS view. It uses static sample quota values for the README, not live account data; the installed app keeps usage bars and reset countdowns in the menu bar, with exact Codex percentages in the popover.
 
-上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 静态示例额度数值，不是实时账户数据；安装后的 App 会把使用百分比和重置倒计时放在菜单栏，并在弹出面板里显示更完整的 Codex 细节。
+上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 静态示例额度数值，不是实时账户数据；安装后的 App 会把使用百分比条和重置倒计时放在菜单栏，并在弹出面板里显示精确百分比和更完整的 Codex 细节。
 
 ## Compact menu bar
 
