@@ -96,7 +96,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("codesign --verify --deep --strict", script)
         self.assertIn("CFBundleShortVersionString", script)
         self.assertIn("CodexGaugeReleaseURL", script)
-        self.assertIn('Contents/Resources/ssd_temperature', script)
+        self.assertNotIn('Contents/Resources/ssd_temperature', script)
         self.assertIn("git ls-files", script)
         self.assertIn("git grep -n -I -E", script)
         self.assertNotIn("grep -R -I -n -E", script)
@@ -139,13 +139,11 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("source_counts", script)
         self.assertIn("unavailable_count", script)
         self.assertIn("--status-json", script)
-        self.assertIn("--battery-mode", script)
-        self.assertIn("CodexGauge-battery-soak", script)
-        self.assertIn("ssd_parse_failures_before", script)
-        self.assertIn("ssd_parse_failures_after", script)
-        self.assertIn("pmset -g batt", script)
-        self.assertIn("pgrep -f", script)
         self.assertIn("native/codex_status.py", script)
+        self.assertNotIn("--battery-mode", script)
+        self.assertNotIn("CodexGauge-battery-soak", script)
+        self.assertNotIn("ssd_parse_failures", script)
+        self.assertNotIn("pmset -g batt", script)
         self.assertNotIn("browser-cookie", script)
 
     def test_public_visual_assets_exist_and_are_bounded(self):
@@ -236,7 +234,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
             "Codex closed",
             "Live only",
             "Low quota",
-            "Battery mode",
+            "Reset soon",
             "docs/design/codex-gauge-theme-state-fixtures.png",
         ]:
             self.assertIn(phrase, script_text)
@@ -259,27 +257,25 @@ class PublicReleaseHygieneTests(unittest.TestCase):
             "blue-ceramic-codex-closed.png",
             "blue-ceramic-last-live.png",
             "blue-ceramic-low-quota.png",
-            "blue-ceramic-plugged-in-full.png",
-            "blue-ceramic-battery-mode.png",
+            "blue-ceramic-reset-soon.png",
             "signal-dark-live.png",
             "signal-dark-codex-closed.png",
             "signal-dark-last-live.png",
             "signal-dark-low-quota.png",
-            "signal-dark-plugged-in-full.png",
-            "signal-dark-battery-mode.png",
+            "signal-dark-reset-soon.png",
             "mono-graphite-live.png",
             "mono-graphite-codex-closed.png",
             "mono-graphite-last-live.png",
             "mono-graphite-low-quota.png",
-            "mono-graphite-plugged-in-full.png",
-            "mono-graphite-battery-mode.png",
+            "mono-graphite-reset-soon.png",
         ]
 
         self.assertTrue(script.exists())
         self.assertTrue(fixture_dir.exists())
         script_text = script.read_text()
         self.assertIn("--render-signal-console-fixtures", script_text)
-        self.assertIn("native/dist/CodexGauge.app/Contents/MacOS/CodexGauge-bin", script_text)
+        self.assertIn("native/dist/CodexGauge.app/Contents/MacOS/CodexGauge", script_text)
+        self.assertNotIn("CodexGauge-bin", script_text)
         for filename in expected:
             fixture = fixture_dir / filename
             self.assertTrue(fixture.exists(), filename)
@@ -292,6 +288,8 @@ class PublicReleaseHygieneTests(unittest.TestCase):
             )
             self.assertIn("pixelWidth: 1120", result.stdout)
             self.assertIn("pixelHeight: 1120", result.stdout)
+        self.assertFalse(list(fixture_dir.glob("*battery-mode.png")))
+        self.assertFalse(list(fixture_dir.glob("*plugged-in-full.png")))
         self.assertIn("blue-ceramic", pathlib.Path("native/CodexGauge.swift").read_text())
 
     def test_public_visual_assets_are_generated_from_real_app_render(self):

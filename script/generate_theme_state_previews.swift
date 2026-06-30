@@ -80,7 +80,7 @@ let states = [
     PreviewState(name: "Codex closed", detail: "Open Codex desktop once to enable live usage", source: "No live quota yet", fiveHour: nil, sevenDay: nil, reset: "--", status: NSColor.systemOrange),
     PreviewState(name: "Live only", detail: "No stored cache or snapshot", source: "Storage: Zero persistence", fiveHour: 58, sevenDay: 63, reset: "2h", status: NSColor.systemBlue),
     PreviewState(name: "Low quota", detail: "Adaptive refresh speeds up", source: "Source: Menu Bar", fiveHour: 9, sevenDay: 44, reset: "38m", status: NSColor.systemRed),
-    PreviewState(name: "Battery mode", detail: "Usage plus battery only", source: "Power Saver active", fiveHour: 80, sevenDay: 79, reset: "60m", status: NSColor.systemBlue),
+    PreviewState(name: "Reset soon", detail: "Countdown stays visible", source: "Source: Menu Bar", fiveHour: 80, sevenDay: 79, reset: "60m", status: NSColor.systemBlue),
 ]
 
 func canvasRect(_ rect: NSRect) -> NSRect {

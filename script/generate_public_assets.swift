@@ -177,31 +177,6 @@ func drawMenuBarMorandiDivider(_ x: CGFloat, in rect: NSRect, line: NSColor) {
     highlight.stroke()
 }
 
-func drawMenuBarHardwareChip(_ value: String, rect: NSRect, fill: NSColor, stroke: NSColor, text: NSColor) {
-    let chip = NSBezierPath(roundedRect: rect, xRadius: 8, yRadius: 8)
-    fill.setFill()
-    chip.fill()
-    stroke.setStroke()
-    chip.lineWidth = 1
-    chip.stroke()
-    menuBarText(value, at: NSPoint(x: rect.minX + 12, y: rect.minY + 9), size: 17, weight: .bold, color: text, mono: true)
-}
-
-func drawMenuBarHardwareMetrics(rect: NSRect, ink: NSColor, line: NSColor, sage: NSColor, mist: NSColor) {
-    let background = NSBezierPath(roundedRect: rect, xRadius: 8, yRadius: 8)
-    line.withAlphaComponent(0.20).setFill()
-    background.fill()
-    line.withAlphaComponent(0.34).setStroke()
-    background.lineWidth = 1
-    background.stroke()
-
-    for (label, y, color) in [("C36", rect.midY + 3, mist), ("R62", rect.minY + 7, sage)] as [(String, CGFloat, NSColor)] {
-        color.withAlphaComponent(0.92).setFill()
-        NSBezierPath(roundedRect: NSRect(x: rect.minX + 10, y: y + 1, width: 6, height: 9), xRadius: 3, yRadius: 3).fill()
-        menuBarText(label, at: NSPoint(x: rect.minX + 23, y: y), size: 14, weight: .bold, color: ink, mono: true)
-    }
-}
-
 func writeMenuBarPNG(_ path: String) throws {
     let bitmap = NSBitmapImageRep(
         bitmapDataPlanes: nil,
@@ -232,7 +207,7 @@ func writeMenuBarPNG(_ path: String) throws {
         NSColor(calibratedRed: 0.77, green: 0.84, blue: 0.84, alpha: 1.0),
     ])?.draw(in: NSBezierPath(rect: NSRect(origin: .zero, size: menuBarSize)), angle: 0)
 
-    let strip = NSRect(x: 70, y: 20, width: 650, height: 56)
+    let strip = NSRect(x: 160, y: 20, width: 470, height: 56)
     let shadow = NSShadow()
     shadow.shadowColor = NSColor.black.withAlphaComponent(0.16)
     shadow.shadowBlurRadius = 12
@@ -254,7 +229,7 @@ func writeMenuBarPNG(_ path: String) throws {
     sage.withAlphaComponent(0.28).setFill()
     topRail.fill()
 
-    for x in [strip.minX + 290, strip.minX + 456] as [CGFloat] {
+    for x in [strip.minX + 290] as [CGFloat] {
         drawMenuBarMorandiDivider(x, in: strip, line: line)
     }
 
@@ -270,20 +245,6 @@ func writeMenuBarPNG(_ path: String) throws {
         ink: ink,
         fill: taupe.withAlphaComponent(0.13),
         stroke: taupe.withAlphaComponent(0.28)
-    )
-    drawMenuBarHardwareChip(
-        "42°",
-        rect: NSRect(x: strip.minX + 474, y: 30, width: 64, height: 34),
-        fill: mist.withAlphaComponent(0.18),
-        stroke: mist.withAlphaComponent(0.48),
-        text: ink
-    )
-    drawMenuBarHardwareMetrics(
-        rect: NSRect(x: strip.minX + 550, y: 27, width: 76, height: 40),
-        ink: ink,
-        line: line,
-        sage: sage,
-        mist: mist
     )
 
     NSGraphicsContext.restoreGraphicsState()
@@ -328,7 +289,7 @@ try writePNG(heroOutputPath) {
     NSGraphicsContext.restoreGraphicsState()
 
     drawRoundedRect(NSRect(x: 642, y: 116, width: 548, height: 340), radius: 30, fill: NSColor.white.withAlphaComponent(0.52), stroke: NSColor(calibratedRed: 0.26, green: 0.36, blue: 0.36, alpha: 0.20))
-    drawText("menu bar + hardware", in: NSRect(x: 686, y: 154, width: 220, height: 22), size: 14, weight: .semibold, color: NSColor(calibratedRed: 0.35, green: 0.43, blue: 0.40, alpha: 0.92))
+    drawText("menu bar signal", in: NSRect(x: 686, y: 154, width: 220, height: 22), size: 14, weight: .semibold, color: NSColor(calibratedRed: 0.35, green: 0.43, blue: 0.40, alpha: 0.92))
     drawImage(menuBar, in: NSRect(x: 674, y: 190, width: 500, height: 55))
     drawRoundedRect(NSRect(x: 686, y: 294, width: 194, height: 96), radius: 18, fill: NSColor.white.withAlphaComponent(0.46), stroke: NSColor(calibratedRed: 0.26, green: 0.36, blue: 0.36, alpha: 0.15))
     drawText("5h", in: NSRect(x: 710, y: 318, width: 42, height: 24), size: 22, weight: .bold, color: NSColor(calibratedRed: 0.13, green: 0.18, blue: 0.18, alpha: 1.0), mono: true)
@@ -342,7 +303,7 @@ try writePNG(heroOutputPath) {
     drawText("80%", in: NSRect(x: 1012, y: 318, width: 72, height: 28), size: 24, weight: .bold, color: NSColor(calibratedRed: 0.24, green: 0.34, blue: 0.38, alpha: 1.0), mono: true)
     drawText("6d23h", in: NSRect(x: 1012, y: 350, width: 72, height: 18), size: 12, weight: .semibold, color: NSColor(calibratedRed: 0.45, green: 0.41, blue: 0.35, alpha: 0.92), mono: true)
 
-    drawText("The menu bar shows quota, reset countdowns, SSD temperature, and CPU/RAM; the popover expands the same signals into diagnostics.", in: NSRect(x: 686, y: 412, width: 420, height: 58), size: 16, weight: .regular, color: NSColor(calibratedRed: 0.35, green: 0.42, blue: 0.41, alpha: 0.92))
+    drawText("The menu bar shows Codex quota and reset countdowns; the popover expands those same signals into a focused console.", in: NSRect(x: 686, y: 412, width: 420, height: 58), size: 16, weight: .regular, color: NSColor(calibratedRed: 0.35, green: 0.42, blue: 0.41, alpha: 0.92))
 }
 
 try writePNG(consoleOutputPath) {
@@ -383,7 +344,7 @@ try writePNG(socialOutputPath) {
 
     drawText("Codex Gauge", in: NSRect(x: 74, y: 74, width: 430, height: 58), size: 48, weight: .bold, color: NSColor.white.withAlphaComponent(0.96))
     drawText("Quota visibility for the menu bar", in: NSRect(x: 78, y: 142, width: 460, height: 36), size: 24, weight: .semibold, color: NSColor(calibratedRed: 0.74, green: 0.88, blue: 0.86, alpha: 0.95))
-    drawText("5-hour and 7-day usage percentages, live reset countdowns, compact hardware signals, safe diagnostics, and no browser-cookie reads.", in: NSRect(x: 78, y: 202, width: 450, height: 116), size: 19, weight: .regular, color: NSColor.white.withAlphaComponent(0.72))
+    drawText("5-hour and 7-day usage percentages, live reset countdowns, safe diagnostics, and no browser-cookie reads.", in: NSRect(x: 78, y: 202, width: 450, height: 116), size: 19, weight: .regular, color: NSColor.white.withAlphaComponent(0.72))
 
     drawPill("No browser cookies", rect: NSRect(x: 78, y: 328, width: 174, height: 40), fill: NSColor.white.withAlphaComponent(0.08), stroke: NSColor.white.withAlphaComponent(0.17), text: NSColor.white.withAlphaComponent(0.88))
     drawPill("No auth-file reads", rect: NSRect(x: 266, y: 328, width: 174, height: 40), fill: NSColor.white.withAlphaComponent(0.08), stroke: NSColor.white.withAlphaComponent(0.17), text: NSColor.white.withAlphaComponent(0.88))

@@ -71,10 +71,9 @@ class PublicReadmePackageTests(unittest.TestCase):
             "Codex Gauge 是一个**非官方** macOS 菜单栏工具",
             "它可以直接显示 Codex 5 小时剩余额度和 Codex 7 天剩余额度",
             "菜单栏紧凑显示 Codex 5 小时和 7 天使用百分比",
-            "SSD 温度显示可以在 Preferences 里关闭",
             "下拉菜单显示额度重置时间和上次刷新时间",
             "紧凑菜单栏仪表使用极简 Morandi 设计",
-            "刷新倒计时胶囊",
+            "重置倒计时胶囊",
             "很多使用量工具是大而全的 dashboard",
             "## SEO Keywords",
         ]:
@@ -89,17 +88,10 @@ class PublicReadmePackageTests(unittest.TestCase):
             "No `~/.codex/auth.json` reads in the menu bar app",
             "Self-contained app bundle",
             "Adaptive refresh",
-            "Optional SSD temperature",
-            "Normal, Warm, or Hot",
-            "1-second SSD temperature samples",
-            "smooth 10-minute Movement curve",
-            "local CPU and RAM percentages",
-            "menu bar hardware slice",
-            "10-minute in-memory movement view",
+            "Codex quota at a glance",
+            "Morandi rails",
+            "Live, Last live, Snapshot, and Codex closed states",
             "Zero persistence mode",
-            "native battery signal",
-            "Power Saver on battery",
-            "20 minutes normally on battery",
             "Clear legacy data removes old Codex Gauge history",
             "actual next-refresh countdown",
             "Codex closed",
@@ -153,11 +145,9 @@ class PublicReadmePackageTests(unittest.TestCase):
             "Compact menu bar",
             "minimal Morandi design",
             "usage percentage bars on the left",
-            "refresh countdown pills in the middle",
-            "small hardware slice on the right",
+            "reset countdown pills on the right",
             "5-hour usage and 7-day usage",
             "5-hour reset and 7-day reset",
-            "optional SSD temperature plus CPU/RAM",
             "green, blue-grey, taupe, and clay states",
         ]:
             self.assertIn(phrase, readme)
@@ -166,11 +156,9 @@ class PublicReadmePackageTests(unittest.TestCase):
             "紧凑菜单栏",
             "极简 Morandi 设计",
             "使用百分比条",
-            "刷新倒计时胶囊",
-            "右侧显示小型硬件区",
+            "重置倒计时胶囊",
             "5 小时使用量和 7 天使用量",
             "5 小时重置和 7 天重置",
-            "可选 SSD 温度和 CPU/RAM",
             "绿色、蓝灰、灰褐和陶土色状态",
         ]:
             self.assertIn(phrase, zh_readme)
@@ -187,9 +175,9 @@ class PublicReadmePackageTests(unittest.TestCase):
 
         self.assertTrue(readme.startswith("# Codex Gauge\n"))
         self.assertIn("安静、安全的 Codex 菜单栏额度仪表", readme)
-        self.assertIn("1 秒 SSD 温度采样", readme)
-        self.assertIn("10 分钟温度曲线", readme)
-        self.assertIn("只保存在内存中", readme)
+        self.assertIn("实时重置倒计时", readme)
+        self.assertIn("Zero persistence 模式", readme)
+        self.assertIn("不保留 LaunchAgent", readme)
         self.assertIn("git clone https://github.com/qingzhangeddie-byte/codex-gauge.git", readme)
         for phrase in [
             "## FAQ",

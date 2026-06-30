@@ -40,16 +40,9 @@ _菜单栏条形渲染图。这里是静态示例数值；安装后的 App 会�
 
 - 菜单栏同时显示 5 小时和 7 天使用百分比，以及刷新倒计时
 - Morandi 色系百分比条让菜单栏里的额度健康状态更直观，同时不会变成很占位置的大组件
-- 可选 SSD 温度会在菜单栏硬件区、Signal Console、诊断和 Setup Doctor 中显示，也可以在 Preferences 里关闭
-- 下拉菜单、诊断和 Setup Doctor 会把 SSD 温度标注为 Normal、Warm 或 Hot
-- 1 秒 SSD 温度采样会在 Movement 区域显示为平滑的 10 分钟温度曲线，并且只保存在内存中
-- 本地 CPU 和 RAM 百分比会显示在菜单栏硬件区，也会在 Signal Console 中显示为趋势脉冲线
-- 每 5 秒采样一次本地 CPU/RAM，保留 10 分钟内存趋势视图，不写入磁盘
-- 原生电池信号会在 Signal Console 和诊断中显示本机电量和供电状态
-- 电池供电时 Power Saver 会把额度刷新降低到通常 20 分钟、额度偏低 10 分钟、严重偏低 5 分钟；电池模式只显示用量和电池/Power Saver 信息，并停止 SSD 温度和 CPU/RAM 采样，直到重新接入外部电源
 - 自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口
 - Signal Console 显示真实的下次刷新倒计时，不再只是静态刷新标签
-- 三套可选主题：默认 Porcelain Lab，并提供 Signal Dark 和 Mono Graphite
+- 三套可选主题：默认 Blue Ceramic，并提供 Signal Dark 和 Mono Graphite
 - 首次运行设置页会解释本地优先模式，并引导新用户打开 Codex、运行 Setup Doctor、开始使用菜单栏
 - Preferences 和 Setup Doctor 会跟随当前选择的 Signal Console 主题
 - 趋势按真实时间窗口显示：当前 5 小时窗口变化，以及过去 24 小时内的 7 天额度变化，并直接标出正负百分比
@@ -68,15 +61,15 @@ _菜单栏条形渲染图。这里是静态示例数值；安装后的 App 会�
 
 ![Codex Gauge Signal Console](docs/assets/codex-gauge-signal-console.png)
 
-上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 静态示例额度数值，不是实时账户数据；安装后的 App 会把使用百分比、重置倒计时、可选 SSD 温度和本地 CPU/RAM 汇总百分比放在菜单栏，并在弹出面板里显示更完整细节。
+上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 静态示例额度数值，不是实时账户数据；安装后的 App 会把使用百分比和重置倒计时放在菜单栏，并在弹出面板里显示更完整的 Codex 细节。
 
 ## 紧凑菜单栏
 
-紧凑菜单栏仪表使用极简 Morandi 设计：左侧显示使用百分比条，中间显示刷新倒计时胶囊，右侧显示小型硬件区。
+紧凑菜单栏仪表使用极简 Morandi 设计：左侧显示使用百分比条，右侧显示重置倒计时胶囊。
 
 公开截图使用生成的示例数值，避免暴露具体账户时间；真实菜单栏倒计时会实时更新。
 
-两行分别是 5 小时使用量和 7 天使用量。倒计时区域显示 5 小时重置和 7 天重置；接入外部电源时，右侧硬件区显示可选 SSD 温度和 CPU/RAM，进入 Power Saver 时切换为电池信息。额度条使用柔和的绿色、蓝灰、灰褐和陶土色状态，让偏低额度清晰可见但不吵。
+两行分别是 5 小时使用量和 7 天使用量。倒计时区域显示 5 小时重置和 7 天重置。额度条使用柔和的绿色、蓝灰、灰褐和陶土色状态，让偏低额度清晰可见但不吵。
 
 ## 快速安装
 
@@ -123,9 +116,6 @@ open native/dist/release
 | 信息密度 | 同时展示 5 小时和 7 天额度 |
 | 刷新策略 | 根据额度余量自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后快速重试 |
 | 偏好设置 | 当前会话内的刷新频率、通知和主题控制 |
-| 可选 SSD 温度 | 菜单栏硬件区会显示温度；诊断里仍会标注 Normal、Warm 或 Hot；Signal Console 会显示本地 10 分钟内存温度曲线 |
-| 本地 CPU/RAM 状态 | 菜单栏硬件区和 Signal Console 都会显示，只保存在内存中 |
-| 电池 Power Saver | 原生电池信息加自动电池供电省电模式；电池供电时会降低刷新并停止 SSD 温度与 CPU/RAM 采样 |
 | 通知 | 只在用户主动开启后提醒关键额度状态 |
 | Signal Console | 直接说明数据是实时还是不可用 |
 | Setup Doctor | 检查 Codex App、helper、实时数据、Zero persistence 和通知权限 |
@@ -218,7 +208,6 @@ python3 -m unittest discover -s tests -v
 ./script/build_and_run.sh --build-only
 ./script/release_check.sh
 ./script/soak_check.sh --iterations 3 --interval 0
-./script/soak_check.sh --battery-mode --iterations 3 --interval 5
 ```
 
 ## License

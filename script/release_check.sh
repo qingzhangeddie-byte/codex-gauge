@@ -24,7 +24,6 @@ INFO_PLIST="$TMP_PARENT/CodexGauge.app/Contents/Info.plist"
 [[ "$(plutil -extract CFBundleVersion raw -o - "$INFO_PLIST")" == "1" ]]
 [[ "$(plutil -extract CodexGaugeUsagePath raw -o - "$INFO_PLIST")" == "codex_status.py" ]]
 [[ "$(plutil -extract CodexGaugeReleaseURL raw -o - "$INFO_PLIST")" == "https://github.com/qingzhangeddie-byte/codex-gauge/releases" ]]
-[[ -x "$TMP_PARENT/CodexGauge.app/Contents/Resources/ssd_temperature" ]]
 
 if git ls-files | grep -E '(^usage\.py$|^requirements\.txt$|^menubar/|^native/(build|dist)/|^\.venv/|^\.superpowers/|screenshot-.*\.png$)' >/dev/null; then
   printf "Public package contains blocked legacy or generated files.\n" >&2

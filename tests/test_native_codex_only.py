@@ -88,14 +88,13 @@ class NativeCodexOnlyTests(unittest.TestCase):
         )
         self.assertIn("scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))", finish_refresh)
 
-    def test_native_app_draws_usage_refresh_and_hardware_status_image(self):
+    def test_native_app_draws_codex_usage_and_refresh_status_image(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("statusItemWidth: CGFloat = 214", source)
-        self.assertIn("statusImageSize = NSSize(width: 208, height: 22)", source)
+        self.assertIn("statusItemWidth: CGFloat = 154", source)
+        self.assertIn("statusImageSize = NSSize(width: 148, height: 22)", source)
         self.assertIn("menuBarUsagePercentRect", source)
         self.assertIn("menuBarRefreshCountdownRect", source)
-        self.assertIn("menuBarHardwareSignalsRect", source)
         self.assertIn("quotaRailWidth: CGFloat = 36", source)
         self.assertIn("makeStatusImage", source)
         self.assertIn("fiveHourReset: status.fiveHourReset", source)
@@ -110,6 +109,8 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("drawMenuBarCountdownPill(text: sevenDayText", source)
         self.assertIn("(resetText as NSString).draw", source)
         self.assertNotIn("private func resetMoodFace", source)
+        self.assertNotIn("private func drawResetMoodFace", source)
+        self.assertNotIn("private func drawResetMoodLane", source)
         for emoji in ["😡", "😟", "🙁", "😐", "🙂", "😊", "😄"]:
             self.assertNotIn(emoji, source)
         self.assertIn("fiveHourResetCountdown", source)
@@ -119,8 +120,6 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("resetLaneColor", source)
         self.assertIn("fillColor: menuBarQuotaColor(value, palette: palette)", source)
         self.assertIn("drawResetMinimalMarker", source)
-        self.assertIn("markerX = rect.minX + (rect.width - markerWidth) * fraction", source)
-        self.assertIn("laneColor.withAlphaComponent(0.68)", source)
         self.assertIn("moodPulseStep", source)
         self.assertIn("animationTimer", source)
         self.assertIn("startMoodAnimation", source)
@@ -132,22 +131,20 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("button.imagePosition = .imageOnly", source)
         self.assertIn('button.title = ""', source)
         self.assertIn("button.image = makeStatusImage(", source)
-        self.assertIn("systemMetricMenuBarText", source)
         self.assertIn("menuBarTooltipTitle(title: title, status: status)", source)
 
         make_status_body = source.split("private func makeStatusImage(", 1)[1].split(
             "private func drawMenuBarChrome", 1
         )[0]
-        self.assertIn("drawMenuBarHardwareSignals(", make_status_body)
-        self.assertIn("ssdTemperature: ssdTemperature", make_status_body)
-        self.assertIn("systemMetric: systemMetric", make_status_body)
-        self.assertIn("batteryStatus: batteryStatus", make_status_body)
-        hardware_menu_body = source.split("private func drawMenuBarHardwareSignals", 1)[1].split(
-            "private func drawMenuBarSSDTemperature", 1
-        )[0]
-        self.assertIn("drawMenuBarSystemMetricStrip(sample: systemMetric", hardware_menu_body)
-        self.assertIn("drawMenuBarSSDTemperature(status: ssdTemperature", hardware_menu_body)
-        self.assertIn("drawMenuBarBatteryModeInfo(status: batteryStatus", hardware_menu_body)
+        self.assertIn("drawPlanBGauge(", make_status_body)
+        self.assertNotIn("drawMenuBarHardwareSignals(", make_status_body)
+        self.assertNotIn("ssdTemperature:", make_status_body)
+        self.assertNotIn("systemMetric:", make_status_body)
+        self.assertNotIn("batteryStatus:", make_status_body)
+        self.assertNotIn("drawMenuBarHardwareSignals", source)
+        self.assertNotIn("drawMenuBarSystemMetricStrip", source)
+        self.assertNotIn("drawMenuBarSSDTemperature", source)
+        self.assertNotIn("drawMenuBarBatteryModeInfo", source)
         self.assertNotIn("drawMenuBarBattery(status:", make_status_body)
         self.assertNotIn("drawSevenDayResetCountdown", source)
         self.assertNotIn("drawWordmark", source)
@@ -250,7 +247,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("NSApp.terminate(nil)", source)
         self.assertNotIn("dismissedUpdate", source)
 
-    def test_native_app_runs_session_only_automatic_update_check_on_external_power(self):
+    def test_native_app_runs_session_only_automatic_update_check_once(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         for token in [
@@ -259,12 +256,10 @@ class NativeCodexOnlyTests(unittest.TestCase):
             "case automatic",
             "private var automaticUpdateTimer: Timer?",
             "private var automaticUpdateCheckDidRun = false",
-            "private var automaticUpdateCheckPendingForPower = false",
             "private var automaticUpdateSkippedTagName: String?",
             "private let automaticUpdateCheckDelay: TimeInterval = 2 * 60",
             "scheduleAutomaticUpdateCheck()",
             "performAutomaticUpdateCheckIfAllowed()",
-            "resumeAutomaticUpdateCheckAfterPowerReturns()",
             "performUpdateCheck(mode: .automatic)",
             "handleLatestRelease(release, mode: mode)",
             "handleUpdateCheckFailure(error, mode: mode)",
@@ -289,18 +284,14 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("RunLoop.main.add(nextTimer, forMode: .common)", schedule_body)
 
         automatic_body = source.split("private func performAutomaticUpdateCheckIfAllowed()", 1)[1].split(
-            "private func resumeAutomaticUpdateCheckAfterPowerReturns()", 1
+            "@objc private func checkForUpdates()", 1
         )[0]
         self.assertIn("guard !automaticUpdateCheckDidRun else", automatic_body)
-        self.assertIn("guard !powerSaverActive() else", automatic_body)
-        self.assertIn("automaticUpdateCheckPendingForPower = true", automatic_body)
         self.assertIn("automaticUpdateCheckDidRun = true", automatic_body)
         self.assertIn("performUpdateCheck(mode: .automatic)", automatic_body)
-
-        power_body = source.split("private func handlePowerSourceChanged()", 1)[1].split(
-            "private func refreshBatteryStatus()", 1
-        )[0]
-        self.assertIn("resumeAutomaticUpdateCheckAfterPowerReturns()", power_body)
+        self.assertNotIn("automaticUpdateCheckPendingForPower", source)
+        self.assertNotIn("resumeAutomaticUpdateCheckAfterPowerReturns", source)
+        self.assertNotIn("powerSaverActive", source)
 
     def test_native_app_suppresses_skipped_automatic_update_prompts_without_blocking_manual_checks(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -311,7 +302,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
         )[0]
         self.assertIn("automaticUpdateTimer?.invalidate()", manual_body)
         self.assertIn("automaticUpdateCheckDidRun = true", manual_body)
-        self.assertIn("automaticUpdateCheckPendingForPower = false", manual_body)
+        self.assertNotIn("automaticUpdateCheckPendingForPower", manual_body)
         self.assertIn("performUpdateCheck(mode: .manual)", manual_body)
 
         latest_body = source.split("private func handleLatestRelease(_ release: GitHubRelease, mode: UpdateCheckMode)", 1)[1].split(

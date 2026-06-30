@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_NAME="CodexGauge"
-APP_BINARY_NAME="${APP_NAME}-bin"
+LEGACY_APP_BINARY_NAME="${APP_NAME}-bin"
 LEGACY_APP_NAME="AiLimitStatus"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_APP="$ROOT_DIR/native/dist/$APP_NAME.app"
@@ -28,15 +28,13 @@ unload_launch_agent
 rm -f "$AGENT_PLIST" >/dev/null 2>&1 || true
 rm -rf "$LEGACY_SUPPORT_DIR" >/dev/null 2>&1 || true
 pkill -x "$APP_NAME" >/dev/null 2>&1 || true
-pkill -x "$APP_BINARY_NAME" >/dev/null 2>&1 || true
+pkill -x "$LEGACY_APP_BINARY_NAME" >/dev/null 2>&1 || true
 pkill -x "$LEGACY_APP_NAME" >/dev/null 2>&1 || true
 
 verify_app_bundle() {
   local app_path="$1"
   [[ -x "$app_path/Contents/MacOS/$APP_NAME" ]] || return 1
-  [[ -x "$app_path/Contents/MacOS/$APP_BINARY_NAME" ]] || return 1
   [[ -f "$app_path/Contents/Resources/codex_status.py" ]] || return 1
-  [[ -x "$app_path/Contents/Resources/ssd_temperature" ]] || return 1
   [[ "$(plutil -extract CodexGaugeUsagePath raw -o - "$app_path/Contents/Info.plist" 2>/dev/null)" == "codex_status.py" ]] || return 1
   [[ "$(plutil -extract CFBundleShortVersionString raw -o - "$app_path/Contents/Info.plist" 2>/dev/null)" == "0.9.1" ]] || return 1
   [[ "$(plutil -extract CodexGaugeReleaseURL raw -o - "$app_path/Contents/Info.plist" 2>/dev/null)" == "https://github.com/qingzhangeddie-byte/codex-gauge/releases" ]] || return 1

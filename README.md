@@ -61,26 +61,12 @@ _Menu bar strip render. Static sample values; live values update in the installe
   菜单栏紧凑显示 Codex 5 小时和 7 天使用百分比，以及刷新倒计时
 - Morandi percentage bars keep quota health readable without turning the menu bar into a large widget
   Morandi 色系百分比条让菜单栏里的额度健康状态更直观，同时不会变成很占位置的大组件
-- Optional SSD temperature can appear in the menu bar hardware slice, Signal Console, diagnostics, and Setup Doctor when macOS exposes the sensor
-  可选 SSD 温度可显示在菜单栏硬件区、Signal Console、诊断和 Setup Doctor 中；SSD 温度显示可以在 Preferences 里关闭
-- SSD temperature is explained as Normal, Warm, or Hot in the dropdown, diagnostics, and Setup Doctor
-  SSD 温度会在下拉菜单、诊断和 Setup Doctor 里标注为 Normal、Warm 或 Hot
-- 1-second SSD temperature samples render a smooth 10-minute Movement curve in memory only
-  1 秒 SSD 温度采样会在 Movement 区域显示为平滑的 10 分钟曲线，并且只保存在内存中
-- Local CPU and RAM percentages appear in the menu bar hardware slice and as pulse lines in Signal Console
-  本地 CPU 和 RAM 百分比会显示在菜单栏硬件区，也会在 Signal Console 中显示为趋势脉冲线
-- 5-second local CPU/RAM samples keep a 10-minute in-memory movement view with no disk writes
-  每 5 秒采样一次本地 CPU/RAM，保留 10 分钟内存趋势视图，不写入磁盘
-- A native battery signal shows local charge and power-source state in Signal Console and diagnostics
-  原生电池信号会在 Signal Console 和诊断中显示本机电量和供电状态
-- Power Saver on battery slows quota refresh to 20 minutes normally on battery, 10 minutes when low, and 5 minutes when critical; on battery it shows usage plus battery/Power Saver info only and stops SSD temperature plus CPU/RAM sampling until external power returns
-  电池供电时 Power Saver 会把额度刷新降低到通常 20 分钟、额度偏低 10 分钟、严重偏低 5 分钟；电池模式只显示用量和电池/Power Saver 信息，并停止 SSD 温度和 CPU/RAM 采样，直到重新接入外部电源
 - Custom Signal Console popover with status, quota, reset timing, trend, doctor checks, diagnostics, and actions
   自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口；下拉菜单显示额度重置时间和上次刷新时间
 - Signal Console shows the actual next-refresh countdown, not a static refresh label
   Signal Console 显示真实的下次刷新倒计时，不再只是静态刷新标签
-- Three selectable themes: Porcelain Lab by default, Signal Dark, and Mono Graphite
-  三套可选主题：默认 Porcelain Lab，并提供 Signal Dark 和 Mono Graphite
+- Three selectable themes: Blue Ceramic by default, Signal Dark, and Mono Graphite
+  三套可选主题：默认 Blue Ceramic，并提供 Signal Dark 和 Mono Graphite
 - First-run setup explains the local-only model and points new users to Codex, Setup Doctor, and the menu bar
   首次运行设置页会解释本地优先模式，并引导新用户打开 Codex、运行 Setup Doctor、开始使用菜单栏
 - Preferences and Setup Doctor use the same selected Signal Console theme
@@ -110,23 +96,23 @@ _Menu bar strip render. Static sample values; live values update in the installe
 
 ![Codex Gauge Signal Console](docs/assets/codex-gauge-signal-console.png)
 
-This is an actual app-rendered Signal Console screenshot generated from the native macOS view. It uses static sample quota values for the README, not live account data; the installed app keeps usage percentages, reset countdowns, optional SSD temperature, and aggregate CPU/RAM percentages in the menu bar, with fuller detail in the popover.
+This is an actual app-rendered Signal Console screenshot generated from the native macOS view. It uses static sample quota values for the README, not live account data; the installed app keeps usage percentages and reset countdowns in the menu bar, with fuller Codex detail in the popover.
 
-上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 静态示例额度数值，不是实时账户数据；安装后的 App 会把使用百分比、重置倒计时、可选 SSD 温度和本地 CPU/RAM 汇总百分比放在菜单栏，并在弹出面板里显示更完整细节。
+上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 静态示例额度数值，不是实时账户数据；安装后的 App 会把使用百分比和重置倒计时放在菜单栏，并在弹出面板里显示更完整的 Codex 细节。
 
 ## Compact menu bar
 
-The compact menu bar gauge uses a minimal Morandi design: usage percentage bars on the left, refresh countdown pills in the middle, and a small hardware slice on the right.
+The compact menu bar gauge uses a minimal Morandi design: usage percentage bars on the left and reset countdown pills on the right.
 
-紧凑菜单栏仪表使用极简 Morandi 设计：左侧显示使用百分比条，中间显示刷新倒计时胶囊，右侧显示小型硬件区。
+紧凑菜单栏仪表使用极简 Morandi 设计：左侧显示使用百分比条，右侧显示重置倒计时胶囊。
 
 The public screenshot uses generated sample values so it does not expose account-specific timing; the real menu bar countdown updates live.
 
 公开截图使用生成的示例数值，避免暴露具体账户时间；真实菜单栏倒计时会实时更新。
 
-The two rows are 5-hour usage and 7-day usage. The countdown area shows the 5-hour reset and 7-day reset; the hardware slice shows optional SSD temperature plus CPU/RAM while external power is connected, then switches to battery context on Power Saver.
+The two rows are 5-hour usage and 7-day usage. The countdown area shows the 5-hour reset and 7-day reset.
 
-两行分别是 5 小时使用量和 7 天使用量。倒计时区域显示 5 小时重置和 7 天重置；接入外部电源时，右侧硬件区显示可选 SSD 温度和 CPU/RAM，进入 Power Saver 时切换为电池信息。
+两行分别是 5 小时使用量和 7 天使用量。倒计时区域显示 5 小时重置和 7 天重置。
 
 Quota rails use calm green, blue-grey, taupe, and clay states so low usage is visible without becoming noisy.
 
@@ -153,7 +139,7 @@ Codex Gauge should appear in your menu bar with live Codex usage. The installer 
 
 From a downloaded release package, open `Install Codex Gauge.command`.
 
-After install, Codex Gauge can perform one session-only update check while plugged in, and **Check for Updates...** always queries the latest GitHub Releases entry on demand. Both paths show the current version, latest version, release info, and notes. Update prompts include release notes and three choices: **Install Update**, **Skip this version**, or **Remind me later**. Skipping is session-only and prevents repeat prompts for that release while the app is running. When a newer release zip is available, **Install Update** downloads it to a temporary directory, verifies the release checksum plus the pinned publisher Team ID/notarization, replaces `CodexGauge.app`, and relaunches. Codex Gauge does not keep update history, skipped-version records, or an updater cache.
+After install, Codex Gauge can perform one session-only update check per app run, and **Check for Updates...** always queries the latest GitHub Releases entry on demand. Both paths show the current version, latest version, release info, and notes. Update prompts include release notes and three choices: **Install Update**, **Skip this version**, or **Remind me later**. Skipping is session-only and prevents repeat prompts for that release while the app is running. When a newer release zip is available, **Install Update** downloads it to a temporary directory, verifies the release checksum plus the pinned publisher Team ID/notarization, replaces `CodexGauge.app`, and relaunches. Codex Gauge does not keep update history, skipped-version records, or an updater cache.
 
 For maintainers creating that package:
 
@@ -172,13 +158,10 @@ The generated zip includes `CodexGauge.app`, `Install Codex Gauge.command`, and 
 | Local auth safety | No `~/.codex/auth.json` reads in the menu bar app |
 | Packaging | Self-contained app bundle with a bundled helper |
 | Menu bar persistence | Session-only direct launch; no LaunchAgent is installed |
-| Updates | Session-only plugged-in GitHub release check plus manual Check for Updates, with confirmed Install Update and temporary files only |
+| Updates | Session-only GitHub release check plus manual Check for Updates, with confirmed Install Update and temporary files only |
 | Signal quality | Shows both 5-hour and 7-day quota instead of one vague number |
 | Refresh behavior | Adaptive refresh instead of constant polling: 5 minutes normally, 3 minutes when low, 2 minutes when critical, with quick retry after transient errors |
 | Preferences | Session-only refresh cadence, notifications, and theme controls |
-| Optional SSD temperature | Menu bar hardware slice plus diagnostics that label the sensor as Normal, Warm, or Hot, and a local 10-minute in-memory Signal Console curve |
-| Local CPU/RAM context | Menu bar hardware slice plus Signal Console movement pulses, kept in memory only |
-| Battery Power Saver | Native battery context plus automatic on-battery Power Saver that keeps quota useful while reducing background hardware sampling |
 | Notifications | Opt-in alerts for the moments users actually care about |
 | Signal Console | Explains whether data is live or unavailable |
 | Setup Doctor | Local checks for Codex app, helper, live data, zero persistence, and notifications |
@@ -211,10 +194,6 @@ CodexGauge.app/Contents/Resources/codex_status.py
 For live Codex quota, the app talks to the local Codex app-server through the bundled helper. The app runs that helper with zero persistence enabled, so successful live readings are not cached and local Snapshot fallback is disabled in app mode.
 
 It does **not** read browser cookies, does **not** read `~/.codex/auth.json`, and does **not** scan unrelated project folders, browser profiles, or Keychain.
-
-The CPU/RAM display is local CPU and RAM percentages only. Codex Gauge samples it every 5 seconds for the Signal Console movement view while external power is connected, keeps only the in-memory movement view, and stores no process list, app names, command lines, or file paths.
-
-Battery display is local battery percentage and power-source state only. Codex Gauge does not store battery history.
 
 Important limitation: the Codex app-server path can start or refresh the Codex 5-hour window because it talks to the same local Codex service used by the Codex desktop app.
 
@@ -266,7 +245,6 @@ The plist should reference `codex_status.py`, not your source checkout.
 |---|---|
 | Codex live quota | Local Codex app-server |
 | Codex fallback quota | Disabled in app mode by `CODEX_GAUGE_NO_STORAGE=1` |
-| CPU/RAM usage | Aggregated local macOS CPU and RAM percentages only, kept in memory |
 | Menu bar persistence | None; direct app launch only |
 | App storage | None; old support files can be cleared as legacy data |
 
@@ -299,7 +277,6 @@ python3 -m unittest discover -s tests -v
 ./script/build_and_run.sh --build-only
 ./script/release_check.sh
 ./script/soak_check.sh --iterations 3 --interval 0
-./script/soak_check.sh --battery-mode --iterations 3 --interval 5
 ```
 
 ## Public Release Notes

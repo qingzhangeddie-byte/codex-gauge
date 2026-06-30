@@ -13,19 +13,15 @@ UPDATE_TEAM_ID="${CODEX_GAUGE_UPDATE_TEAM_ID:-}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_FILE="$ROOT_DIR/native/CodexGauge.swift"
-SWIFT_SOURCES=(
-  "$ROOT_DIR/native/CodexGaugePowerPolicy.swift"
-)
-SSD_TEMPERATURE_SOURCE="$ROOT_DIR/native/ssd_temperature.m"
 DIST_DIR="$ROOT_DIR/native/dist"
 BUILD_DIR="$ROOT_DIR/native/build"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 APP_CONTENTS="$APP_BUNDLE/Contents"
 APP_MACOS="$APP_CONTENTS/MacOS"
 APP_RESOURCES="$APP_CONTENTS/Resources"
-APP_BINARY_NAME="${APP_NAME}-bin"
+APP_BINARY_NAME="$APP_NAME"
+LEGACY_APP_BINARY_NAME="${APP_NAME}-bin"
 APP_BINARY="$APP_MACOS/$APP_BINARY_NAME"
-APP_LAUNCHER="$APP_MACOS/$APP_NAME"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
 SWIFT_MODULE_CACHE="$BUILD_DIR/swift-module-cache"
 CLANG_MODULE_CACHE="$BUILD_DIR/clang-module-cache"
@@ -46,12 +42,12 @@ stop_app() {
   rm -f "$AGENT_PLIST" >/dev/null 2>&1 || true
   rm -rf "$LEGACY_SUPPORT_DIR" >/dev/null 2>&1 || true
   pkill -x "$APP_NAME" >/dev/null 2>&1 || true
-  pkill -x "$APP_BINARY_NAME" >/dev/null 2>&1 || true
+  pkill -x "$LEGACY_APP_BINARY_NAME" >/dev/null 2>&1 || true
   pkill -x "$LEGACY_APP_NAME" >/dev/null 2>&1 || true
 }
 
 app_is_running() {
-  pgrep -x "$APP_NAME" >/dev/null || pgrep -x "$APP_BINARY_NAME" >/dev/null
+  pgrep -x "$APP_NAME" >/dev/null || pgrep -x "$LEGACY_APP_BINARY_NAME" >/dev/null
 }
 
 strip_macos_metadata() {
@@ -97,11 +93,8 @@ build_bundle() {
   local stage_macos
   local stage_resources
   local stage_binary
-  local stage_launcher
   local stage_info_plist
-  local SSD_TEMPERATURE_HELPER
   local BUILD_MAIN
-  local SUPPORT_SWIFT_SOURCES
 
   rm -rf "$APP_BUNDLE"
   stage_parent="$(mktemp -d "${TMPDIR:-/tmp}/codex-gauge-build.XXXXXX")"
@@ -110,27 +103,16 @@ build_bundle() {
   stage_macos="$stage_contents/MacOS"
   stage_resources="$stage_contents/Resources"
   stage_binary="$stage_macos/$APP_BINARY_NAME"
-  stage_launcher="$stage_macos/$APP_NAME"
   stage_info_plist="$stage_contents/Info.plist"
-  SSD_TEMPERATURE_HELPER="$stage_resources/ssd_temperature"
   BUILD_MAIN="$stage_parent/main.swift"
-  SUPPORT_SWIFT_SOURCES=("${SWIFT_SOURCES[@]}")
   mkdir -p "$stage_macos" "$stage_resources" "$SWIFT_MODULE_CACHE" "$CLANG_MODULE_CACHE"
   cp "$SOURCE_FILE" "$BUILD_MAIN"
 
   SWIFT_MODULE_CACHE_PATH="$SWIFT_MODULE_CACHE" \
   CLANG_MODULE_CACHE_PATH="$CLANG_MODULE_CACHE" \
-    swiftc "$BUILD_MAIN" "${SUPPORT_SWIFT_SOURCES[@]}" -o "$stage_binary" -framework Cocoa -framework UserNotifications -framework IOKit
-  cat >"$stage_launcher" <<LAUNCHER
-#!/bin/zsh
-set -euo pipefail
-APP_DIR="\${0:A:h}"
-"\$APP_DIR/$APP_BINARY_NAME"
-LAUNCHER
-  chmod +x "$stage_binary" "$stage_launcher"
+    swiftc "$BUILD_MAIN" -o "$stage_binary" -framework Cocoa -framework UserNotifications
+  chmod +x "$stage_binary"
   cp "$ROOT_DIR/native/codex_status.py" "$stage_resources/codex_status.py"
-  clang "$SSD_TEMPERATURE_SOURCE" -o "$SSD_TEMPERATURE_HELPER" -fobjc-arc -fblocks -framework Foundation -lIOReport
-  chmod +x "$SSD_TEMPERATURE_HELPER"
 
   cat >"$stage_info_plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -239,7 +221,7 @@ case "$MODE" in
   --logs|logs)
     stop_app
     open_app
-    /usr/bin/log stream --info --style compact --predicate "process == \"$APP_NAME\" OR process == \"$APP_BINARY_NAME\""
+    /usr/bin/log stream --info --style compact --predicate "process == \"$APP_NAME\" OR process == \"$LEGACY_APP_BINARY_NAME\""
     ;;
   --telemetry|telemetry)
     stop_app
