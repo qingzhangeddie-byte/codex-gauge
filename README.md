@@ -5,15 +5,15 @@
 [![License](https://img.shields.io/github/license/qingzhangeddie-byte/codex-gauge)](LICENSE)
 ![macOS 13+](https://img.shields.io/badge/macOS-13%2B-0f766e)
 
-![Codex Gauge static sample menu bar with usage percentage bars and reset countdowns](docs/assets/codex-gauge-menubar-live.png)
+![Codex Gauge rendered GitHub hero with Morandi menu bar quota bars](docs/assets/codex-gauge-github-hero.png)
 
-_Static sample screenshot. The installed app renders your live Codex usage percentages and reset countdowns._
+_Rendered public image with static sample values. The installed app renders your live Codex usage percentages and reset countdowns._
 
-**A simple, safe macOS menu bar app to check Codex usage, track the Codex 5-hour limit, and watch your Codex 7-day quota at a glance.**
+**A calm, safe macOS menu bar app to check Codex usage: 5-hour and 7-day quota, live reset countdowns, and no browser-cookie reads.**
 
 Stop guessing how much Codex you have left.
 
-Codex Gauge puts your 5-hour and 7-day usage percentages directly in the macOS menu bar, with reset countdowns, live-source labels, and a compact Signal Console when you need more detail.
+Codex Gauge puts your 5-hour and 7-day usage percentages directly in the macOS menu bar, with reset countdowns that keep moving and a compact Signal Console when you need more detail.
 
 Codex Gauge 会把 Codex 5 小时和 7 天使用百分比、重置倒计时和数据来源直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态。
 
@@ -35,6 +35,7 @@ What makes it different:
 
 - Built for one job: Codex quota at a glance.
 - Native menu bar first, detailed Signal Console only when you click.
+- Calm Morandi rails instead of a noisy dashboard wedged into the status bar.
 - Clear labels for Live, Last live, Snapshot, and Codex closed states.
 - Local-only diagnostics and reports, designed to avoid private prompt/session content.
 
@@ -49,6 +50,10 @@ It shows remaining Codex 5-hour usage and Codex 7-day quota without opening a da
 Search phrases this project is designed to answer naturally: **check Codex usage**, **OpenAI Codex usage monitor**, **Codex quota tracker**, **Codex rate limit tracker**, **Codex 5-hour limit**, **Codex 7-day quota**, **macOS Codex menu bar app**, and **Codex usage menubar**.
 
 这个项目自然覆盖的中文搜索词包括：**查看 Codex 使用量**、**Codex 额度监控**、**Codex 菜单栏工具**、**Codex 5 小时限制**、**Codex 7 天额度**、**OpenAI Codex 使用量监控**。
+
+![Codex Gauge static sample menu bar with usage percentage bars and reset countdowns](docs/assets/codex-gauge-menubar-live.png)
+
+_Menu bar strip render. Static sample values; live values update in the installed app._
 
 ## What You Get
 

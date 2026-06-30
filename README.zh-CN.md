@@ -1,12 +1,12 @@
 # Codex Gauge
 
-![Codex Gauge 静态示例菜单栏：使用百分比条和重置倒计时](docs/assets/codex-gauge-menubar-live.png)
+![Codex Gauge GitHub 渲染主图：Morandi 菜单栏额度条](docs/assets/codex-gauge-github-hero.png)
 
-_静态示例截图；安装后的 App 会显示你的实时 Codex 使用百分比和重置倒计时。_
+_公开渲染图使用静态示例数值；安装后的 App 会显示你的实时 Codex 使用百分比和重置倒计时。_
 
 [English](README.md) | 中文说明
 
-Codex Gauge 是一个**简单、安全的 Codex 菜单栏额度仪表**，用于在 macOS 菜单栏直接查看 Codex 5 小时和 7 天额度。
+Codex Gauge 是一个**安静、安全的 Codex 菜单栏额度仪表**，用于在 macOS 菜单栏直接查看 Codex 5 小时额度、7 天额度和实时重置倒计时。
 
 它是非官方本地工具，重点不是做大而全的 dashboard，而是把最常看的信息放到菜单栏：现在还剩多少 Codex。它也可以理解为一个本地的 Codex rate limit tracker，关注 5 小时窗口、7 天额度和重置时间。
 
@@ -28,8 +28,13 @@ bash install.sh
 
 - 只做一件事：让 Codex 额度一眼可见。
 - 菜单栏优先，只有点开时才显示更完整的 Signal Console。
+- 使用克制的 Morandi 额度条，不把状态栏做成吵闹的小 dashboard。
 - 清楚标注 Live、Last live、Snapshot 和 Codex closed 状态。
 - 诊断和报告都只在本地生成，避免复制私人的 prompt、session 或日志内容。
+
+![Codex Gauge 静态示例菜单栏：使用百分比条和重置倒计时](docs/assets/codex-gauge-menubar-live.png)
+
+_菜单栏条形渲染图。这里是静态示例数值；安装后的 App 会实时更新。_
 
 ## 核心特点
 

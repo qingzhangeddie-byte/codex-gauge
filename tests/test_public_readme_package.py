@@ -9,16 +9,17 @@ class PublicReadmePackageTests(unittest.TestCase):
         self.assertTrue(readme.startswith("# Codex Gauge\n"))
         self.assertIn("https://github.com/qingzhangeddie-byte/codex-gauge/actions/workflows/test.yml/badge.svg", readme)
         self.assertIn("https://github.com/qingzhangeddie-byte/codex-gauge/releases/latest", readme)
+        self.assertIn("docs/assets/codex-gauge-github-hero.png", readme)
         self.assertIn("docs/assets/codex-gauge-menubar-live.png", readme)
-        self.assertIn("A simple, safe macOS menu bar app to check Codex usage", readme)
+        self.assertIn("A calm, safe macOS menu bar app to check Codex usage", readme)
         self.assertIn("Unofficial", readme)
         self.assertIn("docs/assets/codex-gauge-signal-console.png", readme)
         self.assertIn("actual app-rendered Signal Console", readme)
-        self.assertIn("Static sample screenshot.", readme)
+        self.assertIn("Rendered public image with static sample values.", readme)
         self.assertIn("static sample quota values for the README, not live account data", readme)
         self.assertLess(
-            readme.index("docs/assets/codex-gauge-menubar-live.png"),
-            readme.index("A simple, safe macOS menu bar app"),
+            readme.index("docs/assets/codex-gauge-github-hero.png"),
+            readme.index("A calm, safe macOS menu bar app"),
         )
 
     def test_readme_uses_real_public_repo_url_badges_and_faq(self):
@@ -56,6 +57,7 @@ class PublicReadmePackageTests(unittest.TestCase):
             "bash install.sh",
             "What makes it different",
             "Built for one job: Codex quota at a glance.",
+            "Calm Morandi rails instead of a noisy dashboard",
         ]:
             self.assertIn(phrase, readme)
 
@@ -182,7 +184,7 @@ class PublicReadmePackageTests(unittest.TestCase):
         readme = pathlib.Path("README.zh-CN.md").read_text(encoding="utf-8")
 
         self.assertTrue(readme.startswith("# Codex Gauge\n"))
-        self.assertIn("简单、安全的 Codex 菜单栏额度仪表", readme)
+        self.assertIn("安静、安全的 Codex 菜单栏额度仪表", readme)
         self.assertIn("1 秒 SSD 温度采样", readme)
         self.assertIn("10 分钟温度曲线", readme)
         self.assertIn("只保存在内存中", readme)

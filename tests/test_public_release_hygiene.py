@@ -149,13 +149,16 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertNotIn("browser-cookie", script)
 
     def test_public_visual_assets_exist_and_are_bounded(self):
+        hero = pathlib.Path("docs/assets/codex-gauge-github-hero.png")
         live = pathlib.Path("docs/assets/codex-gauge-menubar-live.png")
         console = pathlib.Path("docs/assets/codex-gauge-signal-console.png")
         social = pathlib.Path("docs/assets/codex-gauge-social-preview.png")
 
+        self.assertTrue(hero.exists())
         self.assertTrue(live.exists())
         self.assertTrue(console.exists())
         self.assertTrue(social.exists())
+        self.assertLess(hero.stat().st_size, 3_000_000)
         self.assertLess(live.stat().st_size, 2_000_000)
         self.assertLess(console.stat().st_size, 2_000_000)
         self.assertLess(social.stat().st_size, 3_000_000)
@@ -168,6 +171,15 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         )
         self.assertIn("pixelWidth: 1280", result.stdout)
         self.assertIn("pixelHeight: 640", result.stdout)
+
+        hero_result = subprocess.run(
+            ["sips", "-g", "pixelWidth", "-g", "pixelHeight", str(hero)],
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+        )
+        self.assertIn("pixelWidth: 1280", hero_result.stdout)
+        self.assertIn("pixelHeight: 640", hero_result.stdout)
 
         console_result = subprocess.run(
             ["sips", "-g", "pixelWidth", "-g", "pixelHeight", str(console)],
@@ -190,11 +202,14 @@ class PublicReleaseHygieneTests(unittest.TestCase):
     def test_public_asset_generator_draws_menu_bar_strip(self):
         script = pathlib.Path("script/generate_public_assets.swift").read_text()
 
+        self.assertIn("heroOutputPath", script)
+        self.assertIn("docs/assets/codex-gauge-github-hero.png", script)
         self.assertIn("writeMenuBarPNG(menuBarPath)", script)
         self.assertIn("drawMenuBarMorandiDivider", script)
         self.assertIn("drawMenuBarUsagePercentBar(value:", script)
         self.assertIn("drawMenuBarRefreshCountdown", script)
         self.assertIn("drawMenuBarCountdownPill", script)
+        self.assertIn("Codex quota where you actually look", script)
         self.assertIn("4h59m", script)
         self.assertIn("6d23h", script)
         self.assertIn("Static public screenshot with sample quota values", script)
@@ -285,6 +300,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         script_text = script.read_text()
         self.assertIn("docs/design/app-rendered-signal-console/blue-ceramic-live.png", script_text)
         self.assertIn("docs/design/app-rendered-signal-console/signal-dark-live.png", script_text)
+        self.assertIn("docs/assets/codex-gauge-github-hero.png", script_text)
         self.assertIn("docs/assets/codex-gauge-signal-console.png", script_text)
         self.assertIn("docs/assets/codex-gauge-social-preview.png", script_text)
         self.assertIn("actual app-rendered Signal Console", script_text)

@@ -39,6 +39,8 @@ fi
 
 sips -g pixelWidth -g pixelHeight docs/assets/codex-gauge-social-preview.png | grep -q "pixelWidth: 1280"
 sips -g pixelWidth -g pixelHeight docs/assets/codex-gauge-social-preview.png | grep -q "pixelHeight: 640"
+sips -g pixelWidth -g pixelHeight docs/assets/codex-gauge-github-hero.png | grep -q "pixelWidth: 1280"
+sips -g pixelWidth -g pixelHeight docs/assets/codex-gauge-github-hero.png | grep -q "pixelHeight: 640"
 sips -g pixelWidth -g pixelHeight docs/assets/codex-gauge-menubar-live.png | grep -q "pixelWidth: 790"
 sips -g pixelWidth -g pixelHeight docs/assets/codex-gauge-menubar-live.png | grep -q "pixelHeight: 96"
 for fixture in docs/design/app-rendered-signal-console/*.png; do

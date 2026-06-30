@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Refreshed public GitHub screenshots and README copy so generated images are clearly labeled as static sample values, not live account timing.
+- Added a dedicated rendered GitHub hero image for the menu bar-focused product description.
 - Removed stale unreferenced preview SVG mockups from the public docs assets.
 
 ## v0.9.1 - 2026-06-27

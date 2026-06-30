@@ -5,6 +5,7 @@ import Foundation
 let canvasSize = NSSize(width: 1280, height: 640)
 let blueCeramicFixturePath = "docs/design/app-rendered-signal-console/blue-ceramic-live.png"
 let darkFixturePath = "docs/design/app-rendered-signal-console/signal-dark-live.png"
+let heroOutputPath = "docs/assets/codex-gauge-github-hero.png"
 let menuBarPath = "docs/assets/codex-gauge-menubar-live.png"
 let consoleOutputPath = "docs/assets/codex-gauge-signal-console.png"
 let socialOutputPath = "docs/assets/codex-gauge-social-preview.png"
@@ -281,6 +282,49 @@ let blueCeramicPanel = loadImage(blueCeramicFixturePath)
 let darkPanel = loadImage(darkFixturePath)
 let menuBar = loadImage(menuBarPath)
 
+try writePNG(heroOutputPath) {
+    fillCanvas(NSColor(calibratedRed: 0.90, green: 0.94, blue: 0.92, alpha: 1.0))
+    NSGradient(colors: [
+        NSColor(calibratedRed: 0.95, green: 0.97, blue: 0.94, alpha: 1.0),
+        NSColor(calibratedRed: 0.76, green: 0.84, blue: 0.84, alpha: 1.0),
+    ])?.draw(in: NSBezierPath(rect: NSRect(origin: .zero, size: canvasSize)), angle: 10)
+
+    drawRoundedRect(NSRect(x: 0, y: 0, width: 1280, height: 74), radius: 0, fill: NSColor.white.withAlphaComponent(0.46))
+    drawText("Codex Gauge", in: NSRect(x: 80, y: 108, width: 480, height: 58), size: 48, weight: .bold, color: NSColor(calibratedRed: 0.10, green: 0.15, blue: 0.15, alpha: 1.0))
+    drawText("Codex quota where you actually look: the macOS menu bar.", in: NSRect(x: 82, y: 176, width: 500, height: 72), size: 25, weight: .semibold, color: NSColor(calibratedRed: 0.22, green: 0.30, blue: 0.30, alpha: 0.96))
+    drawText("Rendered sample values. The installed app shows your live 5-hour and 7-day usage, with reset countdowns that keep moving.", in: NSRect(x: 84, y: 258, width: 500, height: 86), size: 18, weight: .regular, color: NSColor(calibratedRed: 0.33, green: 0.39, blue: 0.38, alpha: 0.94))
+
+    drawPill("No cookies", rect: NSRect(x: 84, y: 382, width: 122, height: 38), fill: NSColor.white.withAlphaComponent(0.42), stroke: NSColor(calibratedRed: 0.34, green: 0.43, blue: 0.41, alpha: 0.22), text: NSColor(calibratedRed: 0.16, green: 0.22, blue: 0.21, alpha: 1.0))
+    drawPill("No auth-file reads", rect: NSRect(x: 222, y: 382, width: 172, height: 38), fill: NSColor.white.withAlphaComponent(0.42), stroke: NSColor(calibratedRed: 0.34, green: 0.43, blue: 0.41, alpha: 0.22), text: NSColor(calibratedRed: 0.16, green: 0.22, blue: 0.21, alpha: 1.0))
+    drawPill("local diagnostics", rect: NSRect(x: 410, y: 382, width: 166, height: 38), fill: NSColor(calibratedRed: 0.42, green: 0.54, blue: 0.49, alpha: 0.14), stroke: NSColor(calibratedRed: 0.42, green: 0.54, blue: 0.49, alpha: 0.32), text: NSColor(calibratedRed: 0.14, green: 0.27, blue: 0.22, alpha: 1.0), dot: NSColor(calibratedRed: 0.42, green: 0.54, blue: 0.49, alpha: 1.0))
+
+    let shadow = NSShadow()
+    shadow.shadowColor = NSColor.black.withAlphaComponent(0.18)
+    shadow.shadowBlurRadius = 28
+    shadow.shadowOffset = NSSize(width: 0, height: -12)
+    NSGraphicsContext.saveGraphicsState()
+    shadow.set()
+    drawRoundedRect(NSRect(x: 642, y: 116, width: 548, height: 340), radius: 30, fill: NSColor.black.withAlphaComponent(0.12))
+    NSGraphicsContext.restoreGraphicsState()
+
+    drawRoundedRect(NSRect(x: 642, y: 116, width: 548, height: 340), radius: 30, fill: NSColor.white.withAlphaComponent(0.52), stroke: NSColor(calibratedRed: 0.26, green: 0.36, blue: 0.36, alpha: 0.20))
+    drawText("menu bar focus", in: NSRect(x: 686, y: 154, width: 200, height: 22), size: 14, weight: .semibold, color: NSColor(calibratedRed: 0.35, green: 0.43, blue: 0.40, alpha: 0.92))
+    drawImage(menuBar, in: NSRect(x: 686, y: 190, width: 452, height: 55))
+    drawRoundedRect(NSRect(x: 686, y: 294, width: 194, height: 96), radius: 18, fill: NSColor.white.withAlphaComponent(0.46), stroke: NSColor(calibratedRed: 0.26, green: 0.36, blue: 0.36, alpha: 0.15))
+    drawText("5h", in: NSRect(x: 710, y: 318, width: 42, height: 24), size: 22, weight: .bold, color: NSColor(calibratedRed: 0.13, green: 0.18, blue: 0.18, alpha: 1.0), mono: true)
+    drawText("usage", in: NSRect(x: 710, y: 348, width: 78, height: 18), size: 12, weight: .medium, color: NSColor(calibratedRed: 0.36, green: 0.44, blue: 0.42, alpha: 0.86))
+    drawText("90%", in: NSRect(x: 788, y: 318, width: 72, height: 28), size: 24, weight: .bold, color: NSColor(calibratedRed: 0.23, green: 0.32, blue: 0.28, alpha: 1.0), mono: true)
+    drawText("4h59m", in: NSRect(x: 788, y: 350, width: 72, height: 18), size: 12, weight: .semibold, color: NSColor(calibratedRed: 0.45, green: 0.41, blue: 0.35, alpha: 0.92), mono: true)
+
+    drawRoundedRect(NSRect(x: 910, y: 294, width: 194, height: 96), radius: 18, fill: NSColor.white.withAlphaComponent(0.46), stroke: NSColor(calibratedRed: 0.26, green: 0.36, blue: 0.36, alpha: 0.15))
+    drawText("7d", in: NSRect(x: 934, y: 318, width: 42, height: 24), size: 22, weight: .bold, color: NSColor(calibratedRed: 0.13, green: 0.18, blue: 0.18, alpha: 1.0), mono: true)
+    drawText("quota", in: NSRect(x: 934, y: 348, width: 78, height: 18), size: 12, weight: .medium, color: NSColor(calibratedRed: 0.36, green: 0.44, blue: 0.42, alpha: 0.86))
+    drawText("80%", in: NSRect(x: 1012, y: 318, width: 72, height: 28), size: 24, weight: .bold, color: NSColor(calibratedRed: 0.24, green: 0.34, blue: 0.38, alpha: 1.0), mono: true)
+    drawText("6d23h", in: NSRect(x: 1012, y: 350, width: 72, height: 18), size: 12, weight: .semibold, color: NSColor(calibratedRed: 0.45, green: 0.41, blue: 0.35, alpha: 0.92), mono: true)
+
+    drawText("The popover keeps CPU, RAM, battery, SSD, and diagnostics out of the menu bar until you ask for detail.", in: NSRect(x: 686, y: 412, width: 420, height: 48), size: 16, weight: .regular, color: NSColor(calibratedRed: 0.35, green: 0.42, blue: 0.41, alpha: 0.92))
+}
+
 try writePNG(consoleOutputPath) {
     fillCanvas(NSColor(calibratedRed: 0.91, green: 0.95, blue: 0.98, alpha: 1.0))
     NSGradient(colors: [
@@ -318,8 +362,8 @@ try writePNG(socialOutputPath) {
     ])?.draw(in: NSBezierPath(rect: NSRect(origin: .zero, size: canvasSize)), angle: 18)
 
     drawText("Codex Gauge", in: NSRect(x: 74, y: 74, width: 430, height: 58), size: 48, weight: .bold, color: NSColor.white.withAlphaComponent(0.96))
-    drawText("Calm local quota visibility for Codex", in: NSRect(x: 78, y: 142, width: 460, height: 36), size: 24, weight: .semibold, color: NSColor(calibratedRed: 0.74, green: 0.88, blue: 0.86, alpha: 0.95))
-    drawText("5-hour and 7-day usage percentages, live reset countdowns, Morandi menu bar rails, safe diagnostics, and local-only reports.", in: NSRect(x: 78, y: 202, width: 450, height: 116), size: 19, weight: .regular, color: NSColor.white.withAlphaComponent(0.72))
+    drawText("Quota visibility for the menu bar", in: NSRect(x: 78, y: 142, width: 460, height: 36), size: 24, weight: .semibold, color: NSColor(calibratedRed: 0.74, green: 0.88, blue: 0.86, alpha: 0.95))
+    drawText("5-hour and 7-day usage percentages, live reset countdowns, Morandi rails, safe diagnostics, and no browser-cookie reads.", in: NSRect(x: 78, y: 202, width: 450, height: 116), size: 19, weight: .regular, color: NSColor.white.withAlphaComponent(0.72))
 
     drawPill("No browser cookies", rect: NSRect(x: 78, y: 328, width: 174, height: 40), fill: NSColor.white.withAlphaComponent(0.08), stroke: NSColor.white.withAlphaComponent(0.17), text: NSColor.white.withAlphaComponent(0.88))
     drawPill("No auth-file reads", rect: NSRect(x: 266, y: 328, width: 174, height: 40), fill: NSColor.white.withAlphaComponent(0.08), stroke: NSColor.white.withAlphaComponent(0.17), text: NSColor.white.withAlphaComponent(0.88))
