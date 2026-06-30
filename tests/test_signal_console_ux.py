@@ -766,10 +766,10 @@ class SignalConsoleUXTests(unittest.TestCase):
         compact_body = source.split("private func compactResetCountdown", 1)[1].split("private func clampedFraction", 1)[0]
         dropdown_body = source.split("private func resetCountdown(_ epoch: Double?)", 1)[1].split("private func infoString", 1)[0]
 
-        self.assertIn("compactResetCountdown(epoch, includeMinutes: true, includeDays: false)", five_hour_body)
+        self.assertIn("compactResetCountdown(epoch, includeMinutes: false, includeDays: false)", five_hour_body)
         self.assertIn("compactResetCountdown(epoch, includeMinutes: false, includeDays: true)", seven_day_body)
         self.assertIn("let minutes = max(1, Int(ceil(remaining / 60)))", compact_body)
-        self.assertIn("if minutes < 60", compact_body)
+        self.assertIn("if includeMinutes && minutes < 60", compact_body)
         self.assertIn('return "\\(minutes)m"', compact_body)
         self.assertIn("let hours = minutes / 60", compact_body)
         self.assertIn("let remainingMinutes = minutes % 60", compact_body)

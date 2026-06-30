@@ -2014,7 +2014,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             statusDetail: "Read from local Codex app-server",
             fiveHourLeft: 82,
             sevenDayLeft: 76,
-            fiveHourResetText: "4h59m",
+            fiveHourResetText: "5h",
             sevenDayResetText: "6d23h",
             fiveHourResetProgress: 18,
             sevenDayResetProgress: 52,
@@ -2048,7 +2048,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             statusDetail: "Zero persistence keeps no cached fallback",
             fiveHourLeft: 58,
             sevenDayLeft: 63,
-            fiveHourResetText: "2h14m",
+            fiveHourResetText: "3h",
             sevenDayResetText: "4d8h",
             fiveHourResetProgress: 62,
             sevenDayResetProgress: 39,
@@ -2065,7 +2065,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             statusDetail: "Read from local Codex app-server",
             fiveHourLeft: 9,
             sevenDayLeft: 44,
-            fiveHourResetText: "38m",
+            fiveHourResetText: "1h",
             sevenDayResetText: "2d4h",
             fiveHourResetProgress: 86,
             sevenDayResetProgress: 70,
@@ -2082,7 +2082,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             statusDetail: "Read from local Codex app-server",
             fiveHourLeft: 82,
             sevenDayLeft: 76,
-            fiveHourResetText: "4h59m",
+            fiveHourResetText: "5h",
             sevenDayResetText: "6d23h",
             fiveHourResetProgress: 18,
             sevenDayResetProgress: 52,
@@ -2104,7 +2104,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             statusDetail: "Battery mode keeps only usage and battery signals visible.",
             fiveHourLeft: 80,
             sevenDayLeft: 79,
-            fiveHourResetText: "4h59m",
+            fiveHourResetText: "5h",
             sevenDayResetText: "6d23h",
             fiveHourResetProgress: 22,
             sevenDayResetProgress: 54,
@@ -5688,7 +5688,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func fiveHourResetCountdown(_ epoch: Double?) -> String {
-        compactResetCountdown(epoch, includeMinutes: true, includeDays: false)
+        compactResetCountdown(epoch, includeMinutes: false, includeDays: false)
     }
 
     private func sevenDayResetCountdown(_ epoch: Double?) -> String {
@@ -5704,7 +5704,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return "now"
         }
         let minutes = max(1, Int(ceil(remaining / 60)))
-        if minutes < 60 {
+        if includeMinutes && minutes < 60 {
             return "\(minutes)m"
         }
         let hours = minutes / 60

@@ -174,7 +174,7 @@ func drawMenuBarRefreshCountdown(in rect: NSRect, ring: NSColor, track: NSColor,
     NSBezierPath(ovalIn: NSRect(x: center.x - 3, y: center.y + 7, width: 6, height: 6)).fill()
     menuBarText("R", at: NSPoint(x: ringRect.minX + 8, y: ringRect.minY + 7), size: 10, weight: .bold, color: ink, mono: true)
 
-    drawMenuBarCountdownPill("4h59m", rect: NSRect(x: rect.minX + 34, y: rect.midY + 4, width: 70, height: 22), fill: fill, stroke: stroke, text: ink)
+    drawMenuBarCountdownPill("5h", rect: NSRect(x: rect.minX + 34, y: rect.midY + 4, width: 70, height: 22), fill: fill, stroke: stroke, text: ink)
     drawMenuBarCountdownPill("6d23h", rect: NSRect(x: rect.minX + 34, y: rect.midY - 26, width: 70, height: 22), fill: fill, stroke: stroke, text: ink)
 }
 
@@ -353,7 +353,7 @@ try writePNG(heroOutputPath) {
     drawText("5h", in: NSRect(x: 710, y: 318, width: 42, height: 24), size: 22, weight: .bold, color: NSColor(calibratedRed: 0.13, green: 0.18, blue: 0.18, alpha: 1.0), mono: true)
     drawText("usage", in: NSRect(x: 710, y: 348, width: 78, height: 18), size: 12, weight: .medium, color: NSColor(calibratedRed: 0.36, green: 0.44, blue: 0.42, alpha: 0.86))
     drawText("90%", in: NSRect(x: 788, y: 318, width: 72, height: 28), size: 24, weight: .bold, color: NSColor(calibratedRed: 0.23, green: 0.32, blue: 0.28, alpha: 1.0), mono: true)
-    drawText("4h59m", in: NSRect(x: 788, y: 350, width: 72, height: 18), size: 12, weight: .semibold, color: NSColor(calibratedRed: 0.45, green: 0.41, blue: 0.35, alpha: 0.92), mono: true)
+    drawText("5h", in: NSRect(x: 788, y: 350, width: 72, height: 18), size: 12, weight: .semibold, color: NSColor(calibratedRed: 0.45, green: 0.41, blue: 0.35, alpha: 0.92), mono: true)
 
     drawRoundedRect(NSRect(x: 910, y: 294, width: 194, height: 96), radius: 18, fill: NSColor.white.withAlphaComponent(0.46), stroke: NSColor(calibratedRed: 0.26, green: 0.36, blue: 0.36, alpha: 0.15))
     drawText("7d", in: NSRect(x: 934, y: 318, width: 42, height: 24), size: 22, weight: .bold, color: NSColor(calibratedRed: 0.13, green: 0.18, blue: 0.18, alpha: 1.0), mono: true)
