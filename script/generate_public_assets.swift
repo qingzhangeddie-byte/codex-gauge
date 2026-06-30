@@ -173,8 +173,8 @@ func drawMenuBarRefreshCountdown(in rect: NSRect, ring: NSColor, track: NSColor,
     NSBezierPath(ovalIn: NSRect(x: center.x - 3, y: center.y + 7, width: 6, height: 6)).fill()
     menuBarText("R", at: NSPoint(x: ringRect.minX + 8, y: ringRect.minY + 7), size: 10, weight: .bold, color: ink, mono: true)
 
-    drawMenuBarCountdownPill("4h37m", rect: NSRect(x: rect.minX + 34, y: rect.midY + 4, width: 70, height: 22), fill: fill, stroke: stroke, text: ink)
-    drawMenuBarCountdownPill("6d8h", rect: NSRect(x: rect.minX + 34, y: rect.midY - 26, width: 70, height: 22), fill: fill, stroke: stroke, text: ink)
+    drawMenuBarCountdownPill("4h59m", rect: NSRect(x: rect.minX + 34, y: rect.midY + 4, width: 70, height: 22), fill: fill, stroke: stroke, text: ink)
+    drawMenuBarCountdownPill("6d23h", rect: NSRect(x: rect.minX + 34, y: rect.midY - 26, width: 70, height: 22), fill: fill, stroke: stroke, text: ink)
 }
 
 func drawMenuBarMorandiDivider(_ x: CGFloat, in rect: NSRect, line: NSColor) {
@@ -289,7 +289,7 @@ try writePNG(consoleOutputPath) {
     ])?.draw(in: NSBezierPath(rect: NSRect(origin: .zero, size: canvasSize)), angle: 25)
 
     drawText("Actual app-rendered Signal Console", in: NSRect(x: 72, y: 72, width: 440, height: 92), size: 37, weight: .bold, color: NSColor(calibratedRed: 0.08, green: 0.13, blue: 0.15, alpha: 1.0))
-    drawText("Public screenshot uses sample quota values. Menu bar: usage percentage + refresh countdown. Popover: SSD, CPU, RAM, and battery context.", in: NSRect(x: 74, y: 176, width: 430, height: 74), size: 18, weight: .regular, color: NSColor(calibratedRed: 0.19, green: 0.28, blue: 0.31, alpha: 0.92))
+    drawText("Static public screenshot with sample quota values and illustrative reset countdowns. The installed app renders your live Codex values.", in: NSRect(x: 74, y: 176, width: 430, height: 86), size: 18, weight: .regular, color: NSColor(calibratedRed: 0.19, green: 0.28, blue: 0.31, alpha: 0.92))
 
     drawPill("Live source", rect: NSRect(x: 74, y: 280, width: 132, height: 38), fill: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 0.13), stroke: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 0.30), text: NSColor(calibratedRed: 0.06, green: 0.22, blue: 0.21, alpha: 1.0), dot: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 1.0))
     drawPill("5h + 7d", rect: NSRect(x: 220, y: 280, width: 118, height: 38), fill: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.15), stroke: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.34), text: NSColor(calibratedRed: 0.28, green: 0.20, blue: 0.08, alpha: 1.0))
@@ -318,8 +318,8 @@ try writePNG(socialOutputPath) {
     ])?.draw(in: NSBezierPath(rect: NSRect(origin: .zero, size: canvasSize)), angle: 18)
 
     drawText("Codex Gauge", in: NSRect(x: 74, y: 74, width: 430, height: 58), size: 48, weight: .bold, color: NSColor.white.withAlphaComponent(0.96))
-    drawText("Beautiful local quota visibility for Codex", in: NSRect(x: 78, y: 142, width: 460, height: 36), size: 24, weight: .semibold, color: NSColor(calibratedRed: 0.74, green: 0.88, blue: 0.86, alpha: 0.95))
-    drawText("5-hour and 7-day usage percentages, refresh countdowns, SSD temperature, CPU/RAM context, safe diagnostics, and local-only reports.", in: NSRect(x: 78, y: 202, width: 450, height: 116), size: 19, weight: .regular, color: NSColor.white.withAlphaComponent(0.72))
+    drawText("Calm local quota visibility for Codex", in: NSRect(x: 78, y: 142, width: 460, height: 36), size: 24, weight: .semibold, color: NSColor(calibratedRed: 0.74, green: 0.88, blue: 0.86, alpha: 0.95))
+    drawText("5-hour and 7-day usage percentages, live reset countdowns, Morandi menu bar rails, safe diagnostics, and local-only reports.", in: NSRect(x: 78, y: 202, width: 450, height: 116), size: 19, weight: .regular, color: NSColor.white.withAlphaComponent(0.72))
 
     drawPill("No browser cookies", rect: NSRect(x: 78, y: 328, width: 174, height: 40), fill: NSColor.white.withAlphaComponent(0.08), stroke: NSColor.white.withAlphaComponent(0.17), text: NSColor.white.withAlphaComponent(0.88))
     drawPill("No auth-file reads", rect: NSRect(x: 266, y: 328, width: 174, height: 40), fill: NSColor.white.withAlphaComponent(0.08), stroke: NSColor.white.withAlphaComponent(0.17), text: NSColor.white.withAlphaComponent(0.88))

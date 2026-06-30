@@ -6,6 +6,7 @@ This project publishes one supported surface: the native Codex Gauge menu bar ap
 
 - Review the diff before each public release.
 - Do not publish logs, screenshots with account details, `.venv`, `.env`, `.app` bundles, or legacy files from `~/Library/Application Support/CodexGauge`. In release review, search for the exact rule: do not publish logs.
+- Regenerate public screenshots from the checked-in scripts. README screenshots must use static sample values, not personal live account timing.
 - Do not include personal paths from `Info.plist`; the installed app should resolve its helper from `Contents/Resources`.
 - Keep private planning notes out of the public repo.
 - Keep the public repo identity independent from older fork wording, while preserving required license history.
@@ -83,8 +84,8 @@ A Homebrew cask is a good public install path after signing and notarization. Ke
 - Push with `git push -u origin main --tags` only after the GitHub repo is a fresh non-fork repo.
 - Verify `git clone https://github.com/qingzhangeddie-byte/codex-gauge.git` works before announcing.
 - Create the GitHub Release for `v0.9.1`; the README release badge should not point at an older identity.
-- Set GitHub About description: `Unofficial macOS menu bar app showing your OpenAI Codex usage: 5-hour and 7-day rate-limit quota at a glance`.
+- Set GitHub About description: `Unofficial macOS menu bar app for OpenAI Codex usage: Morandi 5h/7d quota bars, live reset countdowns, and local-only diagnostics`.
 - Set GitHub topics: `macos`, `menubar`, `menu-bar-app`, `codex`, `openai`, `swift`, `rate-limit`, `usage-monitor`, `developer-tools`.
-- Upload `docs/assets/codex-gauge-social-preview.png` as the repository social preview.
+- Upload the refreshed `docs/assets/codex-gauge-social-preview.png` as the repository social preview after confirming it uses sample values only.
 - Enable private vulnerability reporting in GitHub Settings > Security.
 - Delete or archive the old fork only after the fresh repo and release are verified.

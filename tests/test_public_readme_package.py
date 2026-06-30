@@ -14,7 +14,8 @@ class PublicReadmePackageTests(unittest.TestCase):
         self.assertIn("Unofficial", readme)
         self.assertIn("docs/assets/codex-gauge-signal-console.png", readme)
         self.assertIn("actual app-rendered Signal Console", readme)
-        self.assertIn("sample quota values for the README", readme)
+        self.assertIn("Static sample screenshot.", readme)
+        self.assertIn("static sample quota values for the README, not live account data", readme)
         self.assertLess(
             readme.index("docs/assets/codex-gauge-menubar-live.png"),
             readme.index("A simple, safe macOS menu bar app"),

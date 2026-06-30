@@ -5,7 +5,9 @@
 [![License](https://img.shields.io/github/license/qingzhangeddie-byte/codex-gauge)](LICENSE)
 ![macOS 13+](https://img.shields.io/badge/macOS-13%2B-0f766e)
 
-![Codex Gauge live menu bar with usage percentage bars and refresh countdown](docs/assets/codex-gauge-menubar-live.png)
+![Codex Gauge static sample menu bar with usage percentage bars and reset countdowns](docs/assets/codex-gauge-menubar-live.png)
+
+_Static sample screenshot. The installed app renders your live Codex usage percentages and reset countdowns._
 
 **A simple, safe macOS menu bar app to check Codex usage, track the Codex 5-hour limit, and watch your Codex 7-day quota at a glance.**
 
@@ -103,15 +105,19 @@ Search phrases this project is designed to answer naturally: **check Codex usage
 
 ![Codex Gauge Signal Console](docs/assets/codex-gauge-signal-console.png)
 
-This is an actual app-rendered Signal Console screenshot generated from the native macOS view. It uses sample quota values for the README; the installed app keeps usage percentages and reset countdowns in the menu bar, with optional SSD temperature and aggregate CPU/RAM percentages in the popover.
+This is an actual app-rendered Signal Console screenshot generated from the native macOS view. It uses static sample quota values for the README, not live account data; the installed app keeps usage percentages and reset countdowns in the menu bar, with optional SSD temperature and aggregate CPU/RAM percentages in the popover.
 
-上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 示例额度数值；安装后的 App 会把使用百分比和重置倒计时放在菜单栏，并在弹出面板里显示可选 SSD 温度和本地 CPU/RAM 汇总百分比。
+上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 静态示例额度数值，不是实时账户数据；安装后的 App 会把使用百分比和重置倒计时放在菜单栏，并在弹出面板里显示可选 SSD 温度和本地 CPU/RAM 汇总百分比。
 
 ## Focused menu bar
 
 The compact menu bar gauge uses a minimal Morandi design: usage percentage bars on the left, refresh countdown pills on the right.
 
 紧凑菜单栏仪表使用极简 Morandi 设计：左侧显示使用百分比条，右侧显示刷新倒计时胶囊。
+
+The public screenshot uses generated sample values so it does not expose account-specific timing; the real menu bar countdown updates live.
+
+公开截图使用生成的示例数值，避免暴露具体账户时间；真实菜单栏倒计时会实时更新。
 
 The two rows are 5-hour usage and 7-day usage. The countdown area shows the 5-hour reset and 7-day reset without adding hardware chips to the menu bar.
 

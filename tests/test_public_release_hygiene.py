@@ -195,6 +195,11 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("drawMenuBarUsagePercentBar(value:", script)
         self.assertIn("drawMenuBarRefreshCountdown", script)
         self.assertIn("drawMenuBarCountdownPill", script)
+        self.assertIn("4h59m", script)
+        self.assertIn("6d23h", script)
+        self.assertIn("Static public screenshot with sample quota values", script)
+        self.assertNotIn("4h37m", script)
+        self.assertNotIn("6d8h", script)
         self.assertNotIn('menuBarText("45°"', script)
         self.assertNotIn('menuBarText("C43"', script)
         self.assertNotIn("let battery = NSBezierPath", script)
@@ -284,6 +289,11 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("docs/assets/codex-gauge-social-preview.png", script_text)
         self.assertIn("actual app-rendered Signal Console", script_text)
         self.assertIn("sample quota values", script_text)
+        native_source = pathlib.Path("native/CodexGauge.swift").read_text()
+        self.assertIn('fiveHourResetText: "4h59m"', native_source)
+        self.assertIn('sevenDayResetText: "6d23h"', native_source)
+        self.assertNotIn('fiveHourResetText: "4h37m"', native_source)
+        self.assertNotIn('sevenDayResetText: "5d22h"', native_source)
 
     def test_build_script_installs_public_app_name_and_removes_legacy_app(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()

@@ -1,6 +1,8 @@
 # Codex Gauge
 
-![Codex Gauge 菜单栏：使用百分比条和刷新倒计时](docs/assets/codex-gauge-menubar-live.png)
+![Codex Gauge 静态示例菜单栏：使用百分比条和重置倒计时](docs/assets/codex-gauge-menubar-live.png)
+
+_静态示例截图；安装后的 App 会显示你的实时 Codex 使用百分比和重置倒计时。_
 
 [English](README.md) | 中文说明
 
@@ -61,11 +63,13 @@ bash install.sh
 
 ![Codex Gauge Signal Console](docs/assets/codex-gauge-signal-console.png)
 
-上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 示例额度数值；安装后的 App 会把使用百分比和重置倒计时放在菜单栏，并在弹出面板里显示可选 SSD 温度和本地 CPU/RAM 汇总百分比。
+上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 静态示例额度数值，不是实时账户数据；安装后的 App 会把使用百分比和重置倒计时放在菜单栏，并在弹出面板里显示可选 SSD 温度和本地 CPU/RAM 汇总百分比。
 
 ## 聚焦菜单栏
 
 紧凑菜单栏仪表使用极简 Morandi 设计：左侧显示使用百分比条，右侧显示刷新倒计时胶囊。
+
+公开截图使用生成的示例数值，避免暴露具体账户时间；真实菜单栏倒计时会实时更新。
 
 两行分别是 5 小时使用量和 7 天使用量。倒计时区域显示 5 小时重置和 7 天重置，不再把硬件 chip 塞进菜单栏。额度条使用柔和的绿色、蓝灰、灰褐和陶土色状态，让偏低额度清晰可见但不吵。
 
