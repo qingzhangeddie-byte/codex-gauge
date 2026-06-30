@@ -691,7 +691,7 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("statusItemWidth: CGFloat = 214", source)
         self.assertIn("statusImageSize = NSSize(width: 208", source)
         self.assertIn("private let menuBarUsagePercentRect = NSRect(x: 7", source)
-        self.assertIn("private let menuBarRefreshCountdownRect = NSRect(x: 93", source)
+        self.assertIn("private let menuBarRefreshCountdownRect = NSRect(x: 94", source)
         self.assertIn("private let menuBarHardwareSignalsRect = NSRect(x: 149", source)
         self.assertIn("private let quotaRailWidth: CGFloat = 36", source)
         self.assertIn("makeStatusImage(", source)
@@ -709,6 +709,10 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("drawMenuBarRefreshCountdown(", source)
         self.assertIn("fiveHourResetCountdown(status.fiveHourReset)", source)
         self.assertIn("sevenDayResetCountdown(status.sevenDayReset)", source)
+
+        refresh_rect = self._swift_rect_constant(source, "menuBarRefreshCountdownRect")
+        self.assertGreaterEqual(refresh_rect["x"], 92)
+        self.assertLessEqual(refresh_rect["max_x"], 145)
 
         make_status_body = self._swift_function_body(
             source,

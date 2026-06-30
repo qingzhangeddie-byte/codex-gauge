@@ -157,8 +157,8 @@ func drawMenuBarCountdownPill(_ value: String, rect: NSRect, fill: NSColor, stro
 }
 
 func drawMenuBarRefreshCountdown(in rect: NSRect, ink: NSColor, fill: NSColor, stroke: NSColor) {
-    drawMenuBarCountdownPill("4h59m", rect: NSRect(x: rect.minX, y: rect.midY + 4, width: 104, height: 22), fill: fill, stroke: stroke, text: ink)
-    drawMenuBarCountdownPill("6d23h", rect: NSRect(x: rect.minX, y: rect.midY - 26, width: 104, height: 22), fill: fill, stroke: stroke, text: ink)
+    drawMenuBarCountdownPill("4h59m", rect: NSRect(x: rect.minX + 8, y: rect.midY + 4, width: 96, height: 22), fill: fill, stroke: stroke, text: ink)
+    drawMenuBarCountdownPill("6d23h", rect: NSRect(x: rect.minX + 8, y: rect.midY - 26, width: 96, height: 22), fill: fill, stroke: stroke, text: ink)
 }
 
 func drawMenuBarMorandiDivider(_ x: CGFloat, in rect: NSRect, line: NSColor) {

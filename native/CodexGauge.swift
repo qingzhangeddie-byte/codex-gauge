@@ -2316,7 +2316,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let statusItemWidth: CGFloat = 214
     private let statusImageSize = NSSize(width: 208, height: 22)
     private let menuBarUsagePercentRect = NSRect(x: 7, y: 3, width: 82, height: 16)
-    private let menuBarRefreshCountdownRect = NSRect(x: 93, y: 2.2, width: 54, height: 17.6)
+    private let menuBarRefreshCountdownRect = NSRect(x: 94, y: 2.2, width: 50, height: 17.6)
     private let menuBarHardwareSignalsRect = NSRect(x: 149, y: 3, width: 56, height: 16)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
     private let quotaRailWidth: CGFloat = 36
