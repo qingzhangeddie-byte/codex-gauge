@@ -10,8 +10,8 @@ The native menu bar app:
 - runs the bundled helper with zero persistence, so live readings are not cached and Snapshot fallback is disabled in app mode;
 - bundles its helper at `CodexGauge.app/Contents/Resources/codex_status.py`;
 - optionally reads local SSD/NAND temperature from macOS IOReport when the sensor is exposed, showing only the temperature/status and no disk serials or file contents;
-- samples CPU/RAM through macOS host statistics, keeping only aggregated local CPU and RAM percentages in memory for the menu bar and 10-minute Signal Console movement view;
-- reads local battery percentage and power-source state through macOS power-source APIs for the menu bar battery glyph and automatic Power Saver;
+- samples CPU/RAM through macOS host statistics, keeping only aggregated local CPU and RAM percentages in memory for the 10-minute Signal Console movement view;
+- reads local battery percentage and power-source state through macOS power-source APIs for Signal Console and diagnostics, plus automatic Power Saver;
 - performs one session-only update check after launch only while plugged in, and also performs a manual update check when you choose Check for Updates, contacting GitHub Releases to read the latest public release metadata;
 - does not install a LaunchAgent, write support-folder logs, save preferences, write histories, cache live quota, or save report files;
 - does not read browser cookies;

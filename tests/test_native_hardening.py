@@ -146,6 +146,8 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertIn("Clear legacy data", source)
         self.assertIn("CPU/RAM", pathlib.Path("docs/PRIVACY.md").read_text(encoding="utf-8"))
         self.assertIn("aggregated local CPU and RAM percentages", pathlib.Path("docs/PRIVACY.md").read_text(encoding="utf-8"))
+        self.assertIn("10-minute Signal Console movement view", pathlib.Path("docs/PRIVACY.md").read_text(encoding="utf-8"))
+        self.assertNotIn("for the menu bar and 10-minute Signal Console movement view", pathlib.Path("docs/PRIVACY.md").read_text(encoding="utf-8"))
 
         metric_storage = source.split("private func appendSystemMetricSample", 1)[1].split("private func readSystemMetricSamples", 1)[0]
         self.assertIn("systemMetricSamples.append(sample)", metric_storage)
@@ -348,11 +350,13 @@ class NativeHardeningTests(unittest.TestCase):
         for phrase in [
             "battery percentage and power-source state",
             "Power Saver",
+            "Signal Console and diagnostics",
             "stops SSD temperature and CPU/RAM sampling while on battery",
             "does not store battery history",
         ]:
             self.assertIn(phrase, privacy)
 
+        self.assertNotIn("menu bar battery glyph", privacy)
         self.assertNotIn("Battery-history", privacy)
 
     def test_privacy_docs_describe_session_only_github_updater(self):
