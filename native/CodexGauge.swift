@@ -2014,7 +2014,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             statusDetail: "Read from local Codex app-server",
             fiveHourLeft: 82,
             sevenDayLeft: 76,
-            fiveHourResetText: "4h",
+            fiveHourResetText: "4h37m",
             sevenDayResetText: "5d22h",
             fiveHourResetProgress: 18,
             sevenDayResetProgress: 52,
@@ -2048,7 +2048,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             statusDetail: "Zero persistence keeps no cached fallback",
             fiveHourLeft: 58,
             sevenDayLeft: 63,
-            fiveHourResetText: "2h",
+            fiveHourResetText: "2h14m",
             sevenDayResetText: "4d8h",
             fiveHourResetProgress: 62,
             sevenDayResetProgress: 39,
@@ -2082,7 +2082,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             statusDetail: "Read from local Codex app-server",
             fiveHourLeft: 82,
             sevenDayLeft: 76,
-            fiveHourResetText: "4h",
+            fiveHourResetText: "4h37m",
             sevenDayResetText: "5d22h",
             fiveHourResetProgress: 18,
             sevenDayResetProgress: 52,
@@ -2104,7 +2104,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             statusDetail: "Battery mode keeps only usage and battery signals visible.",
             fiveHourLeft: 80,
             sevenDayLeft: 79,
-            fiveHourResetText: "4h",
+            fiveHourResetText: "4h37m",
             sevenDayResetText: "5d21h",
             fiveHourResetProgress: 22,
             sevenDayResetProgress: 54,
@@ -5667,14 +5667,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func fiveHourResetCountdown(_ epoch: Double?) -> String {
-        compactResetCountdown(epoch, includeDays: false)
+        compactResetCountdown(epoch, includeMinutes: true, includeDays: false)
     }
 
     private func sevenDayResetCountdown(_ epoch: Double?) -> String {
-        compactResetCountdown(epoch, includeDays: true)
+        compactResetCountdown(epoch, includeMinutes: false, includeDays: true)
     }
 
-    private func compactResetCountdown(_ epoch: Double?, includeDays: Bool) -> String {
+    private func compactResetCountdown(_ epoch: Double?, includeMinutes: Bool, includeDays: Bool) -> String {
         guard let epoch else {
             return "--"
         }
@@ -5686,15 +5686,20 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         if minutes < 60 {
             return "\(minutes)m"
         }
-        let hours = Int(ceil(Double(minutes) / 60.0))
+        let hours = minutes / 60
+        let remainingMinutes = minutes % 60
+        if includeMinutes, remainingMinutes > 0 {
+            return "\(hours)h\(remainingMinutes)m"
+        }
+        let roundedHours = Int(ceil(Double(minutes) / 60.0))
         if includeDays, minutes >= 24 * 60 {
-            let days = hours / 24
-            let remainingHours = hours % 24
+            let days = roundedHours / 24
+            let remainingHours = roundedHours % 24
             if days > 0 {
                 return "\(days)d\(remainingHours)h"
             }
         }
-        return "\(hours)h"
+        return "\(roundedHours)h"
     }
 
     private func clampedFraction(_ value: Int?) -> CGFloat {

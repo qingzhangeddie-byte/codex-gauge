@@ -752,15 +752,23 @@ class SignalConsoleUXTests(unittest.TestCase):
     def test_reset_countdowns_use_progressive_units(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
+        five_hour_body = source.split("private func fiveHourResetCountdown", 1)[1].split("private func sevenDayResetCountdown", 1)[0]
+        seven_day_body = source.split("private func sevenDayResetCountdown", 1)[1].split("private func compactResetCountdown", 1)[0]
         compact_body = source.split("private func compactResetCountdown", 1)[1].split("private func clampedFraction", 1)[0]
         dropdown_body = source.split("private func resetCountdown(_ epoch: Double?)", 1)[1].split("private func infoString", 1)[0]
 
+        self.assertIn("compactResetCountdown(epoch, includeMinutes: true, includeDays: false)", five_hour_body)
+        self.assertIn("compactResetCountdown(epoch, includeMinutes: false, includeDays: true)", seven_day_body)
         self.assertIn("let minutes = max(1, Int(ceil(remaining / 60)))", compact_body)
         self.assertIn("if minutes < 60", compact_body)
         self.assertIn('return "\\(minutes)m"', compact_body)
-        self.assertIn("let hours = Int(ceil(Double(minutes) / 60.0))", compact_body)
+        self.assertIn("let hours = minutes / 60", compact_body)
+        self.assertIn("let remainingMinutes = minutes % 60", compact_body)
+        self.assertIn("if includeMinutes, remainingMinutes > 0", compact_body)
+        self.assertIn('return "\\(hours)h\\(remainingMinutes)m"', compact_body)
+        self.assertIn("let roundedHours = Int(ceil(Double(minutes) / 60.0))", compact_body)
         self.assertIn("if includeDays, minutes >= 24 * 60", compact_body)
-        self.assertIn('return "\\(hours)h"', compact_body)
+        self.assertIn('return "\\(roundedHours)h"', compact_body)
         self.assertIn('return "\\(days)d\\(remainingHours)h"', compact_body)
 
         self.assertIn("let days = minutes / (24 * 60)", dropdown_body)

@@ -173,7 +173,7 @@ func drawMenuBarRefreshCountdown(in rect: NSRect, ring: NSColor, track: NSColor,
     NSBezierPath(ovalIn: NSRect(x: center.x - 3, y: center.y + 7, width: 6, height: 6)).fill()
     menuBarText("R", at: NSPoint(x: ringRect.minX + 8, y: ringRect.minY + 7), size: 10, weight: .bold, color: ink, mono: true)
 
-    drawMenuBarCountdownPill("4h", rect: NSRect(x: rect.minX + 34, y: rect.midY + 4, width: 70, height: 22), fill: fill, stroke: stroke, text: ink)
+    drawMenuBarCountdownPill("4h37m", rect: NSRect(x: rect.minX + 34, y: rect.midY + 4, width: 70, height: 22), fill: fill, stroke: stroke, text: ink)
     drawMenuBarCountdownPill("6d8h", rect: NSRect(x: rect.minX + 34, y: rect.midY - 26, width: 70, height: 22), fill: fill, stroke: stroke, text: ink)
 }
 
