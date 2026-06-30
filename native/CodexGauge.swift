@@ -2313,12 +2313,13 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let maxSystemMetricSamples = 24 * 60 * 60 / 5
     private let ssdTemperatureReadTimeout: TimeInterval = 0.8
     private let ssdTemperatureDisplayGraceInterval: TimeInterval = 10 * 60
-    private let statusItemWidth: CGFloat = 164
-    private let statusImageSize = NSSize(width: 158, height: 22)
-    private let menuBarUsagePercentRect = NSRect(x: 7, y: 3, width: 88, height: 16)
-    private let menuBarRefreshCountdownRect = NSRect(x: 101, y: 2.2, width: 54, height: 17.6)
+    private let statusItemWidth: CGFloat = 214
+    private let statusImageSize = NSSize(width: 208, height: 22)
+    private let menuBarUsagePercentRect = NSRect(x: 7, y: 3, width: 82, height: 16)
+    private let menuBarRefreshCountdownRect = NSRect(x: 93, y: 2.2, width: 54, height: 17.6)
+    private let menuBarHardwareSignalsRect = NSRect(x: 149, y: 3, width: 56, height: 16)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
-    private let quotaRailWidth: CGFloat = 42
+    private let quotaRailWidth: CGFloat = 36
     private let signalRailSegments = 10
     private let codexCliBundlePath = "/Applications/Codex.app/Contents/Resources/codex"
     private let normalQuotaColor = NSColor(calibratedRed: 0.58, green: 1.00, blue: 0.89, alpha: 0.95)
@@ -4915,6 +4916,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 palette: palette
             )
         }
+        drawMenuBarHardwareSignals(
+            ssdTemperature: ssdTemperature,
+            systemMetric: systemMetric,
+            batteryStatus: batteryStatus,
+            palette: palette
+        )
         NSGraphicsContext.restoreGraphicsState()
         image.addRepresentation(bitmap)
         image.isTemplate = false
@@ -4923,7 +4930,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func drawMenuBarChrome(source: String?, nonLiveMode: Bool, palette: GaugePalette) {
         drawMenuBarMinimalMorandiPill(source: source, nonLiveMode: nonLiveMode, palette: palette)
-        for x in [96] as [CGFloat] {
+        for x in [90, 146] as [CGFloat] {
             drawMenuBarMorandiDivider(x: x, palette: palette)
         }
     }
@@ -5189,6 +5196,20 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             .foregroundColor: palette.primaryText.withAlphaComponent(isDarkMenuBar() ? 0.84 : 0.78),
         ]
         (resetText as NSString).draw(at: NSPoint(x: rect.minX + 2.5, y: rect.minY + 1.4), withAttributes: attrs)
+    }
+
+    private func drawMenuBarHardwareSignals(ssdTemperature: SSDTemperatureStatus?, systemMetric: SystemMetricSample?, batteryStatus: BatteryStatus?, palette: GaugePalette) {
+        let rect = menuBarHardwareSignalsRect
+        if hardwareSignalsVisible() {
+            if showSSDTemperatureInMenuBar() {
+                drawMenuBarSSDTemperature(status: ssdTemperature, rect: NSRect(x: rect.minX, y: rect.minY + 1.0, width: 24.0, height: 14.0), palette: palette)
+                drawMenuBarSystemMetricStrip(sample: systemMetric, rect: NSRect(x: rect.minX + 27.0, y: rect.minY - 0.5, width: rect.width - 27.0, height: 17.0), palette: palette)
+            } else {
+                drawMenuBarSystemMetricStrip(sample: systemMetric, rect: NSRect(x: rect.minX, y: rect.minY - 0.5, width: rect.width, height: 17.0), palette: palette)
+            }
+        } else {
+            drawMenuBarBatteryModeInfo(status: batteryStatus, rect: rect.insetBy(dx: 0.5, dy: 1.0), palette: palette)
+        }
     }
 
     private func drawMenuBarSSDTemperature(status: SSDTemperatureStatus?, rect: NSRect, palette: GaugePalette) {

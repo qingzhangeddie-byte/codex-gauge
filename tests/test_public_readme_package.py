@@ -94,7 +94,7 @@ class PublicReadmePackageTests(unittest.TestCase):
             "1-second SSD temperature samples",
             "smooth 10-minute Movement curve",
             "local CPU and RAM percentages",
-            "menu bar stays focused on quota",
+            "menu bar hardware slice",
             "10-minute in-memory movement view",
             "Zero persistence mode",
             "native battery signal",
@@ -145,30 +145,32 @@ class PublicReadmePackageTests(unittest.TestCase):
             self.assertNotIn("Claude", text)
             self.assertNotIn("claude", text)
 
-    def test_readmes_explain_focused_menu_bar_signal(self):
+    def test_readmes_explain_compact_menu_bar_signal(self):
         readme = pathlib.Path("README.md").read_text(encoding="utf-8")
         zh_readme = pathlib.Path("README.zh-CN.md").read_text(encoding="utf-8")
 
         for phrase in [
-            "Focused menu bar",
+            "Compact menu bar",
             "minimal Morandi design",
             "usage percentage bars on the left",
-            "refresh countdown pills on the right",
+            "refresh countdown pills in the middle",
+            "small hardware slice on the right",
             "5-hour usage and 7-day usage",
             "5-hour reset and 7-day reset",
-            "without adding hardware chips to the menu bar",
+            "optional SSD temperature plus CPU/RAM",
             "green, blue-grey, taupe, and clay states",
         ]:
             self.assertIn(phrase, readme)
 
         for phrase in [
-            "聚焦菜单栏",
+            "紧凑菜单栏",
             "极简 Morandi 设计",
             "使用百分比条",
             "刷新倒计时胶囊",
+            "右侧显示小型硬件区",
             "5 小时使用量和 7 天使用量",
             "5 小时重置和 7 天重置",
-            "不再把硬件 chip 塞进菜单栏",
+            "可选 SSD 温度和 CPU/RAM",
             "绿色、蓝灰、灰褐和陶土色状态",
         ]:
             self.assertIn(phrase, zh_readme)

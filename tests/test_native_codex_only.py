@@ -88,14 +88,15 @@ class NativeCodexOnlyTests(unittest.TestCase):
         )
         self.assertIn("scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))", finish_refresh)
 
-    def test_native_app_draws_focused_usage_refresh_status_image(self):
+    def test_native_app_draws_usage_refresh_and_hardware_status_image(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("statusItemWidth: CGFloat = 164", source)
-        self.assertIn("statusImageSize = NSSize(width: 158, height: 22)", source)
+        self.assertIn("statusItemWidth: CGFloat = 214", source)
+        self.assertIn("statusImageSize = NSSize(width: 208, height: 22)", source)
         self.assertIn("menuBarUsagePercentRect", source)
         self.assertIn("menuBarRefreshCountdownRect", source)
-        self.assertIn("quotaRailWidth: CGFloat = 42", source)
+        self.assertIn("menuBarHardwareSignalsRect", source)
+        self.assertIn("quotaRailWidth: CGFloat = 36", source)
         self.assertIn("makeStatusImage", source)
         self.assertIn("fiveHourReset: status.fiveHourReset", source)
         self.assertIn("sevenDayReset: status.sevenDayReset", source)
@@ -137,8 +138,16 @@ class NativeCodexOnlyTests(unittest.TestCase):
         make_status_body = source.split("private func makeStatusImage(", 1)[1].split(
             "private func drawMenuBarChrome", 1
         )[0]
-        self.assertNotIn("drawMenuBarSystemMetricStrip", make_status_body)
-        self.assertNotIn("drawMenuBarSSDTemperature", make_status_body)
+        self.assertIn("drawMenuBarHardwareSignals(", make_status_body)
+        self.assertIn("ssdTemperature: ssdTemperature", make_status_body)
+        self.assertIn("systemMetric: systemMetric", make_status_body)
+        self.assertIn("batteryStatus: batteryStatus", make_status_body)
+        hardware_menu_body = source.split("private func drawMenuBarHardwareSignals", 1)[1].split(
+            "private func drawMenuBarSSDTemperature", 1
+        )[0]
+        self.assertIn("drawMenuBarSystemMetricStrip(sample: systemMetric", hardware_menu_body)
+        self.assertIn("drawMenuBarSSDTemperature(status: ssdTemperature", hardware_menu_body)
+        self.assertIn("drawMenuBarBatteryModeInfo(status: batteryStatus", hardware_menu_body)
         self.assertNotIn("drawMenuBarBattery(status:", make_status_body)
         self.assertNotIn("drawSevenDayResetCountdown", source)
         self.assertNotIn("drawWordmark", source)
