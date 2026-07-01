@@ -56,14 +56,15 @@ class SignalConsoleUXTests(unittest.TestCase):
         usage_row_body = swift_function_body(source, "private func drawMenuBarUsagePercentRow(")
 
         for token in [
-            "statusItemWidth: CGFloat = 104",
-            "statusImageSize = NSSize(width: 98, height: 22)",
-            "menuBarUsagePercentRect = NSRect(x: 6, y: 3, width: 46, height: 16)",
-            "menuBarRefreshCountdownRect = NSRect(x: 58, y: 2.2, width: 34, height: 17.6)",
-            "for x in [54] as [CGFloat]",
+            "statusItemWidth: CGFloat = 116",
+            "statusImageSize = NSSize(width: 110, height: 22)",
+            "menuBarUsagePercentRect = NSRect(x: 5, y: 3, width: 58, height: 16)",
+            "menuBarRefreshCountdownRect = NSRect(x: 68, y: 2.2, width: 36, height: 17.6)",
+            "for x in [64] as [CGFloat]",
             "drawMenuBarMinimalMorandiPill",
             "drawMenuBarUsagePercentBars",
             "drawMenuBarCountdownPill",
+            "compactMenuBarPercentText",
             "morandiMenuBarSage",
             "morandiMenuBarMist",
             "morandiMenuBarClay",
@@ -73,7 +74,8 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("drawPlanBGauge(", make_status_body)
         self.assertIn("drawMenuBarCountdownPill(text: fiveHourText", countdown_body)
         self.assertIn("drawMenuBarCountdownPill(text: sevenDayText", countdown_body)
-        self.assertNotIn("percentText", usage_row_body)
+        self.assertIn("compactMenuBarPercentText(value)", usage_row_body)
+        self.assertIn("percentText as NSString", usage_row_body)
         self.assertNotIn("drawMenuBarHardwareSignals", source)
         self.assertNotIn("drawMenuBarSSDTemperature", source)
         self.assertNotIn("drawMenuBarSystemMetricStrip", source)

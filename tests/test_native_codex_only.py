@@ -91,11 +91,11 @@ class NativeCodexOnlyTests(unittest.TestCase):
     def test_native_app_draws_codex_usage_and_refresh_status_image(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("statusItemWidth: CGFloat = 104", source)
-        self.assertIn("statusImageSize = NSSize(width: 98, height: 22)", source)
+        self.assertIn("statusItemWidth: CGFloat = 116", source)
+        self.assertIn("statusImageSize = NSSize(width: 110, height: 22)", source)
         self.assertIn("menuBarUsagePercentRect", source)
         self.assertIn("menuBarRefreshCountdownRect", source)
-        self.assertIn("quotaRailWidth: CGFloat = 30", source)
+        self.assertIn("quotaRailWidth: CGFloat = 21", source)
         self.assertIn("makeStatusImage", source)
         self.assertIn("fiveHourReset: status.fiveHourReset", source)
         self.assertIn("sevenDayReset: status.sevenDayReset", source)

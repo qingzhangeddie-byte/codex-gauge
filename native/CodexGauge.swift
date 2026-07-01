@@ -1799,12 +1799,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let watchRefreshInterval: TimeInterval = 3 * 60
     private let criticalRefreshInterval: TimeInterval = 2 * 60
     private let tenMinuteRefreshInterval: TimeInterval = 10 * 60
-    private let statusItemWidth: CGFloat = 104
-    private let statusImageSize = NSSize(width: 98, height: 22)
-    private let menuBarUsagePercentRect = NSRect(x: 6, y: 3, width: 46, height: 16)
-    private let menuBarRefreshCountdownRect = NSRect(x: 58, y: 2.2, width: 34, height: 17.6)
+    private let statusItemWidth: CGFloat = 116
+    private let statusImageSize = NSSize(width: 110, height: 22)
+    private let menuBarUsagePercentRect = NSRect(x: 5, y: 3, width: 58, height: 16)
+    private let menuBarRefreshCountdownRect = NSRect(x: 68, y: 2.2, width: 36, height: 17.6)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
-    private let quotaRailWidth: CGFloat = 30
+    private let quotaRailWidth: CGFloat = 21
     private let signalRailSegments = 10
     private let codexCliBundlePath = "/Applications/Codex.app/Contents/Resources/codex"
     private let normalQuotaColor = NSColor(calibratedRed: 0.58, green: 1.00, blue: 0.89, alpha: 0.95)
@@ -3730,7 +3730,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func drawMenuBarChrome(source: String?, nonLiveMode: Bool, palette: GaugePalette) {
         drawMenuBarMinimalMorandiPill(source: source, nonLiveMode: nonLiveMode, palette: palette)
-        for x in [54] as [CGFloat] {
+        for x in [64] as [CGFloat] {
             drawMenuBarMorandiDivider(x: x, palette: palette)
         }
     }
@@ -3904,8 +3904,22 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         ]
         (window as NSString).draw(at: NSPoint(x: menuBarUsagePercentRect.minX, y: y - 3.0), withAttributes: windowAttrs)
 
-        let railRect = NSRect(x: menuBarUsagePercentRect.minX + 15, y: y, width: quotaRailWidth, height: 3.4)
+        let percentText = compactMenuBarPercentText(value)
+        let valueAttrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: percentText.count > 2 ? 5.0 : 5.5, weight: .bold),
+            .foregroundColor: value == nil ? palette.mutedText : palette.primaryText,
+        ]
+        (percentText as NSString).draw(at: NSPoint(x: menuBarUsagePercentRect.minX + 16, y: y - 2.6), withAttributes: valueAttrs)
+
+        let railRect = NSRect(x: menuBarUsagePercentRect.minX + 37, y: y, width: quotaRailWidth, height: 3.4)
         drawMenuBarUsagePercentBar(value: value, rect: railRect, palette: palette, fillColor: menuBarQuotaColor(value, palette: palette))
+    }
+
+    private func compactMenuBarPercentText(_ value: Int?) -> String {
+        guard let value else {
+            return "--"
+        }
+        return "\(max(0, min(100, value)))%"
     }
 
     private func drawMenuBarUsagePercentBar(value: Int?, rect: NSRect, palette: GaugePalette, fillColor: NSColor) {

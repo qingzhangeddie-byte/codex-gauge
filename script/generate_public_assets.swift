@@ -207,7 +207,7 @@ func writeMenuBarPNG(_ path: String) throws {
         NSColor(calibratedRed: 0.77, green: 0.84, blue: 0.84, alpha: 1.0),
     ])?.draw(in: NSBezierPath(rect: NSRect(origin: .zero, size: menuBarSize)), angle: 0)
 
-    let strip = NSRect(x: 88, y: 20, width: 254, height: 56)
+    let strip = NSRect(x: 64, y: 20, width: 302, height: 56)
     let shadow = NSShadow()
     shadow.shadowColor = NSColor.black.withAlphaComponent(0.16)
     shadow.shadowBlurRadius = 12
@@ -229,17 +229,19 @@ func writeMenuBarPNG(_ path: String) throws {
     sage.withAlphaComponent(0.28).setFill()
     topRail.fill()
 
-    for x in [strip.minX + 138] as [CGFloat] {
+    for x in [strip.minX + 174] as [CGFloat] {
         drawMenuBarMorandiDivider(x, in: strip, line: line)
     }
 
     menuBarText("5h", at: NSPoint(x: strip.minX + 16, y: 48), size: 24, weight: .bold, color: ink, mono: true)
     menuBarText("7d", at: NSPoint(x: strip.minX + 16, y: 24), size: 24, weight: .bold, color: ink, mono: true)
-    drawMenuBarUsagePercentBar(value: 0.90, rect: NSRect(x: strip.minX + 54, y: 56, width: 76, height: 8), fill: sage, track: line.withAlphaComponent(0.20))
-    drawMenuBarUsagePercentBar(value: 0.80, rect: NSRect(x: strip.minX + 54, y: 32, width: 76, height: 8), fill: mist.withAlphaComponent(0.88), track: line.withAlphaComponent(0.20))
+    menuBarText("90%", at: NSPoint(x: strip.minX + 54, y: 49), size: 17, weight: .bold, color: ink, mono: true)
+    menuBarText("80%", at: NSPoint(x: strip.minX + 54, y: 25), size: 17, weight: .bold, color: ink, mono: true)
+    drawMenuBarUsagePercentBar(value: 0.90, rect: NSRect(x: strip.minX + 104, y: 56, width: 56, height: 8), fill: sage, track: line.withAlphaComponent(0.20))
+    drawMenuBarUsagePercentBar(value: 0.80, rect: NSRect(x: strip.minX + 104, y: 32, width: 56, height: 8), fill: mist.withAlphaComponent(0.88), track: line.withAlphaComponent(0.20))
 
     drawMenuBarRefreshCountdown(
-        in: NSRect(x: strip.minX + 142, y: 23, width: 92, height: 50),
+        in: NSRect(x: strip.minX + 194, y: 23, width: 92, height: 50),
         ink: ink,
         fill: taupe.withAlphaComponent(0.13),
         stroke: taupe.withAlphaComponent(0.28)
