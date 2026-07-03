@@ -131,6 +131,55 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
         last_live.assert_called_once()
         local_snapshot.assert_called_once()
 
+    def test_app_mode_can_use_read_only_local_snapshot_without_cache_writes(self):
+        helper = load_helper()
+        now = datetime.datetime.fromisoformat("2026-07-03T04:13:40+00:00").timestamp()
+        five_hour_reset = now + 45 * 60
+        seven_day_reset = now + 4 * 24 * 60 * 60
+
+        with tempfile.TemporaryDirectory() as tmp:
+            home = pathlib.Path(tmp)
+            session_dir = home / ".codex" / "sessions" / "2026" / "07" / "03"
+            session_dir.mkdir(parents=True)
+            session_path = session_dir / "fallback.jsonl"
+            session_path.write_text(
+                json.dumps({
+                    "timestamp": "2026-07-03T04:13:32.213Z",
+                    "rate_limits": {
+                        "limit_id": "codex",
+                        "primary": {
+                            "used_percent": 1,
+                            "window_minutes": 300,
+                            "resets_at": five_hour_reset,
+                        },
+                        "secondary": {
+                            "used_percent": 57,
+                            "window_minutes": 10080,
+                            "resets_at": seven_day_reset,
+                        },
+                        "plan_type": "pro",
+                    },
+                }) + "\n",
+                encoding="utf-8",
+            )
+            os.utime(session_path, (now, now))
+
+            with mock.patch.dict(helper.os.environ, {
+                "CODEX_GAUGE_NO_STORAGE": "1",
+                "CODEX_GAUGE_READ_LOCAL_SNAPSHOT": "1",
+            }), \
+                 mock.patch.object(helper, "live_codex_rate_limits", side_effect=helper.CodexRemoteError("timeout")), \
+                 mock.patch.object(helper.pathlib.Path, "home", return_value=home), \
+                 mock.patch.object(helper.time, "time", return_value=now):
+                snapshot = helper.build_status_snapshot()
+
+        self.assertTrue(snapshot["codex"]["ok"])
+        self.assertEqual(snapshot["codex"]["five_hour_left"], 99)
+        self.assertEqual(snapshot["codex"]["seven_day_left"], 43)
+        self.assertEqual(snapshot["codex"]["source"], "local_snapshot")
+        self.assertEqual(snapshot["codex"]["data_time"], "2026-07-03T04:13:32.213Z")
+        self.assertFalse(list(pathlib.Path(self.support_tmp.name).glob("*")))
+
     def test_uses_recent_last_live_cache_when_live_and_snapshot_are_unavailable(self):
         helper = load_helper()
         now = datetime.datetime.fromisoformat("2026-06-12T17:40:00+00:00").timestamp()

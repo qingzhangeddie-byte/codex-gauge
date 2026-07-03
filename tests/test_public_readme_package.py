@@ -200,7 +200,7 @@ class PublicReadmePackageTests(unittest.TestCase):
         self.assertIn("does not read browser cookies", privacy)
         self.assertIn("does not read `~/.codex/auth.json`", privacy)
         self.assertIn("zero persistence", privacy)
-        self.assertIn("Snapshot fallback is disabled in app mode", privacy)
+        self.assertIn("read-only emergency fallback", privacy)
         self.assertIn("Codex app-server", privacy)
         self.assertIn("does not install a LaunchAgent", privacy)
 

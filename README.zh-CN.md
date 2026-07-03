@@ -52,7 +52,7 @@ _菜单栏条形渲染图。这里是静态示例数值；安装后的 App 会�
 - 偏好设置只在当前运行会话中生效，支持主题、自适应、5 分钟和 10 分钟刷新
 - 可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
 - Signal Console 会在弹出面板解释 Live、Codex closed 和不可用状态
-- Signal Console 和 tooltip 会解释 Live 与 Open 状态；Zero persistence 模式会在 App 中关闭本地 Cache 和 Snapshot fallback
+- Signal Console 和 tooltip 会解释 Live、Open 和只读 Snapshot fallback；Zero persistence 模式仍会关闭缓存写入
 - Setup Doctor 和 Copy Diagnostics 可帮助排查本地设置，但不会复制 prompts、Cookie、auth 文件或日志
 - 原生 App 自带 helper，安装后不依赖源码目录
 - Zero persistence 模式不保留 LaunchAgent、保存的偏好、历史、缓存、report、运行日志或 support-folder 存储
@@ -131,7 +131,7 @@ open native/dist/release
 CodexGauge.app/Contents/Resources/codex_status.py
 ```
 
-App 会通过打包的 helper 访问本地 Codex app-server 读取实时额度。App 运行 helper 时会启用 Zero persistence，所以实时读数不会被缓存，App 模式下也不会使用本地 Snapshot fallback。
+App 会通过打包的 helper 访问本地 Codex app-server 读取实时额度。App 运行 helper 时会启用 Zero persistence，所以实时读数不会被缓存。如果实时 app-server 卡住，App 模式可以只读读取 Codex 本地会话中的最新 rate-limit snapshot 作为应急 fallback。
 
 它不读取浏览器 Cookie，不读取 `~/.codex/auth.json`，也不扫描无关的项目目录、浏览器 profile 或 Keychain。
 
@@ -195,7 +195,7 @@ plist 应该只引用 `codex_status.py`，不应该包含你的源码目录路�
 
 ### Codex Gauge 会读取 `~/.codex/auth.json` 吗？
 
-不会。App 优先使用本地 Codex app-server 获取实时额度，并以 Zero persistence 模式禁用本地缓存和 Snapshot fallback。
+不会。App 优先使用本地 Codex app-server 获取实时额度，并以 Zero persistence 模式禁止 Codex Gauge 写入缓存；当实时数据卡住时，它可以只读读取 Codex 自己的最新 rate-limit snapshot。
 
 ### 这会触发 5 小时窗口吗？
 

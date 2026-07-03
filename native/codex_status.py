@@ -29,6 +29,7 @@ RESET_FUTURE_GRACE_SEC = 60
 ENV_CODEX_CLI_PATH = "CODEX_GAUGE_CODEX_CLI_PATH"
 ENV_SUPPORT_DIR = "CODEX_GAUGE_SUPPORT_DIR"
 ENV_NO_STORAGE = "CODEX_GAUGE_NO_STORAGE"
+ENV_READ_LOCAL_SNAPSHOT = "CODEX_GAUGE_READ_LOCAL_SNAPSHOT"
 LAST_LIVE_CACHE_FILE = "last-live-status.json"
 CODEX_GAUGE_CLIENT = {"name": "codex-gauge", "title": "Codex Gauge", "version": "0"}
 
@@ -39,6 +40,12 @@ class CodexRemoteError(Exception):
 
 def no_storage_enabled() -> bool:
     return os.environ.get(ENV_NO_STORAGE, "").strip() == "1"
+
+
+def local_snapshot_fallback_enabled() -> bool:
+    if not no_storage_enabled():
+        return True
+    return os.environ.get(ENV_READ_LOCAL_SNAPSHOT, "").strip() == "1"
 
 
 def find_free_local_port() -> int:
@@ -315,7 +322,7 @@ def _normalize_remote_rate_limits(rate_limits: dict) -> dict:
 
 
 def latest_local_codex_rate_limits_snapshot(now: float | None = None) -> dict | None:
-    if no_storage_enabled():
+    if not local_snapshot_fallback_enabled():
         return None
     sessions_dir = pathlib.Path.home() / ".codex" / "sessions"
     if not sessions_dir.is_dir():

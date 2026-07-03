@@ -84,16 +84,16 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertNotIn("write(to:", append_log_body)
         self.assertNotIn("createDirectory", append_log_body)
 
-    def test_native_app_clears_stale_snapshot_on_refresh_failure(self):
+    def test_native_app_preserves_last_visible_quota_on_refresh_failure(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
         finish_refresh = source[source.index("private func finishRefresh"):source.index("private func rebuildMenu")]
 
-        self.assertIn("snapshot = nil", finish_refresh)
-        self.assertLess(
-            finish_refresh.index("snapshot = nil"),
-            finish_refresh.index('lastError = "Could not parse status JSON'),
-        )
-        self.assertIn("scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))", finish_refresh)
+        self.assertIn("let previousSnapshot = snapshot", finish_refresh)
+        self.assertIn("if isLiveRefreshFailure(decoded.codex), let previousSnapshot", finish_refresh)
+        self.assertIn("snapshot = previousSnapshot", finish_refresh)
+        self.assertIn("lastError = decoded.codex.error ??", finish_refresh)
+        self.assertIn("setStatusImage(title: statusTooltipTitle(previousSnapshot), status: previousSnapshot.codex)", finish_refresh)
+        self.assertIn("scheduleNextRefresh(after: lastError == nil ? nextRefreshInterval(for: snapshot?.codex) : recoveryRefreshInterval)", finish_refresh)
 
     def test_native_app_draws_codex_usage_and_refresh_status_image(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -193,9 +193,11 @@ class NativeCodexOnlyTests(unittest.TestCase):
         )[0]
 
         self.assertIn("isLiveWarningStatus", source)
+        self.assertIn("private func isLiveRefreshFailure", source)
         self.assertIn("let liveWarning = isLiveWarningStatus(status)", set_status_body)
         self.assertIn("isLiveWarning: liveWarning", set_status_body)
         self.assertIn("drawMenuBarLiveUnavailableHint", source)
+        self.assertIn("drawLiveWarningGauge(fiveHourLeft:", source)
         self.assertIn('text: "open"', source)
         self.assertIn('text: "Codex"', source)
         self.assertNotIn("drawStatusStateBadge", source)

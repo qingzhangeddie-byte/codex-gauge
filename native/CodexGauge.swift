@@ -3288,6 +3288,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             "CODEX_GAUGE_STATUS_HELPER": usagePath,
             "CODEX_GAUGE_SUPPORT_DIR": NSTemporaryDirectory(),
             "CODEX_GAUGE_NO_STORAGE": "1",
+            "CODEX_GAUGE_READ_LOCAL_SNAPSHOT": "1",
         ]
         if FileManager.default.isExecutableFile(atPath: codexCliBundlePath) {
             helperEnv["CODEX_GAUGE_CODEX_CLI_PATH"] = codexCliBundlePath
@@ -3297,6 +3298,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func finishRefresh(status: Int32, output: String, errorOutput: String) {
         isRefreshing = false
+        let previousSnapshot = snapshot
         appendLog("refresh finished status=\(status) stdout=\(clipped(output, limit: 600)) stderr=\(clipped(errorOutput, limit: 600))")
         if status == 0 {
             do {
@@ -3304,27 +3306,48 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 decoder.keyDecodingStrategy = .convertFromSnakeCase
                 let data = Data(output.utf8)
                 let decoded = try decoder.decode(UsageSnapshot.self, from: data)
+                if isLiveRefreshFailure(decoded.codex), let previousSnapshot, !isUnavailableStatus(previousSnapshot.codex) {
+                    snapshot = previousSnapshot
+                    lastError = decoded.codex.error ?? "Codex live usage unavailable."
+                    handleNotificationTransitions(decoded.codex)
+                    stopMoodAnimation()
+                    setStatusImage(title: statusTooltipTitle(previousSnapshot), status: previousSnapshot.codex)
+                    appendLog("preserved last visible quota after refresh failure error=\(lastError ?? "")")
+                    scheduleNextRefresh(after: lastError == nil ? nextRefreshInterval(for: snapshot?.codex) : recoveryRefreshInterval)
+                    rebuildMenu()
+                    return
+                }
                 snapshot = decoded
-                lastError = nil
+                lastError = isLiveRefreshFailure(decoded.codex) ? (decoded.codex.error ?? "Codex live usage unavailable.") : nil
                 handleNotificationTransitions(decoded.codex)
                 setStatusImage(title: statusTooltipTitle(decoded), status: decoded.codex)
                 startMoodAnimation(for: decoded.codex)
                 appendLog("title=\(decoded.title) ok=\(decoded.codex.ok) source=\(decoded.codex.source ?? "") error=\(decoded.codex.error ?? "")")
             } catch {
-                snapshot = nil
                 lastError = "Could not parse status JSON: \(error.localizedDescription)"
                 stopMoodAnimation()
-                setStatusImage(title: "Open Codex to refresh live usage")
+                if let previousSnapshot, !isUnavailableStatus(previousSnapshot.codex) {
+                    snapshot = previousSnapshot
+                    setStatusImage(title: statusTooltipTitle(previousSnapshot), status: previousSnapshot.codex)
+                } else {
+                    snapshot = nil
+                    setStatusImage(title: "Open Codex to refresh live usage")
+                }
                 appendLog("parse error=\(error.localizedDescription)")
             }
         } else {
-            snapshot = nil
             stopMoodAnimation()
             let detail = errorOutput.isEmpty ? output : errorOutput
             lastError = detail.isEmpty ? "Status command exited with code \(status)" : clipped(detail, limit: 160)
-            setStatusImage(title: "Open Codex to refresh live usage")
+            if let previousSnapshot, !isUnavailableStatus(previousSnapshot.codex) {
+                snapshot = previousSnapshot
+                setStatusImage(title: statusTooltipTitle(previousSnapshot), status: previousSnapshot.codex)
+            } else {
+                snapshot = nil
+                setStatusImage(title: "Open Codex to refresh live usage")
+            }
         }
-        scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))
+        scheduleNextRefresh(after: lastError == nil ? nextRefreshInterval(for: snapshot?.codex) : recoveryRefreshInterval)
         rebuildMenu()
     }
 
@@ -3571,7 +3594,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         case "last_live":
             return "Non-live fallback disabled in app"
         case "local_snapshot":
-            return "Snapshot fallback disabled in app"
+            return "Read-only snapshot fallback"
         case "live", nil:
             return status.ok ? "Live data is current" : "Open Codex to refresh live usage"
         default:
@@ -3587,7 +3610,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         case "last_live":
             return "Zero persistence keeps no cached fallback in app mode"
         case "local_snapshot":
-            return "Zero persistence keeps no local snapshot fallback in app mode"
+            return "Live data stalled; using a fresh Codex rate-limit snapshot"
         case "live", nil:
             return "Read from local Codex app-server"
         default:
@@ -3681,10 +3704,17 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func isLiveWarningStatus(_ status: ServiceStatus?) -> Bool {
+        if lastError != nil {
+            return true
+        }
         guard let status else {
-            return lastError != nil
+            return false
         }
         return !status.ok || isNonLiveSource(status.source) || !(status.error ?? "").isEmpty
+    }
+
+    private func isLiveRefreshFailure(_ status: ServiceStatus) -> Bool {
+        !status.ok || isUnavailableStatus(status) || isNonLiveSource(status.source)
     }
 
     private func menuBarTooltipTitle(title: String, status: ServiceStatus?) -> String {
@@ -3770,7 +3800,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let palette = gaugePalette()
 
         if isLiveWarning {
-            drawLiveWarningGauge(palette: palette)
+            drawLiveWarningGauge(fiveHourLeft: fiveHourLeft, sevenDayLeft: sevenDayLeft, palette: palette)
         } else if isUnavailableStatus(fiveHourLeft: fiveHourLeft, sevenDayLeft: sevenDayLeft, source: source) {
             drawUnavailableGauge(palette: palette)
         } else {
@@ -3820,8 +3850,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         drawMenuBarRefreshCountdown(fiveHourReset: nil, sevenDayReset: nil, palette: palette)
     }
 
-    private func drawLiveWarningGauge(palette: GaugePalette) {
-        drawMenuBarUsagePercentBars(fiveHourLeft: nil, sevenDayLeft: nil, palette: palette)
+    private func drawLiveWarningGauge(fiveHourLeft: Int?, sevenDayLeft: Int?, palette: GaugePalette) {
+        drawMenuBarUsagePercentBars(fiveHourLeft: fiveHourLeft, sevenDayLeft: sevenDayLeft, palette: palette)
         drawMenuBarLiveUnavailableHint(palette: palette)
     }
 
@@ -4574,7 +4604,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         case "live", nil:
             return nil
         default:
-            return "Zero persistence keeps no local snapshot fallback"
+            return "Read-only snapshot fallback while live data retries"
         }
     }
 

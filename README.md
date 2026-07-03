@@ -85,8 +85,8 @@ _Menu bar strip render. Static sample values; live values update in the installe
   可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
 - Signal Console states explain Live, Codex closed, and unavailable data directly in the popover
   Signal Console 会在弹出面板解释 Live、Codex closed 和不可用状态
-- Signal Console and tooltip states explain Live and Open; zero persistence disables stored Cache and Snapshot fallback in the app
-  Signal Console 和 tooltip 会解释 Live 与 Open 状态；Zero persistence 模式会在 App 中关闭本地 Cache 和 Snapshot fallback
+- Signal Console and tooltip states explain Live, Open, and read-only Snapshot fallback; zero persistence still disables cache writes
+  Signal Console 和 tooltip 会解释 Live、Open 和只读 Snapshot fallback；Zero persistence 模式仍会关闭缓存写入
 - Setup Doctor and Copy Diagnostics help debug local setup without copying prompts, cookies, auth files, or logs
   Setup Doctor 和 Copy Diagnostics 可帮助排查本地设置，但不会复制 prompts、Cookie、auth 文件或日志
 - Self-contained app bundle with its helper inside `Contents/Resources`
@@ -191,7 +191,7 @@ The native menu bar app uses a bundled helper:
 CodexGauge.app/Contents/Resources/codex_status.py
 ```
 
-For live Codex quota, the app talks to the local Codex app-server through the bundled helper. The app runs that helper with zero persistence enabled, so successful live readings are not cached and local Snapshot fallback is disabled in app mode.
+For live Codex quota, the app talks to the local Codex app-server through the bundled helper. The app runs that helper with zero persistence enabled, so successful live readings are not cached. If the live app-server stalls, app mode can read a fresh Codex-owned rate-limit snapshot from local Codex session data as a read-only emergency fallback.
 
 It does **not** read browser cookies, does **not** read `~/.codex/auth.json`, and does **not** scan unrelated project folders, browser profiles, or Keychain.
 
@@ -244,7 +244,7 @@ The plist should reference `codex_status.py`, not your source checkout.
 | Data | Source |
 |---|---|
 | Codex live quota | Local Codex app-server |
-| Codex fallback quota | Disabled in app mode by `CODEX_GAUGE_NO_STORAGE=1` |
+| Codex fallback quota | Read-only local Codex rate-limit snapshot when the live app-server stalls |
 | Menu bar persistence | None; direct app launch only |
 | App storage | None; old support files can be cleared as legacy data |
 
@@ -264,7 +264,7 @@ No. The native menu bar app does not read browser cookies, browser profiles, Key
 
 ### Does Codex Gauge read `~/.codex/auth.json`?
 
-No. It uses the local Codex app-server for live usage, and app mode disables local cache and Snapshot fallback with `CODEX_GAUGE_NO_STORAGE=1`.
+No. It uses the local Codex app-server for live usage. App mode sets `CODEX_GAUGE_NO_STORAGE=1` so Codex Gauge writes no cache; it may set `CODEX_GAUGE_READ_LOCAL_SNAPSHOT=1` to read a fresh Codex-owned rate-limit snapshot when live data stalls.
 
 ### Does this trigger the 5-hour window?
 
