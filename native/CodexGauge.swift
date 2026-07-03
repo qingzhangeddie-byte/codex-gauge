@@ -278,6 +278,11 @@ private final class CodexGaugeStatusItemView: NSView {
         onDraw?(bounds)
     }
 
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
     override func mouseUp(with event: NSEvent) {
         onClick?(event)
     }
@@ -3964,11 +3969,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func systemMonitorMenuBarTextColor() -> NSColor {
-        NSColor(calibratedWhite: 0.07, alpha: 0.95)
+        isDarkMenuBar()
+            ? NSColor(calibratedWhite: 0.97, alpha: 0.96)
+            : NSColor(calibratedWhite: 0.07, alpha: 0.95)
     }
 
     private func systemMonitorMenuBarMutedTextColor() -> NSColor {
-        NSColor(calibratedWhite: 0.08, alpha: 0.48)
+        isDarkMenuBar()
+            ? NSColor(calibratedWhite: 0.98, alpha: 0.48)
+            : NSColor(calibratedWhite: 0.08, alpha: 0.48)
     }
 
     private func systemMonitorMenuBarWarningColor() -> NSColor {
@@ -3976,11 +3985,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func systemMonitorMenuBarBlue() -> NSColor {
-        NSColor(calibratedRed: 0.58, green: 0.63, blue: 0.75, alpha: 0.98)
+        isDarkMenuBar()
+            ? NSColor(calibratedRed: 0.18, green: 0.56, blue: 0.96, alpha: 0.92)
+            : NSColor(calibratedRed: 0.58, green: 0.63, blue: 0.75, alpha: 0.98)
     }
 
     private func systemMonitorMenuBarMeterTrackColor() -> NSColor {
-        NSColor(calibratedWhite: 0.07, alpha: 0.96)
+        isDarkMenuBar()
+            ? NSColor(calibratedWhite: 1.0, alpha: 0.18)
+            : NSColor(calibratedWhite: 0.08, alpha: 0.16)
     }
 
     private func systemMonitorMenuBarMeterOutlineColor() -> NSColor {
@@ -4048,7 +4061,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func isDarkMenuBar() -> Bool {
-        let match = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua])
+        let appearance = statusItemView.window?.effectiveAppearance ?? statusItemView.effectiveAppearance
+        let match = appearance.bestMatch(from: [.darkAqua, .aqua])
         return match == .darkAqua
     }
 

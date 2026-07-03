@@ -149,7 +149,7 @@ class PublicReadmePackageTests(unittest.TestCase):
             "no capsule, divider, source stripe, or cap dot",
             "5-hour usage and 7-day usage",
             "5-hour reset and 7-day reset",
-            "graphite text and blue horizontal bar states",
+            "adaptive text, blue fills, and quiet empty tracks",
         ]:
             self.assertIn(phrase, readme)
 
@@ -161,7 +161,7 @@ class PublicReadmePackageTests(unittest.TestCase):
             "没有胶囊背景、分割线、来源竖条或端点圆点",
             "5 小时使用量和 7 天使用量",
             "5 小时重置和 7 天重置",
-            "石墨文字和蓝色横向条",
+            "自适应文字、蓝色填充和安静的空轨道",
         ]:
             self.assertIn(phrase, zh_readme)
 

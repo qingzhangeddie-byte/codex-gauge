@@ -60,6 +60,7 @@ class SignalConsoleUXTests(unittest.TestCase):
             "private final class CodexGaugeStatusItemView",
             "button.addSubview(statusItemView)",
             "statusItemView.autoresizingMask = [.width, .height]",
+            "override func viewDidChangeEffectiveAppearance()",
             "menuBarUsagePercentRect = NSRect(x: 2, y: 3, width: 54, height: 16)",
             "menuBarHorizontalRailRect = NSRect(x: 46, y: 3, width: 20, height: 16)",
             "menuBarRefreshCountdownRect = NSRect(x: 67, y: 2, width: 26, height: 18)",
@@ -75,8 +76,12 @@ class SignalConsoleUXTests(unittest.TestCase):
             "let cornerRadius = min(1.5, rect.height / 2.0)",
             "track.addClip()",
             "fillRect.fill()",
+            "statusItemView.window?.effectiveAppearance ?? statusItemView.effectiveAppearance",
+            "NSColor(calibratedWhite: 0.97, alpha: 0.96)",
+            "NSColor(calibratedRed: 0.18, green: 0.56, blue: 0.96, alpha: 0.92)",
             "NSColor(calibratedRed: 0.58, green: 0.63, blue: 0.75, alpha: 0.98)",
-            "NSColor(calibratedWhite: 0.07, alpha: 0.96)",
+            "NSColor(calibratedWhite: 1.0, alpha: 0.18)",
+            "NSColor(calibratedWhite: 0.08, alpha: 0.16)",
             "drawMenuBarCountdownText",
             "compactMenuBarPercentText",
             "morandiMenuBarSage",
@@ -93,6 +98,7 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertNotIn("let cornerRadius = rect.height / 2", source)
         self.assertNotIn("let innerRect = rect.insetBy(dx: 1.0, dy: 1.0)", source)
         self.assertNotIn("systemMonitorMenuBarMeterOutlineColor().setStroke()", source)
+        self.assertNotIn("NSColor(calibratedWhite: 0.07, alpha: 0.96)", source)
         self.assertNotIn("drawMenuBarVerticalQuotaMeter", source)
         self.assertNotIn("drawMenuBarMinimalMorandiPill", source)
         self.assertNotIn("morandiMenuBarShellTop", source)

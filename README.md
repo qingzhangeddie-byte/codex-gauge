@@ -106,17 +106,17 @@ The compact menu bar gauge uses a transparent system-monitor design: usage perce
 
 紧凑菜单栏仪表使用透明系统监控风格：左侧显示使用百分比和细横向条，右侧显示重置倒计时文字；没有胶囊背景、分割线、来源竖条或端点圆点。
 
-The two slim bars use graphite text and blue system-monitor fills so the gauge visually matches nearby menu-bar monitors.
+The two slim bars use adaptive menu-bar text, blue system-monitor fills, and low-contrast empty tracks so the gauge stays readable on light or dark menu-bar backgrounds.
 
-两个细横向条使用石墨文字和蓝色系统监控填充，让 Codex Gauge 和旁边的菜单栏监控保持同一种视觉语言。
+两个细横向条使用自适应菜单栏文字、蓝色系统监控填充和低对比度空轨道，让 Codex Gauge 在浅色或深色菜单栏背景上都清晰可读。
 
 The public screenshot uses generated sample values so it does not expose account-specific timing; the real menu bar countdown updates live.
 
 公开截图使用生成的示例数值，避免暴露具体账户时间；真实菜单栏倒计时会实时更新。
 
-The two rows are 5-hour usage and 7-day usage. The countdown area shows the 5-hour reset and 7-day reset. System-monitor bars keep the menu bar compact, with graphite text and blue horizontal bar states.
+The two rows are 5-hour usage and 7-day usage. The countdown area shows the 5-hour reset and 7-day reset. System-monitor bars keep the menu bar compact, with adaptive text, blue fills, and quiet empty tracks.
 
-两行分别是 5 小时使用量和 7 天使用量。倒计时区域显示 5 小时重置和 7 天重置。系统监控横向条让菜单栏保持紧凑，并使用石墨文字和蓝色横向条状态。
+两行分别是 5 小时使用量和 7 天使用量。倒计时区域显示 5 小时重置和 7 天重置。系统监控横向条让菜单栏保持紧凑，并使用自适应文字、蓝色填充和安静的空轨道。
 
 
 ## Quick Start
@@ -160,7 +160,7 @@ The generated zip includes `CodexGauge.app`, `Install Codex Gauge.command`, and 
 | Menu bar persistence | Session-only direct launch; no LaunchAgent is installed |
 | Updates | Session-only GitHub release check plus manual Check for Updates, with confirmed Install Update and temporary files only |
 | Signal quality | Shows both 5-hour and 7-day quota instead of one vague number |
-| Menu bar style | System-monitor bars with graphite text and blue horizontal bar states |
+| Menu bar style | System-monitor bars with adaptive text, blue fills, and quiet empty tracks |
 | Refresh behavior | Adaptive refresh instead of constant polling: 5 minutes normally, 3 minutes when low, 2 minutes when critical, with quick retry after transient errors |
 | Preferences | Session-only refresh cadence, notifications, and theme controls |
 | Notifications | Opt-in alerts for the moments users actually care about |
