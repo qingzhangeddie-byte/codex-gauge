@@ -98,7 +98,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
     def test_native_app_draws_codex_usage_in_native_status_view(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("statusItemWidth: CGFloat = 112", source)
+        self.assertIn("statusItemWidth: CGFloat = 94", source)
         self.assertIn("private final class CodexGaugeStatusItemView", source)
         self.assertIn("private lazy var statusItemView", source)
         self.assertIn("button.addSubview(statusItemView)", source)
@@ -203,8 +203,14 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("if liveWarning", draw_status_body)
         self.assertIn("drawMenuBarLiveUnavailableHint", source)
         self.assertIn("drawLiveWarningGauge(fiveHourLeft:", source)
-        self.assertIn('text: "open"', source)
-        self.assertIn('text: "Codex"', source)
+        self.assertIn("fiveHourReset: status?.fiveHourReset", draw_status_body)
+        self.assertIn("sevenDayReset: status?.sevenDayReset", draw_status_body)
+        live_hint_body = source.split("private func drawMenuBarLiveUnavailableHint", 1)[1].split(
+            "private func drawPlanBGauge", 1
+        )[0]
+        self.assertIn('text: "--"', live_hint_body)
+        self.assertNotIn('text: "open"', live_hint_body)
+        self.assertNotIn('text: "Codex"', live_hint_body)
         self.assertNotIn("drawStatusStateBadge", source)
         self.assertNotIn("drawSourceIndicator", source)
 

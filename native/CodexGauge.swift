@@ -1822,15 +1822,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let criticalRefreshInterval: TimeInterval = 2 * 60
     private let recoveryRefreshInterval: TimeInterval = 60
     private let tenMinuteRefreshInterval: TimeInterval = 10 * 60
-    private let statusItemWidth: CGFloat = 112
+    private let statusItemWidth: CGFloat = 94
     private var currentStatusImageScale: CGFloat = 2.0
     private var statusItemStatus: ServiceStatus?
     private lazy var statusItemView = CodexGaugeStatusItemView(
         frame: NSRect(x: 0, y: 0, width: statusItemWidth, height: NSStatusBar.system.thickness)
     )
-    private let menuBarUsagePercentRect = NSRect(x: 4, y: 3, width: 62, height: 16)
-    private let menuBarHorizontalRailRect = NSRect(x: 50, y: 3, width: 20, height: 16)
-    private let menuBarRefreshCountdownRect = NSRect(x: 70, y: 2, width: 38, height: 18)
+    private let menuBarUsagePercentRect = NSRect(x: 2, y: 3, width: 54, height: 16)
+    private let menuBarHorizontalRailRect = NSRect(x: 46, y: 3, width: 20, height: 16)
+    private let menuBarRefreshCountdownRect = NSRect(x: 67, y: 2, width: 26, height: 18)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
     private let quotaRailSize = NSSize(width: 20, height: 4)
     private let signalRailSegments = 10
@@ -3780,6 +3780,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             drawLiveWarningGauge(
                 fiveHourLeft: status?.fiveHourLeft,
                 sevenDayLeft: status?.sevenDayLeft,
+                fiveHourReset: status?.fiveHourReset,
+                sevenDayReset: status?.sevenDayReset,
                 palette: palette
             )
         } else if let status, status.ok, !isUnavailableStatus(status) {
@@ -3831,24 +3833,28 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         drawMenuBarRefreshCountdown(fiveHourReset: nil, sevenDayReset: nil, palette: palette)
     }
 
-    private func drawLiveWarningGauge(fiveHourLeft: Int?, sevenDayLeft: Int?, palette: GaugePalette) {
+    private func drawLiveWarningGauge(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, palette: GaugePalette) {
         drawMenuBarUsagePercentBars(fiveHourLeft: fiveHourLeft, sevenDayLeft: sevenDayLeft, palette: palette)
-        drawMenuBarLiveUnavailableHint(palette: palette)
+        if fiveHourReset != nil || sevenDayReset != nil {
+            drawMenuBarRefreshCountdown(fiveHourReset: fiveHourReset, sevenDayReset: sevenDayReset, palette: palette)
+        } else {
+            drawMenuBarLiveUnavailableHint(palette: palette)
+        }
     }
 
     private func drawMenuBarLiveUnavailableHint(palette: GaugePalette) {
-        let warningColor = systemMonitorMenuBarWarningColor()
+        let mutedColor = systemMonitorMenuBarMutedTextColor()
         drawMenuBarCountdownText(
-            text: "open",
+            text: "--",
             rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 10.0, width: menuBarRefreshCountdownRect.width, height: 9.0),
             palette: palette,
-            color: warningColor
+            color: mutedColor
         )
         drawMenuBarCountdownText(
-            text: "Codex",
+            text: "--",
             rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 1.0, width: menuBarRefreshCountdownRect.width, height: 9.0),
             palette: palette,
-            color: warningColor
+            color: mutedColor
         )
     }
 
@@ -3879,7 +3885,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func drawMenuBarUsagePercentRow(window: String, quotaLeft: Int?, y: CGFloat, palette: GaugePalette) {
         let value = quotaLeft
         let windowAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 8.0, weight: .bold),
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 8.0, weight: .semibold),
             .foregroundColor: systemMonitorMenuBarTextColor(),
         ]
         (window as NSString).draw(
@@ -3889,7 +3895,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
         let percentText = compactMenuBarPercentText(value)
         let valueAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: percentText.count > 2 ? 6.9 : 7.1, weight: .semibold),
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 7.2, weight: .medium),
             .foregroundColor: value == nil
                 ? systemMonitorMenuBarMutedTextColor()
                 : systemMonitorMenuBarTextColor().withAlphaComponent(0.92),
@@ -3945,7 +3951,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func drawMenuBarCountdownText(text resetText: String, rect: NSRect, palette: GaugePalette, color: NSColor? = nil) {
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 6.9, weight: .semibold),
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 7.2, weight: .medium),
             .foregroundColor: color ?? systemMonitorMenuBarTextColor().withAlphaComponent(0.88),
         ]
         (resetText as NSString).draw(
