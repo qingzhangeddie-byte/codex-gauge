@@ -146,19 +146,13 @@ func drawMenuBarUsagePercentBar(value: CGFloat, rect: NSRect, fill: NSColor, tra
     NSBezierPath(ovalIn: NSRect(x: min(rect.maxX - 5, fillRect.maxX - 5), y: rect.midY - 5, width: 10, height: 10)).fill()
 }
 
-func drawMenuBarCountdownPill(_ value: String, rect: NSRect, fill: NSColor, stroke: NSColor, text: NSColor) {
-    let pill = NSBezierPath(roundedRect: rect, xRadius: 7, yRadius: 7)
-    fill.setFill()
-    pill.fill()
-    stroke.setStroke()
-    pill.lineWidth = 1
-    pill.stroke()
-    menuBarText(value, at: NSPoint(x: rect.minX + 10, y: rect.minY + 5), size: value.count > 3 ? 14 : 16, weight: .bold, color: text, mono: true)
+func drawMenuBarCountdownText(_ value: String, rect: NSRect, fill: NSColor, stroke: NSColor, text: NSColor) {
+    menuBarText(value, at: NSPoint(x: rect.minX + 2, y: rect.minY + 5), size: value.count > 3 ? 14 : 16, weight: .bold, color: text, mono: true)
 }
 
 func drawMenuBarRefreshCountdown(in rect: NSRect, ink: NSColor, fill: NSColor, stroke: NSColor) {
-    drawMenuBarCountdownPill("4h59m", rect: NSRect(x: rect.minX + 6, y: rect.midY + 4, width: 80, height: 22), fill: fill, stroke: stroke, text: ink)
-    drawMenuBarCountdownPill("6d23h", rect: NSRect(x: rect.minX + 6, y: rect.midY - 26, width: 80, height: 22), fill: fill, stroke: stroke, text: ink)
+    drawMenuBarCountdownText("4h59m", rect: NSRect(x: rect.minX + 6, y: rect.midY + 4, width: 80, height: 22), fill: fill, stroke: stroke, text: ink)
+    drawMenuBarCountdownText("6d23h", rect: NSRect(x: rect.minX + 6, y: rect.midY - 26, width: 80, height: 22), fill: fill, stroke: stroke, text: ink)
 }
 
 func drawMenuBarMorandiDivider(_ x: CGFloat, in rect: NSRect, line: NSColor) {
@@ -194,8 +188,6 @@ func writeMenuBarPNG(_ path: String) throws {
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
 
-    let shellTop = NSColor(calibratedRed: 0.91, green: 0.91, blue: 0.87, alpha: 1.0)
-    let shellBottom = NSColor(calibratedRed: 0.82, green: 0.85, blue: 0.80, alpha: 1.0)
     let ink = NSColor(calibratedRed: 0.22, green: 0.26, blue: 0.25, alpha: 0.98)
     let line = NSColor(calibratedRed: 0.52, green: 0.48, blue: 0.42, alpha: 0.62)
     let sage = NSColor(calibratedRed: 0.45, green: 0.56, blue: 0.48, alpha: 0.96)
@@ -203,31 +195,11 @@ func writeMenuBarPNG(_ path: String) throws {
     let taupe = NSColor(calibratedRed: 0.52, green: 0.48, blue: 0.42, alpha: 0.96)
 
     NSGradient(colors: [
-        NSColor(calibratedRed: 0.88, green: 0.91, blue: 0.89, alpha: 1.0),
-        NSColor(calibratedRed: 0.77, green: 0.84, blue: 0.84, alpha: 1.0),
+        NSColor(calibratedRed: 0.69, green: 0.77, blue: 0.78, alpha: 1.0),
+        NSColor(calibratedRed: 0.55, green: 0.65, blue: 0.68, alpha: 1.0),
     ])?.draw(in: NSBezierPath(rect: NSRect(origin: .zero, size: menuBarSize)), angle: 0)
 
     let strip = NSRect(x: 64, y: 20, width: 302, height: 56)
-    let shadow = NSShadow()
-    shadow.shadowColor = NSColor.black.withAlphaComponent(0.16)
-    shadow.shadowBlurRadius = 12
-    shadow.shadowOffset = NSSize(width: 0, height: -4)
-    NSGraphicsContext.saveGraphicsState()
-    shadow.set()
-    NSBezierPath(roundedRect: strip, xRadius: 12, yRadius: 12).fill()
-    NSGraphicsContext.restoreGraphicsState()
-
-    let capsule = NSBezierPath(roundedRect: strip, xRadius: 12, yRadius: 12)
-    NSGradient(colors: [shellTop, shellBottom])?.draw(in: capsule, angle: 90)
-    sage.withAlphaComponent(0.08).setFill()
-    capsule.fill()
-    line.setStroke()
-    capsule.lineWidth = 1.2
-    capsule.stroke()
-
-    let topRail = NSBezierPath(roundedRect: NSRect(x: strip.minX + 26, y: strip.maxY - 7, width: strip.width - 52, height: 2.2), xRadius: 1.1, yRadius: 1.1)
-    sage.withAlphaComponent(0.28).setFill()
-    topRail.fill()
 
     for x in [strip.minX + 174] as [CGFloat] {
         drawMenuBarMorandiDivider(x, in: strip, line: line)
@@ -243,8 +215,8 @@ func writeMenuBarPNG(_ path: String) throws {
     drawMenuBarRefreshCountdown(
         in: NSRect(x: strip.minX + 194, y: 23, width: 92, height: 50),
         ink: ink,
-        fill: taupe.withAlphaComponent(0.13),
-        stroke: taupe.withAlphaComponent(0.28)
+        fill: taupe.withAlphaComponent(0),
+        stroke: taupe.withAlphaComponent(0)
     )
 
     NSGraphicsContext.restoreGraphicsState()

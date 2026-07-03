@@ -35,7 +35,7 @@ What makes it different:
 
 - Built for one job: Codex quota at a glance.
 - Native menu bar first, detailed Signal Console only when you click.
-- Calm Morandi rails instead of a noisy dashboard wedged into the status bar.
+- Transparent Morandi rails instead of a noisy dashboard wedged into the status bar.
 - Clear labels for Live, Last live, Snapshot, and Codex closed states.
 - Local-only diagnostics and reports, designed to avoid private prompt/session content.
 
@@ -102,9 +102,9 @@ This is an actual app-rendered Signal Console screenshot generated from the nati
 
 ## Compact menu bar
 
-The compact menu bar gauge uses a minimal Morandi design: usage percentage bars on the left and reset countdown pills on the right.
+The compact menu bar gauge uses a transparent system-monitor design: usage percentages and Morandi bars on the left, reset countdown text on the right.
 
-紧凑菜单栏仪表使用极简 Morandi 设计：左侧显示使用百分比条，右侧显示重置倒计时胶囊。
+紧凑菜单栏仪表使用透明系统监控风格：左侧显示使用百分比和 Morandi 条，右侧显示重置倒计时文字。
 
 The public screenshot uses generated sample values so it does not expose account-specific timing; the real menu bar countdown updates live.
 

@@ -57,7 +57,7 @@ class PublicReadmePackageTests(unittest.TestCase):
             "bash install.sh",
             "What makes it different",
             "Built for one job: Codex quota at a glance.",
-            "Calm Morandi rails instead of a noisy dashboard",
+            "Transparent Morandi rails instead of a noisy dashboard",
         ]:
             self.assertIn(phrase, readme)
 
@@ -72,8 +72,8 @@ class PublicReadmePackageTests(unittest.TestCase):
             "它可以直接显示 Codex 5 小时剩余额度和 Codex 7 天剩余额度",
             "菜单栏紧凑显示 Codex 5 小时和 7 天使用百分比、使用条",
             "下拉菜单显示额度重置时间和上次刷新时间",
-            "紧凑菜单栏仪表使用极简 Morandi 设计",
-            "重置倒计时胶囊",
+            "紧凑菜单栏仪表使用透明系统监控风格",
+            "重置倒计时文字",
             "很多使用量工具是大而全的 dashboard",
             "## SEO Keywords",
         ]:
@@ -143,9 +143,9 @@ class PublicReadmePackageTests(unittest.TestCase):
 
         for phrase in [
             "Compact menu bar",
-            "minimal Morandi design",
-            "usage percentage bars on the left",
-            "reset countdown pills on the right",
+            "transparent system-monitor design",
+            "usage percentages and Morandi bars on the left",
+            "reset countdown text on the right",
             "5-hour usage and 7-day usage",
             "5-hour reset and 7-day reset",
             "green, blue-grey, taupe, and clay states",
@@ -154,9 +154,9 @@ class PublicReadmePackageTests(unittest.TestCase):
 
         for phrase in [
             "紧凑菜单栏",
-            "极简 Morandi 设计",
-            "使用百分比条",
-            "重置倒计时胶囊",
+            "透明系统监控风格",
+            "使用百分比和 Morandi 条",
+            "重置倒计时文字",
             "5 小时使用量和 7 天使用量",
             "5 小时重置和 7 天重置",
             "绿色、蓝灰、灰褐和陶土色状态",

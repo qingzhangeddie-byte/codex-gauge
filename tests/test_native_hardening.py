@@ -86,7 +86,7 @@ class NativeHardeningTests(unittest.TestCase):
             "sevenDayResetCountdown",
             "nextRefreshCountdownText",
             "drawMenuBarRefreshCountdown",
-            "drawMenuBarCountdownPill",
+            "drawMenuBarCountdownText",
         ]:
             self.assertIn(token, source)
         self.assertNotIn("batteryPowerSaverRefreshInterval", source)

@@ -61,9 +61,8 @@ class SignalConsoleUXTests(unittest.TestCase):
             "menuBarUsagePercentRect = NSRect(x: 5, y: 3, width: 58, height: 16)",
             "menuBarRefreshCountdownRect = NSRect(x: 68, y: 2.2, width: 36, height: 17.6)",
             "for x in [64] as [CGFloat]",
-            "drawMenuBarMinimalMorandiPill",
             "drawMenuBarUsagePercentBars",
-            "drawMenuBarCountdownPill",
+            "drawMenuBarCountdownText",
             "compactMenuBarPercentText",
             "morandiMenuBarSage",
             "morandiMenuBarMist",
@@ -72,10 +71,13 @@ class SignalConsoleUXTests(unittest.TestCase):
         ]:
             self.assertIn(token, source)
         self.assertIn("drawPlanBGauge(", make_status_body)
-        self.assertIn("drawMenuBarCountdownPill(text: fiveHourText", countdown_body)
-        self.assertIn("drawMenuBarCountdownPill(text: sevenDayText", countdown_body)
+        self.assertIn("drawMenuBarCountdownText(text: fiveHourText", countdown_body)
+        self.assertIn("drawMenuBarCountdownText(text: sevenDayText", countdown_body)
         self.assertIn("compactMenuBarPercentText(value)", usage_row_body)
         self.assertIn("percentText as NSString", usage_row_body)
+        self.assertNotIn("drawMenuBarMinimalMorandiPill", source)
+        self.assertNotIn("morandiMenuBarShellTop", source)
+        self.assertNotIn("morandiMenuBarShellBottom", source)
         self.assertNotIn("drawMenuBarHardwareSignals", source)
         self.assertNotIn("drawMenuBarSSDTemperature", source)
         self.assertNotIn("drawMenuBarSystemMetricStrip", source)
