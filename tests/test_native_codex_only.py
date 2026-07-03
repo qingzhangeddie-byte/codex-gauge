@@ -95,15 +95,20 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("setStatusImage(title: statusTooltipTitle(previousSnapshot), status: previousSnapshot.codex)", finish_refresh)
         self.assertIn("scheduleNextRefresh(after: lastError == nil ? nextRefreshInterval(for: snapshot?.codex) : recoveryRefreshInterval)", finish_refresh)
 
-    def test_native_app_draws_codex_usage_and_refresh_status_image(self):
+    def test_native_app_draws_codex_usage_in_native_status_view(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         self.assertIn("statusItemWidth: CGFloat = 112", source)
-        self.assertIn("statusImageSize = NSSize(width: 106, height: 22)", source)
+        self.assertIn("private final class CodexGaugeStatusItemView", source)
+        self.assertIn("private lazy var statusItemView", source)
+        self.assertIn("button.addSubview(statusItemView)", source)
+        self.assertIn("statusItemView.autoresizingMask = [.width, .height]", source)
+        self.assertIn("statusItemView.onDraw", source)
+        self.assertIn("statusItemView.onClick", source)
+        self.assertIn("drawStatusItemView(in:", source)
         self.assertIn("menuBarUsagePercentRect", source)
         self.assertIn("menuBarRefreshCountdownRect", source)
         self.assertIn("quotaRailWidth: CGFloat = 22", source)
-        self.assertIn("makeStatusImage", source)
         self.assertIn("fiveHourReset: status.fiveHourReset", source)
         self.assertIn("sevenDayReset: status.sevenDayReset", source)
         self.assertIn("drawPlanBGauge", source)
@@ -134,51 +139,47 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("RunLoop.main.add(nextTimer, forMode: .common)", source)
         self.assertNotIn('statusItem.autosaveName = "CodexGaugeStatusItem"', source)
         self.assertIn("statusItem.length = statusItemWidth", source)
-        self.assertIn("button.imagePosition = .imageOnly", source)
-        self.assertIn('button.title = ""', source)
-        self.assertIn("button.image = makeStatusImage(", source)
+        self.assertIn("statusItemView.needsDisplay = true", source)
+        self.assertNotIn("button.image = makeStatusImage(", source)
+        self.assertNotIn("button.imageScaling", source)
+        self.assertNotIn("statusItem.view = statusItemView", source)
         self.assertIn("menuBarTooltipTitle(title: title, status: status)", source)
 
-        make_status_body = source.split("private func makeStatusImage(", 1)[1].split(
+        draw_status_body = source.split("private func drawStatusItemView", 1)[1].split(
             "private func morandiMenuBarSage", 1
         )[0]
-        self.assertIn("drawPlanBGauge(", make_status_body)
-        self.assertNotIn("drawMenuBarHardwareSignals(", make_status_body)
-        self.assertNotIn("ssdTemperature:", make_status_body)
-        self.assertNotIn("systemMetric:", make_status_body)
-        self.assertNotIn("batteryStatus:", make_status_body)
+        self.assertIn("drawPlanBGauge(", draw_status_body)
+        self.assertNotIn("drawMenuBarHardwareSignals(", draw_status_body)
+        self.assertNotIn("ssdTemperature:", draw_status_body)
+        self.assertNotIn("systemMetric:", draw_status_body)
+        self.assertNotIn("batteryStatus:", draw_status_body)
         self.assertNotIn("drawMenuBarHardwareSignals", source)
         self.assertNotIn("drawMenuBarSystemMetricStrip", source)
         self.assertNotIn("drawMenuBarSSDTemperature", source)
         self.assertNotIn("drawMenuBarBatteryModeInfo", source)
-        self.assertNotIn("drawMenuBarBattery(status:", make_status_body)
+        self.assertNotIn("drawMenuBarBattery(status:", draw_status_body)
         self.assertNotIn("drawSevenDayResetCountdown", source)
         self.assertNotIn("drawWordmark", source)
         self.assertNotIn('("Codex" as NSString).draw', source)
         self.assertNotIn("drawStatusLetters", source)
 
-    def test_status_image_renderer_avoids_core_animation_backing_store_churn(self):
+    def test_status_item_view_avoids_raster_image_scaling(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
-        make_status_body = source.split("private func makeStatusImage(", 1)[1].split(
+        draw_status_body = source.split("private func drawStatusItemView", 1)[1].split(
             "private func morandiMenuBarSage", 1
         )[0]
         animation_body = source.split("private func startMoodAnimation", 1)[1].split(
             "private func stopMoodAnimation", 1
         )[0]
 
-        self.assertNotIn(".lockFocus()", make_status_body)
-        self.assertNotIn(".unlockFocus()", make_status_body)
-        self.assertIn("NSBitmapImageRep", make_status_body)
-        self.assertIn("NSGraphicsContext(bitmapImageRep:", make_status_body)
-        self.assertIn("let scale = statusImageScale()", make_status_body)
-        self.assertIn("let previousStatusImageScale = currentStatusImageScale", make_status_body)
-        self.assertIn("currentStatusImageScale = scale", make_status_body)
-        self.assertIn("currentStatusImageScale = previousStatusImageScale", make_status_body)
-        self.assertIn("pixelsWide: max(1, Int(ceil(statusImageSize.width * scale)))", make_status_body)
-        self.assertIn("pixelsHigh: max(1, Int(ceil(statusImageSize.height * scale)))", make_status_body)
-        self.assertIn("bitmap.size = statusImageSize", make_status_body)
-        self.assertIn("context.cgContext.scaleBy(x: scale, y: scale)", make_status_body)
-        self.assertIn("private var currentStatusImageScale: CGFloat = 2.0", source)
+        self.assertNotIn("private func makeStatusImage", source)
+        self.assertNotIn("NSBitmapImageRep", draw_status_body)
+        self.assertNotIn("NSGraphicsContext(bitmapImageRep:", draw_status_body)
+        self.assertNotIn("context.cgContext.scaleBy", draw_status_body)
+        self.assertNotIn("button.imageScaling", source)
+        self.assertIn("private final class CodexGaugeStatusItemView", source)
+        self.assertIn("override func draw(_ dirtyRect: NSRect)", source)
+        self.assertIn("onDraw?(bounds)", source)
         self.assertIn("private func statusPixelAlignedPoint", source)
         self.assertIn("private func statusPixelAlignedRect", source)
         self.assertIn("statusPixelAlignedPoint", source.split("private func drawMenuBarUsagePercentRow", 1)[1])
@@ -188,14 +189,14 @@ class NativeCodexOnlyTests(unittest.TestCase):
 
     def test_native_app_watchdog_marks_live_failures_without_extra_badges(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
-        set_status_body = source.split("private func setStatusImage", 1)[1].split(
-            "private func menuBarTooltipTitle", 1
+        draw_status_body = source.split("private func drawStatusItemView", 1)[1].split(
+            "private func morandiMenuBarSage", 1
         )[0]
 
         self.assertIn("isLiveWarningStatus", source)
         self.assertIn("private func isLiveRefreshFailure", source)
-        self.assertIn("let liveWarning = isLiveWarningStatus(status)", set_status_body)
-        self.assertIn("isLiveWarning: liveWarning", set_status_body)
+        self.assertIn("let liveWarning = isLiveWarningStatus(status)", draw_status_body)
+        self.assertIn("if liveWarning", draw_status_body)
         self.assertIn("drawMenuBarLiveUnavailableHint", source)
         self.assertIn("drawLiveWarningGauge(fiveHourLeft:", source)
         self.assertIn('text: "open"', source)

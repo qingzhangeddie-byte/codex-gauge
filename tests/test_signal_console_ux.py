@@ -51,20 +51,22 @@ class SignalConsoleUXTests(unittest.TestCase):
 
     def test_menu_bar_uses_minimal_morandi_usage_and_countdown_design(self):
         source = swift_source()
-        make_status_body = swift_function_body(source, "private func makeStatusImage(")
+        draw_status_body = swift_function_body(source, "private func drawStatusItemView(")
         countdown_body = swift_function_body(source, "private func drawMenuBarRefreshCountdown(")
         usage_row_body = swift_function_body(source, "private func drawMenuBarUsagePercentRow(")
 
         for token in [
             "statusItemWidth: CGFloat = 112",
-            "statusImageSize = NSSize(width: 106, height: 22)",
+            "private final class CodexGaugeStatusItemView",
+            "button.addSubview(statusItemView)",
+            "statusItemView.autoresizingMask = [.width, .height]",
             "menuBarUsagePercentRect = NSRect(x: 4, y: 3, width: 62, height: 16)",
-            "menuBarRefreshCountdownRect = NSRect(x: 70, y: 2, width: 34, height: 18)",
+            "menuBarRefreshCountdownRect = NSRect(x: 70, y: 2, width: 38, height: 18)",
             "quotaRailWidth: CGFloat = 22",
             "drawMenuBarUsagePercentRow(window: \"5h\", quotaLeft: fiveHourLeft, y: 13.0",
             "drawMenuBarUsagePercentRow(window: \"7d\", quotaLeft: sevenDayLeft, y: 4.0",
-            "NSFont.monospacedDigitSystemFont(ofSize: 7.8",
-            "NSFont.monospacedDigitSystemFont(ofSize: 6.2",
+            "NSFont.monospacedDigitSystemFont(ofSize: 8.0",
+            "NSFont.monospacedDigitSystemFont(ofSize: 6.9",
             "drawMenuBarUsagePercentBars",
             "drawMenuBarCountdownText",
             "compactMenuBarPercentText",
@@ -74,7 +76,7 @@ class SignalConsoleUXTests(unittest.TestCase):
             "morandiMenuBarTaupe",
         ]:
             self.assertIn(token, source)
-        self.assertIn("drawPlanBGauge(", make_status_body)
+        self.assertIn("drawPlanBGauge(", draw_status_body)
         self.assertIn("drawMenuBarCountdownText(text: fiveHourText", countdown_body)
         self.assertIn("drawMenuBarCountdownText(text: sevenDayText", countdown_body)
         self.assertIn("compactMenuBarPercentText(value)", usage_row_body)
