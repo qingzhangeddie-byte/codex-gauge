@@ -63,7 +63,7 @@ class SignalConsoleUXTests(unittest.TestCase):
             "menuBarUsagePercentRect = NSRect(x: 2, y: 3, width: 54, height: 16)",
             "menuBarHorizontalRailRect = NSRect(x: 46, y: 3, width: 20, height: 16)",
             "menuBarRefreshCountdownRect = NSRect(x: 67, y: 2, width: 26, height: 18)",
-            "quotaRailSize = NSSize(width: 20, height: 4)",
+            "quotaRailSize = NSSize(width: 20, height: 5)",
             "drawMenuBarUsagePercentRow(window: \"5h\", quotaLeft: fiveHourLeft, y: 13.0",
             "drawMenuBarUsagePercentRow(window: \"7d\", quotaLeft: sevenDayLeft, y: 4.0",
             "NSFont.monospacedDigitSystemFont(ofSize: 8.0, weight: .semibold)",
@@ -72,6 +72,10 @@ class SignalConsoleUXTests(unittest.TestCase):
             "drawMenuBarHorizontalQuotaBar",
             "systemMonitorMenuBarTextColor",
             "systemMonitorMenuBarBlue",
+            "let cornerRadius = min(1.4, rect.height / 3.0)",
+            "let innerRect = rect.insetBy(dx: 1.0, dy: 1.0)",
+            "NSColor(calibratedRed: 0.43, green: 0.49, blue: 0.63, alpha: 0.94)",
+            "NSColor(calibratedWhite: 0.08, alpha: 0.88)",
             "drawMenuBarCountdownText",
             "compactMenuBarPercentText",
             "morandiMenuBarSage",
@@ -85,6 +89,7 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("drawMenuBarCountdownText(text: sevenDayText", countdown_body)
         self.assertIn("compactMenuBarPercentText(value)", usage_row_body)
         self.assertIn("percentText as NSString", usage_row_body)
+        self.assertNotIn("let cornerRadius = rect.height / 2", source)
         self.assertNotIn("drawMenuBarVerticalQuotaMeter", source)
         self.assertNotIn("drawMenuBarMinimalMorandiPill", source)
         self.assertNotIn("morandiMenuBarShellTop", source)

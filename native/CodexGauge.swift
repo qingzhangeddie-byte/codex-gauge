@@ -1832,7 +1832,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let menuBarHorizontalRailRect = NSRect(x: 46, y: 3, width: 20, height: 16)
     private let menuBarRefreshCountdownRect = NSRect(x: 67, y: 2, width: 26, height: 18)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
-    private let quotaRailSize = NSSize(width: 20, height: 4)
+    private let quotaRailSize = NSSize(width: 20, height: 5)
     private let signalRailSegments = 10
     private let codexCliBundlePath = "/Applications/Codex.app/Contents/Resources/codex"
     private let normalQuotaColor = NSColor(calibratedRed: 0.58, green: 1.00, blue: 0.89, alpha: 0.95)
@@ -3914,11 +3914,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func drawMenuBarHorizontalQuotaBar(value: Int?, rect: NSRect, palette: GaugePalette, fillColor: NSColor) {
-        let cornerRadius = rect.height / 2
-        let track = NSBezierPath(roundedRect: rect, xRadius: cornerRadius, yRadius: cornerRadius)
+        let cornerRadius = min(1.4, rect.height / 3.0)
+        let trackRect = statusPixelAlignedRect(rect)
+        let track = NSBezierPath(roundedRect: trackRect, xRadius: cornerRadius, yRadius: cornerRadius)
         systemMonitorMenuBarMeterTrackColor().setFill()
         track.fill()
-        systemMonitorMenuBarMeterOutlineColor().withAlphaComponent(0.52).setStroke()
+        systemMonitorMenuBarMeterOutlineColor().setStroke()
         track.lineWidth = max(0.5, 1.0 / max(1.0, currentStatusImageScale))
         track.stroke()
 
@@ -3926,17 +3927,18 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return
         }
 
-        let fillWidth = min(rect.width, max(rect.height, rect.width * clampedFraction(value)))
+        let innerRect = rect.insetBy(dx: 1.0, dy: 1.0)
+        let fillWidth = min(innerRect.width, max(1.2, innerRect.width * clampedFraction(value)))
         let fillRect = NSRect(
-            x: rect.minX,
-            y: rect.minY,
+            x: innerRect.minX,
+            y: innerRect.minY,
             width: fillWidth,
-            height: rect.height
+            height: innerRect.height
         )
         let fill = NSBezierPath(
             roundedRect: statusPixelAlignedRect(fillRect),
-            xRadius: cornerRadius,
-            yRadius: cornerRadius
+            xRadius: 0.8,
+            yRadius: 0.8
         )
         fillColor.setFill()
         fill.fill()
@@ -3973,15 +3975,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func systemMonitorMenuBarBlue() -> NSColor {
-        NSColor(calibratedRed: 0.22, green: 0.48, blue: 0.80, alpha: 0.88)
+        NSColor(calibratedRed: 0.43, green: 0.49, blue: 0.63, alpha: 0.94)
     }
 
     private func systemMonitorMenuBarMeterTrackColor() -> NSColor {
-        NSColor(calibratedWhite: 0.04, alpha: 0.10)
+        NSColor(calibratedWhite: 0.08, alpha: 0.88)
     }
 
     private func systemMonitorMenuBarMeterOutlineColor() -> NSColor {
-        NSColor(calibratedWhite: 0.05, alpha: 0.64)
+        NSColor(calibratedWhite: 0.02, alpha: 0.86)
     }
 
     private func drawQuotaRail(value: Int?, rect: NSRect, palette: GaugePalette) {

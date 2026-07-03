@@ -132,21 +132,22 @@ func menuBarText(_ value: String, at point: NSPoint, size: CGFloat, weight: NSFo
 }
 
 func drawMenuBarHorizontalQuotaBar(value: CGFloat, rect: NSRect, fill: NSColor, track: NSColor, stroke: NSColor) {
-    let shell = NSBezierPath(roundedRect: rect, xRadius: rect.height / 2, yRadius: rect.height / 2)
+    let shell = NSBezierPath(roundedRect: rect, xRadius: 1.6, yRadius: 1.6)
     track.setFill()
     shell.fill()
-    stroke.withAlphaComponent(0.46).setStroke()
+    stroke.setStroke()
     shell.lineWidth = 1.2
     shell.stroke()
 
     let fraction = max(0, min(1, value))
+    let innerRect = rect.insetBy(dx: 2.0, dy: 2.0)
     let fillRect = NSRect(
-        x: rect.minX,
-        y: rect.minY,
-        width: min(rect.width, max(rect.height, rect.width * fraction)),
-        height: rect.height
+        x: innerRect.minX,
+        y: innerRect.minY,
+        width: min(innerRect.width, max(2.4, innerRect.width * fraction)),
+        height: innerRect.height
     )
-    let fillPath = NSBezierPath(roundedRect: fillRect, xRadius: rect.height / 2, yRadius: rect.height / 2)
+    let fillPath = NSBezierPath(roundedRect: fillRect, xRadius: 1.0, yRadius: 1.0)
     fill.setFill()
     fillPath.fill()
 }
@@ -178,9 +179,9 @@ func writeMenuBarPNG(_ path: String) throws {
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
 
     let ink = NSColor(calibratedRed: 0.22, green: 0.26, blue: 0.25, alpha: 0.98)
-    let line = NSColor(calibratedWhite: 0.05, alpha: 0.64)
-    let systemMonitorBlue = NSColor(calibratedRed: 0.22, green: 0.48, blue: 0.80, alpha: 0.88)
-    let meterTrack = NSColor(calibratedWhite: 0.04, alpha: 0.10)
+    let line = NSColor(calibratedWhite: 0.02, alpha: 0.86)
+    let systemMonitorBlue = NSColor(calibratedRed: 0.43, green: 0.49, blue: 0.63, alpha: 0.94)
+    let meterTrack = NSColor(calibratedWhite: 0.08, alpha: 0.88)
     let taupe = NSColor(calibratedRed: 0.52, green: 0.48, blue: 0.42, alpha: 0.96)
 
     NSGradient(colors: [
