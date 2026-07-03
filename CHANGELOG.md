@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.9.2 - 2026-07-03
+
 - Minimized the menu bar glyph by removing the capsule remnants, divider, source stripe, state badge, and usage-bar cap dot.
 - Refreshed public GitHub screenshots and README copy so generated images are clearly labeled as static sample values, not live account timing.
 - Added a dedicated rendered GitHub hero image for the menu bar-focused product description.

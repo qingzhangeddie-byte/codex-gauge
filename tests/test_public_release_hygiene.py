@@ -82,6 +82,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("v0.8.0", changelog)
         self.assertIn("v0.9.0", changelog)
         self.assertIn("v0.9.1", changelog)
+        self.assertIn("v0.9.2", changelog)
 
     def test_release_check_script_covers_public_release_gates(self):
         script_path = pathlib.Path("script/release_check.sh")
@@ -334,7 +335,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         for phrase in [
             "git@github.com:qingzhangeddie-byte/codex-gauge.git",
             "git push -u origin main --tags",
-            "v0.9.1",
+            "v0.9.2",
             "repository social preview",
             "docs/assets/codex-gauge-social-preview.png",
             "private vulnerability reporting",
