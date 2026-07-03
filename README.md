@@ -5,17 +5,17 @@
 [![License](https://img.shields.io/github/license/qingzhangeddie-byte/codex-gauge)](LICENSE)
 ![macOS 13+](https://img.shields.io/badge/macOS-13%2B-0f766e)
 
-![Codex Gauge rendered GitHub hero with Morandi menu bar quota bars](docs/assets/codex-gauge-github-hero.png)
+![Codex Gauge rendered GitHub hero with system-monitor horizontal quota bars](docs/assets/codex-gauge-github-hero.png)
 
-_Rendered public image with static sample values. The installed app renders your live Codex usage percentages, usage bars, and reset countdowns._
+_Rendered public image with static sample values. The installed app renders your live Codex usage percentages, horizontal bars, and reset countdowns._
 
 **A calm, safe macOS menu bar app to check Codex usage: 5-hour and 7-day quota, live reset countdowns, and no browser-cookie reads.**
 
 Stop guessing how much Codex you have left.
 
-Codex Gauge puts your 5-hour and 7-day usage percentages, usage bars, and reset countdowns directly in the macOS menu bar, with a compact Signal Console when you need more detail.
+Codex Gauge puts your 5-hour and 7-day usage percentages, horizontal bars, and reset countdowns directly in the macOS menu bar, with a compact Signal Console when you need more detail.
 
-Codex Gauge 会把 Codex 5 小时和 7 天使用百分比、使用条和重置倒计时直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态和数据来源。
+Codex Gauge 会把 Codex 5 小时和 7 天使用百分比、横向条和重置倒计时直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态和数据来源。
 
 Open Codex once, keep Codex Gauge running, and the menu bar refreshes hands-free.
 
@@ -35,7 +35,7 @@ What makes it different:
 
 - Built for one job: Codex quota at a glance.
 - Native menu bar first, detailed Signal Console only when you click.
-- Transparent Morandi rails instead of a noisy dashboard wedged into the status bar.
+- Transparent system-monitor bars instead of a noisy dashboard wedged into the status bar.
 - Clear Signal Console labels for Live, Last live, Snapshot, and Codex closed states.
 - Local-only diagnostics and reports, designed to avoid private prompt/session content.
 
@@ -51,16 +51,16 @@ Search phrases this project is designed to answer naturally: **check Codex usage
 
 这个项目自然覆盖的中文搜索词包括：**查看 Codex 使用量**、**Codex 额度监控**、**Codex 菜单栏工具**、**Codex 5 小时限制**、**Codex 7 天额度**、**OpenAI Codex 使用量监控**。
 
-![Codex Gauge static sample menu bar with usage percentage bars and reset countdowns](docs/assets/codex-gauge-menubar-live.png)
+![Codex Gauge static sample menu bar with horizontal quota bars and reset countdowns](docs/assets/codex-gauge-menubar-live.png)
 
 _Menu bar strip render. Static sample values; live values update in the installed app._
 
 ## What You Get
 
-- Compact menu bar gauge for Codex 5-hour and 7-day usage percentages, usage bars, and refresh countdowns
-  菜单栏紧凑显示 Codex 5 小时和 7 天使用百分比、使用条，以及刷新倒计时
-- Morandi percentage bars keep quota health readable without turning the menu bar into a large widget
-  Morandi 色系百分比条让菜单栏里的额度健康状态更直观，同时不会变成很占位置的大组件
+- Compact menu bar gauge for Codex 5-hour and 7-day usage percentages, horizontal bars, and refresh countdowns
+  菜单栏紧凑显示 Codex 5 小时和 7 天使用百分比、横向条，以及刷新倒计时
+- System-monitor horizontal bars keep quota health readable without turning the menu bar into a large widget
+  系统监控风格的横向条让菜单栏里的额度健康状态更直观，同时不会变成很占位置的大组件
 - Custom Signal Console popover with status, quota, reset timing, trend, doctor checks, diagnostics, and actions
   自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口；下拉菜单显示额度重置时间和上次刷新时间
 - Signal Console shows the actual next-refresh countdown, not a static refresh label
@@ -96,27 +96,27 @@ _Menu bar strip render. Static sample values; live values update in the installe
 
 ![Codex Gauge Signal Console](docs/assets/codex-gauge-signal-console.png)
 
-This is an actual app-rendered Signal Console screenshot generated from the native macOS view. It uses static sample quota values for the README, not live account data; the installed app keeps usage percentages, usage bars, and reset countdowns in the menu bar, with fuller Codex detail in the popover.
+This is an actual app-rendered Signal Console screenshot generated from the native macOS view. It uses static sample quota values for the README, not live account data; the installed app keeps usage percentages, horizontal bars, and reset countdowns in the menu bar, with fuller Codex detail in the popover.
 
-上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 静态示例额度数值，不是实时账户数据；安装后的 App 会把使用百分比、使用条和重置倒计时放在菜单栏，并在弹出面板里显示更完整的 Codex 细节。
+上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 静态示例额度数值，不是实时账户数据；安装后的 App 会把使用百分比、横向条和重置倒计时放在菜单栏，并在弹出面板里显示更完整的 Codex 细节。
 
 ## Compact menu bar
 
-The compact menu bar gauge uses a transparent system-monitor design: usage percentages and Morandi bars on the left, reset countdown text on the right, with no capsule, divider, source stripe, or cap dot.
+The compact menu bar gauge uses a transparent system-monitor design: usage percentages and slim horizontal bars on the left, reset countdown text on the right, with no capsule, divider, source stripe, or cap dot.
 
-紧凑菜单栏仪表使用透明系统监控风格：左侧显示使用百分比和 Morandi 条，右侧显示重置倒计时文字；没有胶囊背景、分割线、来源竖条或端点圆点。
+紧凑菜单栏仪表使用透明系统监控风格：左侧显示使用百分比和细横向条，右侧显示重置倒计时文字；没有胶囊背景、分割线、来源竖条或端点圆点。
+
+The two slim bars use graphite text and blue system-monitor fills so the gauge visually matches nearby menu-bar monitors.
+
+两个细横向条使用石墨文字和蓝色系统监控填充，让 Codex Gauge 和旁边的菜单栏监控保持同一种视觉语言。
 
 The public screenshot uses generated sample values so it does not expose account-specific timing; the real menu bar countdown updates live.
 
 公开截图使用生成的示例数值，避免暴露具体账户时间；真实菜单栏倒计时会实时更新。
 
-The two rows are 5-hour usage and 7-day usage. The countdown area shows the 5-hour reset and 7-day reset.
+The two rows are 5-hour usage and 7-day usage. The countdown area shows the 5-hour reset and 7-day reset. System-monitor bars keep the menu bar compact, with graphite text and blue horizontal bar states.
 
-两行分别是 5 小时使用量和 7 天使用量。倒计时区域显示 5 小时重置和 7 天重置。
-
-Quota rails use calm green, blue-grey, taupe, and clay states so low usage is visible without becoming noisy.
-
-额度条使用柔和的绿色、蓝灰、灰褐和陶土色状态，让偏低额度清晰可见但不吵。
+两行分别是 5 小时使用量和 7 天使用量。倒计时区域显示 5 小时重置和 7 天重置。系统监控横向条让菜单栏保持紧凑，并使用石墨文字和蓝色横向条状态。
 
 
 ## Quick Start
@@ -160,6 +160,7 @@ The generated zip includes `CodexGauge.app`, `Install Codex Gauge.command`, and 
 | Menu bar persistence | Session-only direct launch; no LaunchAgent is installed |
 | Updates | Session-only GitHub release check plus manual Check for Updates, with confirmed Install Update and temporary files only |
 | Signal quality | Shows both 5-hour and 7-day quota instead of one vague number |
+| Menu bar style | System-monitor bars with graphite text and blue horizontal bar states |
 | Refresh behavior | Adaptive refresh instead of constant polling: 5 minutes normally, 3 minutes when low, 2 minutes when critical, with quick retry after transient errors |
 | Preferences | Session-only refresh cadence, notifications, and theme controls |
 | Notifications | Opt-in alerts for the moments users actually care about |

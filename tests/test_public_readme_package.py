@@ -50,14 +50,14 @@ class PublicReadmePackageTests(unittest.TestCase):
 
         for phrase in [
             "Stop guessing how much Codex you have left.",
-            "Codex Gauge puts your 5-hour and 7-day usage percentages, usage bars, and reset countdowns directly in the macOS menu bar",
+            "Codex Gauge puts your 5-hour and 7-day usage percentages, horizontal bars, and reset countdowns directly in the macOS menu bar",
             "Open Codex once, keep Codex Gauge running, and the menu bar refreshes hands-free.",
             "No browser cookies. No `~/.codex/auth.json`. No prompt or response logging.",
             "Install from source with one command:",
             "bash install.sh",
             "What makes it different",
             "Built for one job: Codex quota at a glance.",
-            "Transparent Morandi rails instead of a noisy dashboard",
+            "Transparent system-monitor bars instead of a noisy dashboard",
         ]:
             self.assertIn(phrase, readme)
 
@@ -70,7 +70,7 @@ class PublicReadmePackageTests(unittest.TestCase):
         for phrase in [
             "Codex Gauge 是一个**非官方** macOS 菜单栏工具",
             "它可以直接显示 Codex 5 小时剩余额度和 Codex 7 天剩余额度",
-            "菜单栏紧凑显示 Codex 5 小时和 7 天使用百分比、使用条",
+            "菜单栏紧凑显示 Codex 5 小时和 7 天使用百分比、横向条",
             "下拉菜单显示额度重置时间和上次刷新时间",
             "紧凑菜单栏仪表使用透明系统监控风格",
             "重置倒计时文字",
@@ -89,7 +89,7 @@ class PublicReadmePackageTests(unittest.TestCase):
             "Self-contained app bundle",
             "Adaptive refresh",
             "Codex quota at a glance",
-            "Morandi rails",
+            "System-monitor bars",
             "Signal Console labels for Live, Last live, Snapshot, and Codex closed states",
             "Zero persistence mode",
             "Clear legacy data removes old Codex Gauge history",
@@ -144,24 +144,24 @@ class PublicReadmePackageTests(unittest.TestCase):
         for phrase in [
             "Compact menu bar",
             "transparent system-monitor design",
-            "usage percentages and Morandi bars on the left",
+            "usage percentages and slim horizontal bars on the left",
             "reset countdown text on the right",
             "no capsule, divider, source stripe, or cap dot",
             "5-hour usage and 7-day usage",
             "5-hour reset and 7-day reset",
-            "green, blue-grey, taupe, and clay states",
+            "graphite text and blue horizontal bar states",
         ]:
             self.assertIn(phrase, readme)
 
         for phrase in [
             "紧凑菜单栏",
             "透明系统监控风格",
-            "使用百分比和 Morandi 条",
+            "使用百分比和细横向条",
             "重置倒计时文字",
             "没有胶囊背景、分割线、来源竖条或端点圆点",
             "5 小时使用量和 7 天使用量",
             "5 小时重置和 7 天重置",
-            "绿色、蓝灰、灰褐和陶土色状态",
+            "石墨文字和蓝色横向条",
         ]:
             self.assertIn(phrase, zh_readme)
 

@@ -76,7 +76,7 @@ A Homebrew cask is a good public install path after signing and notarization. Ke
 - Push with `git push -u origin main --tags` only after the GitHub repo is a fresh non-fork repo.
 - Verify `git clone https://github.com/qingzhangeddie-byte/codex-gauge.git` works before announcing.
 - Create the GitHub Release for `v0.9.2`; the README release badge should not point at an older identity.
-- Set GitHub About description: `Calm macOS menu bar gauge for OpenAI Codex usage: Morandi 5h/7d bars, live reset countdowns, local-only diagnostics`.
+- Set GitHub About description: `Calm macOS menu bar gauge for OpenAI Codex usage: 5h/7d horizontal bars, live reset countdowns, local-only diagnostics`.
 - Set GitHub topics: `macos`, `menubar`, `menu-bar-app`, `codex`, `openai`, `swift`, `rate-limit`, `usage-monitor`, `developer-tools`.
 - Upload the refreshed `docs/assets/codex-gauge-social-preview.png` as the repository social preview after confirming it uses sample values only. Use `docs/assets/codex-gauge-github-hero.png` at the top of README and release notes.
 - Enable private vulnerability reporting in GitHub Settings > Security.

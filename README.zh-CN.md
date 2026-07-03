@@ -1,8 +1,8 @@
 # Codex Gauge
 
-![Codex Gauge GitHub 渲染主图：Morandi 菜单栏额度条](docs/assets/codex-gauge-github-hero.png)
+![Codex Gauge GitHub 渲染主图：系统监控风格菜单栏横向额度条](docs/assets/codex-gauge-github-hero.png)
 
-_公开渲染图使用静态示例数值；安装后的 App 会显示你的实时 Codex 使用百分比、使用条和重置倒计时。_
+_公开渲染图使用静态示例数值；安装后的 App 会显示你的实时 Codex 使用百分比、横向条和重置倒计时。_
 
 [English](README.md) | 中文说明
 
@@ -12,7 +12,7 @@ Codex Gauge 是一个**安静、安全的 Codex 菜单栏额度仪表**，用于
 
 不用再猜自己还剩多少 Codex。
 
-Codex Gauge 会把 Codex 5 小时和 7 天使用百分比、使用条和重置倒计时直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态和数据来源。
+Codex Gauge 会把 Codex 5 小时和 7 天使用百分比、横向条和重置倒计时直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态和数据来源。
 
 打开一次 Codex 后保持 Codex Gauge 运行，菜单栏就会自动刷新，不需要额外设置浏览器或复制登录信息。
 
@@ -28,18 +28,18 @@ bash install.sh
 
 - 只做一件事：让 Codex 额度一眼可见。
 - 菜单栏优先，只有点开时才显示更完整的 Signal Console。
-- 使用克制的 Morandi 额度条，不把状态栏做成吵闹的小 dashboard。
+- 使用克制的系统监控风格横向条，不把状态栏做成吵闹的小 dashboard。
 - Signal Console 清楚标注 Live、Last live、Snapshot 和 Codex closed 状态。
 - 诊断和报告都只在本地生成，避免复制私人的 prompt、session 或日志内容。
 
-![Codex Gauge 静态示例菜单栏：使用百分比条和重置倒计时](docs/assets/codex-gauge-menubar-live.png)
+![Codex Gauge 静态示例菜单栏：横向额度条和重置倒计时](docs/assets/codex-gauge-menubar-live.png)
 
 _菜单栏条形渲染图。这里是静态示例数值；安装后的 App 会实时更新。_
 
 ## 核心特点
 
-- 菜单栏同时显示 5 小时和 7 天使用百分比、使用条，以及刷新倒计时
-- Morandi 色系百分比条让菜单栏里的额度健康状态更直观，同时不会变成很占位置的大组件
+- 菜单栏同时显示 5 小时和 7 天使用百分比、横向条，以及刷新倒计时
+- 系统监控风格的横向条让菜单栏里的额度健康状态更直观，同时不会变成很占位置的大组件
 - 自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口
 - Signal Console 显示真实的下次刷新倒计时，不再只是静态刷新标签
 - 三套可选主题：默认 Blue Ceramic，并提供 Signal Dark 和 Mono Graphite
@@ -61,15 +61,15 @@ _菜单栏条形渲染图。这里是静态示例数值；安装后的 App 会�
 
 ![Codex Gauge Signal Console](docs/assets/codex-gauge-signal-console.png)
 
-上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 静态示例额度数值，不是实时账户数据；安装后的 App 会把使用百分比、使用条和重置倒计时放在菜单栏，并在弹出面板里显示更完整的 Codex 细节。
+上面的 Signal Console 截图由真实 macOS 原生界面渲染生成，但使用 README 静态示例额度数值，不是实时账户数据；安装后的 App 会把使用百分比、横向条和重置倒计时放在菜单栏，并在弹出面板里显示更完整的 Codex 细节。
 
 ## 紧凑菜单栏
 
-紧凑菜单栏仪表使用透明系统监控风格：左侧显示使用百分比和 Morandi 条，右侧显示重置倒计时文字；没有胶囊背景、分割线、来源竖条或端点圆点。
+紧凑菜单栏仪表使用透明系统监控风格：左侧显示使用百分比和细横向条，右侧显示重置倒计时文字；没有胶囊背景、分割线、来源竖条或端点圆点。
 
 公开截图使用生成的示例数值，避免暴露具体账户时间；真实菜单栏倒计时会实时更新。
 
-两行分别是 5 小时使用量和 7 天使用量。倒计时区域显示 5 小时重置和 7 天重置。额度条使用柔和的绿色、蓝灰、灰褐和陶土色状态，让偏低额度清晰可见但不吵。
+两行分别是 5 小时使用量和 7 天使用量。倒计时区域显示 5 小时重置和 7 天重置。系统监控横向条使用石墨文字和蓝色横向条状态，让 Codex Gauge 和旁边的菜单栏监控保持同一种视觉语言。
 
 ## 快速安装
 

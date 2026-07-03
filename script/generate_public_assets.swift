@@ -131,13 +131,21 @@ func menuBarText(_ value: String, at point: NSPoint, size: CGFloat, weight: NSFo
     )
 }
 
-func drawMenuBarUsagePercentBar(value: CGFloat, rect: NSRect, fill: NSColor, track: NSColor) {
-    let rail = NSBezierPath(roundedRect: rect, xRadius: rect.height / 2, yRadius: rect.height / 2)
+func drawMenuBarHorizontalQuotaBar(value: CGFloat, rect: NSRect, fill: NSColor, track: NSColor, stroke: NSColor) {
+    let shell = NSBezierPath(roundedRect: rect, xRadius: rect.height / 2, yRadius: rect.height / 2)
     track.setFill()
-    rail.fill()
+    shell.fill()
+    stroke.withAlphaComponent(0.46).setStroke()
+    shell.lineWidth = 1.2
+    shell.stroke()
 
     let fraction = max(0, min(1, value))
-    let fillRect = NSRect(x: rect.minX, y: rect.minY, width: max(rect.height, rect.width * fraction), height: rect.height)
+    let fillRect = NSRect(
+        x: rect.minX,
+        y: rect.minY,
+        width: min(rect.width, max(rect.height, rect.width * fraction)),
+        height: rect.height
+    )
     let fillPath = NSBezierPath(roundedRect: fillRect, xRadius: rect.height / 2, yRadius: rect.height / 2)
     fill.setFill()
     fillPath.fill()
@@ -170,9 +178,9 @@ func writeMenuBarPNG(_ path: String) throws {
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
 
     let ink = NSColor(calibratedRed: 0.22, green: 0.26, blue: 0.25, alpha: 0.98)
-    let line = NSColor(calibratedRed: 0.52, green: 0.48, blue: 0.42, alpha: 0.62)
-    let sage = NSColor(calibratedRed: 0.45, green: 0.56, blue: 0.48, alpha: 0.96)
-    let mist = NSColor(calibratedRed: 0.39, green: 0.52, blue: 0.57, alpha: 0.96)
+    let line = NSColor(calibratedWhite: 0.05, alpha: 0.64)
+    let systemMonitorBlue = NSColor(calibratedRed: 0.22, green: 0.48, blue: 0.80, alpha: 0.88)
+    let meterTrack = NSColor(calibratedWhite: 0.04, alpha: 0.10)
     let taupe = NSColor(calibratedRed: 0.52, green: 0.48, blue: 0.42, alpha: 0.96)
 
     NSGradient(colors: [
@@ -186,11 +194,11 @@ func writeMenuBarPNG(_ path: String) throws {
     menuBarText("7d", at: NSPoint(x: strip.minX + 12, y: 24), size: 24, weight: .bold, color: ink, mono: true)
     menuBarText("90%", at: NSPoint(x: strip.minX + 48, y: 49), size: 17, weight: .bold, color: ink, mono: true)
     menuBarText("80%", at: NSPoint(x: strip.minX + 48, y: 25), size: 17, weight: .bold, color: ink, mono: true)
-    drawMenuBarUsagePercentBar(value: 0.90, rect: NSRect(x: strip.minX + 96, y: 56, width: 48, height: 8), fill: sage, track: line.withAlphaComponent(0.20))
-    drawMenuBarUsagePercentBar(value: 0.80, rect: NSRect(x: strip.minX + 96, y: 32, width: 48, height: 8), fill: mist.withAlphaComponent(0.88), track: line.withAlphaComponent(0.20))
+    drawMenuBarHorizontalQuotaBar(value: 0.90, rect: NSRect(x: strip.minX + 112, y: 56, width: 46, height: 8), fill: systemMonitorBlue, track: meterTrack, stroke: line)
+    drawMenuBarHorizontalQuotaBar(value: 0.80, rect: NSRect(x: strip.minX + 112, y: 32, width: 46, height: 8), fill: systemMonitorBlue, track: meterTrack, stroke: line)
 
     drawMenuBarRefreshCountdown(
-        in: NSRect(x: strip.minX + 164, y: 23, width: 82, height: 50),
+        in: NSRect(x: strip.minX + 172, y: 23, width: 82, height: 50),
         ink: ink,
         fill: taupe.withAlphaComponent(0),
         stroke: taupe.withAlphaComponent(0)

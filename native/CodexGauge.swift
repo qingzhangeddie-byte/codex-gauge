@@ -1829,9 +1829,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         frame: NSRect(x: 0, y: 0, width: statusItemWidth, height: NSStatusBar.system.thickness)
     )
     private let menuBarUsagePercentRect = NSRect(x: 4, y: 3, width: 62, height: 16)
+    private let menuBarHorizontalRailRect = NSRect(x: 50, y: 3, width: 20, height: 16)
     private let menuBarRefreshCountdownRect = NSRect(x: 70, y: 2, width: 38, height: 18)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
-    private let quotaRailWidth: CGFloat = 22
+    private let quotaRailSize = NSSize(width: 20, height: 4)
     private let signalRailSegments = 10
     private let codexCliBundlePath = "/Applications/Codex.app/Contents/Resources/codex"
     private let normalQuotaColor = NSColor(calibratedRed: 0.58, green: 1.00, blue: 0.89, alpha: 0.95)
@@ -3836,7 +3837,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func drawMenuBarLiveUnavailableHint(palette: GaugePalette) {
-        let warningColor = morandiMenuBarClay().withAlphaComponent(isDarkMenuBar() ? 0.98 : 0.90)
+        let warningColor = systemMonitorMenuBarWarningColor()
         drawMenuBarCountdownText(
             text: "open",
             rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 10.0, width: menuBarRefreshCountdownRect.width, height: 9.0),
@@ -3859,13 +3860,27 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func drawMenuBarUsagePercentBars(fiveHourLeft: Int?, sevenDayLeft: Int?, palette: GaugePalette) {
         drawMenuBarUsagePercentRow(window: "5h", quotaLeft: fiveHourLeft, y: 13.0, palette: palette)
         drawMenuBarUsagePercentRow(window: "7d", quotaLeft: sevenDayLeft, y: 4.0, palette: palette)
+        let fiveHourRailRect = statusPixelAlignedRect(NSRect(
+            x: menuBarHorizontalRailRect.minX,
+            y: menuBarHorizontalRailRect.maxY - quotaRailSize.height - 1.0,
+            width: quotaRailSize.width,
+            height: quotaRailSize.height
+        ))
+        let sevenDayRailRect = statusPixelAlignedRect(NSRect(
+            x: menuBarHorizontalRailRect.minX,
+            y: menuBarHorizontalRailRect.minY + 1.0,
+            width: quotaRailSize.width,
+            height: quotaRailSize.height
+        ))
+        drawMenuBarHorizontalQuotaBar(value: fiveHourLeft, rect: fiveHourRailRect, palette: palette, fillColor: systemMonitorMenuBarBlue())
+        drawMenuBarHorizontalQuotaBar(value: sevenDayLeft, rect: sevenDayRailRect, palette: palette, fillColor: systemMonitorMenuBarBlue())
     }
 
     private func drawMenuBarUsagePercentRow(window: String, quotaLeft: Int?, y: CGFloat, palette: GaugePalette) {
         let value = quotaLeft
         let windowAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 8.0, weight: .bold),
-            .foregroundColor: palette.primaryText,
+            .foregroundColor: systemMonitorMenuBarTextColor(),
         ]
         (window as NSString).draw(
             at: statusPixelAlignedPoint(NSPoint(x: menuBarUsagePercentRect.minX, y: y - 3.0)),
@@ -3875,15 +3890,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let percentText = compactMenuBarPercentText(value)
         let valueAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: percentText.count > 2 ? 6.9 : 7.1, weight: .semibold),
-            .foregroundColor: value == nil ? palette.mutedText : palette.primaryText,
+            .foregroundColor: value == nil
+                ? systemMonitorMenuBarMutedTextColor()
+                : systemMonitorMenuBarTextColor().withAlphaComponent(0.92),
         ]
         (percentText as NSString).draw(
             at: statusPixelAlignedPoint(NSPoint(x: menuBarUsagePercentRect.minX + 18, y: y - 3.0)),
             withAttributes: valueAttrs
         )
-
-        let railRect = statusPixelAlignedRect(NSRect(x: menuBarUsagePercentRect.minX + 42, y: y, width: quotaRailWidth, height: 4.0))
-        drawMenuBarUsagePercentBar(value: value, rect: railRect, palette: palette, fillColor: menuBarQuotaColor(value, palette: palette))
     }
 
     private func compactMenuBarPercentText(_ value: Int?) -> String {
@@ -3893,20 +3907,32 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         return "\(max(0, min(100, value)))%"
     }
 
-    private func drawMenuBarUsagePercentBar(value: Int?, rect: NSRect, palette: GaugePalette, fillColor: NSColor) {
-        let track = NSBezierPath(roundedRect: rect, xRadius: rect.height / 2, yRadius: rect.height / 2)
-        morandiMenuBarTaupe().withAlphaComponent(isDarkMenuBar() ? 0.28 : 0.20).setFill()
+    private func drawMenuBarHorizontalQuotaBar(value: Int?, rect: NSRect, palette: GaugePalette, fillColor: NSColor) {
+        let cornerRadius = rect.height / 2
+        let track = NSBezierPath(roundedRect: rect, xRadius: cornerRadius, yRadius: cornerRadius)
+        systemMonitorMenuBarMeterTrackColor().setFill()
         track.fill()
+        systemMonitorMenuBarMeterOutlineColor().withAlphaComponent(0.52).setStroke()
+        track.lineWidth = max(0.5, 1.0 / max(1.0, currentStatusImageScale))
+        track.stroke()
 
         guard let value else {
             return
         }
 
-        let fraction = clampedFraction(value)
-        let width = max(rect.height, rect.width * fraction)
-        let fillRect = NSRect(x: rect.minX, y: rect.minY, width: min(rect.width, width), height: rect.height)
-        let fill = NSBezierPath(roundedRect: fillRect, xRadius: rect.height / 2, yRadius: rect.height / 2)
-        fillColor.withAlphaComponent(0.88).setFill()
+        let fillWidth = min(rect.width, max(rect.height, rect.width * clampedFraction(value)))
+        let fillRect = NSRect(
+            x: rect.minX,
+            y: rect.minY,
+            width: fillWidth,
+            height: rect.height
+        )
+        let fill = NSBezierPath(
+            roundedRect: statusPixelAlignedRect(fillRect),
+            xRadius: cornerRadius,
+            yRadius: cornerRadius
+        )
+        fillColor.setFill()
         fill.fill()
     }
 
@@ -3920,12 +3946,36 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func drawMenuBarCountdownText(text resetText: String, rect: NSRect, palette: GaugePalette, color: NSColor? = nil) {
         let attrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 6.9, weight: .semibold),
-            .foregroundColor: color ?? palette.primaryText.withAlphaComponent(isDarkMenuBar() ? 0.96 : 0.88),
+            .foregroundColor: color ?? systemMonitorMenuBarTextColor().withAlphaComponent(0.88),
         ]
         (resetText as NSString).draw(
             at: statusPixelAlignedPoint(NSPoint(x: rect.minX + 1.0, y: rect.minY + 1.0)),
             withAttributes: attrs
         )
+    }
+
+    private func systemMonitorMenuBarTextColor() -> NSColor {
+        NSColor(calibratedWhite: 0.07, alpha: 0.95)
+    }
+
+    private func systemMonitorMenuBarMutedTextColor() -> NSColor {
+        NSColor(calibratedWhite: 0.08, alpha: 0.48)
+    }
+
+    private func systemMonitorMenuBarWarningColor() -> NSColor {
+        NSColor(calibratedRed: 0.50, green: 0.25, blue: 0.21, alpha: 0.90)
+    }
+
+    private func systemMonitorMenuBarBlue() -> NSColor {
+        NSColor(calibratedRed: 0.22, green: 0.48, blue: 0.80, alpha: 0.88)
+    }
+
+    private func systemMonitorMenuBarMeterTrackColor() -> NSColor {
+        NSColor(calibratedWhite: 0.04, alpha: 0.10)
+    }
+
+    private func systemMonitorMenuBarMeterOutlineColor() -> NSColor {
+        NSColor(calibratedWhite: 0.05, alpha: 0.64)
     }
 
     private func drawQuotaRail(value: Int?, rect: NSRect, palette: GaugePalette) {

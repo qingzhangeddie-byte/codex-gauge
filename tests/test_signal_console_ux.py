@@ -61,13 +61,17 @@ class SignalConsoleUXTests(unittest.TestCase):
             "button.addSubview(statusItemView)",
             "statusItemView.autoresizingMask = [.width, .height]",
             "menuBarUsagePercentRect = NSRect(x: 4, y: 3, width: 62, height: 16)",
+            "menuBarHorizontalRailRect = NSRect(x: 50, y: 3, width: 20, height: 16)",
             "menuBarRefreshCountdownRect = NSRect(x: 70, y: 2, width: 38, height: 18)",
-            "quotaRailWidth: CGFloat = 22",
+            "quotaRailSize = NSSize(width: 20, height: 4)",
             "drawMenuBarUsagePercentRow(window: \"5h\", quotaLeft: fiveHourLeft, y: 13.0",
             "drawMenuBarUsagePercentRow(window: \"7d\", quotaLeft: sevenDayLeft, y: 4.0",
             "NSFont.monospacedDigitSystemFont(ofSize: 8.0",
             "NSFont.monospacedDigitSystemFont(ofSize: 6.9",
             "drawMenuBarUsagePercentBars",
+            "drawMenuBarHorizontalQuotaBar",
+            "systemMonitorMenuBarTextColor",
+            "systemMonitorMenuBarBlue",
             "drawMenuBarCountdownText",
             "compactMenuBarPercentText",
             "morandiMenuBarSage",
@@ -81,6 +85,7 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("drawMenuBarCountdownText(text: sevenDayText", countdown_body)
         self.assertIn("compactMenuBarPercentText(value)", usage_row_body)
         self.assertIn("percentText as NSString", usage_row_body)
+        self.assertNotIn("drawMenuBarVerticalQuotaMeter", source)
         self.assertNotIn("drawMenuBarMinimalMorandiPill", source)
         self.assertNotIn("morandiMenuBarShellTop", source)
         self.assertNotIn("morandiMenuBarShellBottom", source)
