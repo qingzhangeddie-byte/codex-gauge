@@ -132,24 +132,27 @@ func menuBarText(_ value: String, at point: NSPoint, size: CGFloat, weight: NSFo
 }
 
 func drawMenuBarHorizontalQuotaBar(value: CGFloat, rect: NSRect, fill: NSColor, track: NSColor, stroke: NSColor) {
-    let shell = NSBezierPath(roundedRect: rect, xRadius: 1.6, yRadius: 1.6)
+    _ = stroke
+    let shell = NSBezierPath(roundedRect: rect, xRadius: 1.8, yRadius: 1.8)
     track.setFill()
     shell.fill()
-    stroke.setStroke()
-    shell.lineWidth = 1.2
-    shell.stroke()
 
     let fraction = max(0, min(1, value))
-    let innerRect = rect.insetBy(dx: 2.0, dy: 2.0)
+    guard fraction > 0 else {
+        return
+    }
+
     let fillRect = NSRect(
-        x: innerRect.minX,
-        y: innerRect.minY,
-        width: min(innerRect.width, max(2.4, innerRect.width * fraction)),
-        height: innerRect.height
+        x: rect.minX,
+        y: rect.minY,
+        width: min(rect.width, max(1.0, rect.width * fraction)),
+        height: rect.height
     )
-    let fillPath = NSBezierPath(roundedRect: fillRect, xRadius: 1.0, yRadius: 1.0)
+    NSGraphicsContext.saveGraphicsState()
+    shell.addClip()
     fill.setFill()
-    fillPath.fill()
+    fillRect.fill()
+    NSGraphicsContext.restoreGraphicsState()
 }
 
 func drawMenuBarCountdownText(_ value: String, rect: NSRect, fill: NSColor, stroke: NSColor, text: NSColor) {
@@ -179,9 +182,9 @@ func writeMenuBarPNG(_ path: String) throws {
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
 
     let ink = NSColor(calibratedRed: 0.22, green: 0.26, blue: 0.25, alpha: 0.98)
-    let line = NSColor(calibratedWhite: 0.02, alpha: 0.86)
-    let systemMonitorBlue = NSColor(calibratedRed: 0.43, green: 0.49, blue: 0.63, alpha: 0.94)
-    let meterTrack = NSColor(calibratedWhite: 0.08, alpha: 0.88)
+    let line = NSColor.clear
+    let systemMonitorBlue = NSColor(calibratedRed: 0.58, green: 0.63, blue: 0.75, alpha: 0.98)
+    let meterTrack = NSColor(calibratedWhite: 0.07, alpha: 0.96)
     let taupe = NSColor(calibratedRed: 0.52, green: 0.48, blue: 0.42, alpha: 0.96)
 
     NSGradient(colors: [

@@ -3914,34 +3914,35 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func drawMenuBarHorizontalQuotaBar(value: Int?, rect: NSRect, palette: GaugePalette, fillColor: NSColor) {
-        let cornerRadius = min(1.4, rect.height / 3.0)
+        let cornerRadius = min(1.5, rect.height / 2.0)
         let trackRect = statusPixelAlignedRect(rect)
         let track = NSBezierPath(roundedRect: trackRect, xRadius: cornerRadius, yRadius: cornerRadius)
         systemMonitorMenuBarMeterTrackColor().setFill()
         track.fill()
-        systemMonitorMenuBarMeterOutlineColor().setStroke()
-        track.lineWidth = max(0.5, 1.0 / max(1.0, currentStatusImageScale))
-        track.stroke()
 
         guard let value else {
             return
         }
 
-        let innerRect = rect.insetBy(dx: 1.0, dy: 1.0)
-        let fillWidth = min(innerRect.width, max(1.2, innerRect.width * clampedFraction(value)))
-        let fillRect = NSRect(
-            x: innerRect.minX,
-            y: innerRect.minY,
-            width: fillWidth,
-            height: innerRect.height
+        let fraction = clampedFraction(value)
+        guard fraction > 0 else {
+            return
+        }
+
+        let fillWidth = min(trackRect.width, max(1.0 / max(1.0, currentStatusImageScale), trackRect.width * fraction))
+        let fillRect = statusPixelAlignedRect(
+            NSRect(
+                x: trackRect.minX,
+                y: trackRect.minY,
+                width: fillWidth,
+                height: trackRect.height
+            )
         )
-        let fill = NSBezierPath(
-            roundedRect: statusPixelAlignedRect(fillRect),
-            xRadius: 0.8,
-            yRadius: 0.8
-        )
+        NSGraphicsContext.saveGraphicsState()
+        track.addClip()
         fillColor.setFill()
-        fill.fill()
+        fillRect.fill()
+        NSGraphicsContext.restoreGraphicsState()
     }
 
     private func drawMenuBarRefreshCountdown(fiveHourReset: Double?, sevenDayReset: Double?, palette: GaugePalette) {
@@ -3975,11 +3976,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func systemMonitorMenuBarBlue() -> NSColor {
-        NSColor(calibratedRed: 0.43, green: 0.49, blue: 0.63, alpha: 0.94)
+        NSColor(calibratedRed: 0.58, green: 0.63, blue: 0.75, alpha: 0.98)
     }
 
     private func systemMonitorMenuBarMeterTrackColor() -> NSColor {
-        NSColor(calibratedWhite: 0.08, alpha: 0.88)
+        NSColor(calibratedWhite: 0.07, alpha: 0.96)
     }
 
     private func systemMonitorMenuBarMeterOutlineColor() -> NSColor {

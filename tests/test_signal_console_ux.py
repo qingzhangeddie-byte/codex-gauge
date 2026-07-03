@@ -72,10 +72,11 @@ class SignalConsoleUXTests(unittest.TestCase):
             "drawMenuBarHorizontalQuotaBar",
             "systemMonitorMenuBarTextColor",
             "systemMonitorMenuBarBlue",
-            "let cornerRadius = min(1.4, rect.height / 3.0)",
-            "let innerRect = rect.insetBy(dx: 1.0, dy: 1.0)",
-            "NSColor(calibratedRed: 0.43, green: 0.49, blue: 0.63, alpha: 0.94)",
-            "NSColor(calibratedWhite: 0.08, alpha: 0.88)",
+            "let cornerRadius = min(1.5, rect.height / 2.0)",
+            "track.addClip()",
+            "fillRect.fill()",
+            "NSColor(calibratedRed: 0.58, green: 0.63, blue: 0.75, alpha: 0.98)",
+            "NSColor(calibratedWhite: 0.07, alpha: 0.96)",
             "drawMenuBarCountdownText",
             "compactMenuBarPercentText",
             "morandiMenuBarSage",
@@ -90,6 +91,8 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("compactMenuBarPercentText(value)", usage_row_body)
         self.assertIn("percentText as NSString", usage_row_body)
         self.assertNotIn("let cornerRadius = rect.height / 2", source)
+        self.assertNotIn("let innerRect = rect.insetBy(dx: 1.0, dy: 1.0)", source)
+        self.assertNotIn("systemMonitorMenuBarMeterOutlineColor().setStroke()", source)
         self.assertNotIn("drawMenuBarVerticalQuotaMeter", source)
         self.assertNotIn("drawMenuBarMinimalMorandiPill", source)
         self.assertNotIn("morandiMenuBarShellTop", source)
