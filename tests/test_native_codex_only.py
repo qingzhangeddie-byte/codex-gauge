@@ -61,10 +61,17 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("5 * 60", source)
         self.assertIn("3 * 60", source)
         self.assertIn("2 * 60", source)
+        self.assertIn("recoveryRefreshInterval: TimeInterval = 60", source)
         self.assertNotIn("15 * 60", source)
         self.assertIn("nextRefreshInterval", source)
         self.assertIn("Timer(timeInterval: interval", source)
         self.assertIn("RunLoop.main.add(nextTimer, forMode: .common)", source)
+        refresh_body = source.split("private func nextRefreshInterval", 1)[1].split(
+            "private func nextRefreshCountdownText", 1
+        )[0]
+        self.assertIn("guard let status else", refresh_body)
+        self.assertIn("guard status.ok && !isNonLiveSource(status.source) else", refresh_body)
+        self.assertIn("return recoveryRefreshInterval", refresh_body)
 
     def test_native_app_does_not_write_runtime_status_log(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -164,12 +171,35 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("NSBitmapImageRep", make_status_body)
         self.assertIn("NSGraphicsContext(bitmapImageRep:", make_status_body)
         self.assertIn("let scale = statusImageScale()", make_status_body)
+        self.assertIn("let previousStatusImageScale = currentStatusImageScale", make_status_body)
+        self.assertIn("currentStatusImageScale = scale", make_status_body)
+        self.assertIn("currentStatusImageScale = previousStatusImageScale", make_status_body)
         self.assertIn("pixelsWide: max(1, Int(ceil(statusImageSize.width * scale)))", make_status_body)
         self.assertIn("pixelsHigh: max(1, Int(ceil(statusImageSize.height * scale)))", make_status_body)
         self.assertIn("bitmap.size = statusImageSize", make_status_body)
         self.assertIn("context.cgContext.scaleBy(x: scale, y: scale)", make_status_body)
+        self.assertIn("private var currentStatusImageScale: CGFloat = 2.0", source)
+        self.assertIn("private func statusPixelAlignedPoint", source)
+        self.assertIn("private func statusPixelAlignedRect", source)
+        self.assertIn("statusPixelAlignedPoint", source.split("private func drawMenuBarUsagePercentRow", 1)[1])
+        self.assertIn("statusPixelAlignedRect", source.split("private func drawMenuBarUsagePercentRow", 1)[1])
         self.assertIn("guard animationTimer == nil", animation_body)
         self.assertNotIn("Timer(timeInterval: 0.18, repeats: true)", animation_body)
+
+    def test_native_app_watchdog_marks_live_failures_without_extra_badges(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+        set_status_body = source.split("private func setStatusImage", 1)[1].split(
+            "private func menuBarTooltipTitle", 1
+        )[0]
+
+        self.assertIn("isLiveWarningStatus", source)
+        self.assertIn("let liveWarning = isLiveWarningStatus(status)", set_status_body)
+        self.assertIn("isLiveWarning: liveWarning", set_status_body)
+        self.assertIn("drawMenuBarLiveUnavailableHint", source)
+        self.assertIn('text: "open"', source)
+        self.assertIn('text: "Codex"', source)
+        self.assertNotIn("drawStatusStateBadge", source)
+        self.assertNotIn("drawSourceIndicator", source)
 
     def test_native_app_dropdown_keeps_detailed_codex_pro_meter_rows(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()

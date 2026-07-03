@@ -1798,9 +1798,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let normalRefreshInterval: TimeInterval = 5 * 60
     private let watchRefreshInterval: TimeInterval = 3 * 60
     private let criticalRefreshInterval: TimeInterval = 2 * 60
+    private let recoveryRefreshInterval: TimeInterval = 60
     private let tenMinuteRefreshInterval: TimeInterval = 10 * 60
     private let statusItemWidth: CGFloat = 112
     private let statusImageSize = NSSize(width: 106, height: 22)
+    private var currentStatusImageScale: CGFloat = 2.0
     private let menuBarUsagePercentRect = NSRect(x: 4, y: 3, width: 62, height: 16)
     private let menuBarRefreshCountdownRect = NSRect(x: 70, y: 2, width: 34, height: 18)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
@@ -3636,21 +3638,53 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         button.title = ""
         button.imagePosition = .imageOnly
         button.imageScaling = .scaleNone
+        let liveWarning = isLiveWarningStatus(status)
         if let status, status.ok, !isUnavailableStatus(status) {
             button.image = makeStatusImage(
                 fiveHourLeft: status.fiveHourLeft,
                 sevenDayLeft: status.sevenDayLeft,
                 fiveHourReset: status.fiveHourReset,
                 sevenDayReset: status.sevenDayReset,
-                source: status.source
+                source: status.source,
+                isLiveWarning: liveWarning
             )
         } else if let status, status.ok {
-            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: status.source)
+            button.image = makeStatusImage(
+                fiveHourLeft: nil,
+                sevenDayLeft: nil,
+                fiveHourReset: nil,
+                sevenDayReset: nil,
+                source: status.source,
+                isLiveWarning: liveWarning
+            )
+        } else if let status {
+            button.image = makeStatusImage(
+                fiveHourLeft: nil,
+                sevenDayLeft: nil,
+                fiveHourReset: nil,
+                sevenDayReset: nil,
+                source: status.source,
+                isLiveWarning: liveWarning
+            )
         } else {
-            button.image = makeStatusImage(fiveHourLeft: nil, sevenDayLeft: nil, fiveHourReset: nil, sevenDayReset: nil, source: nil)
+            button.image = makeStatusImage(
+                fiveHourLeft: nil,
+                sevenDayLeft: nil,
+                fiveHourReset: nil,
+                sevenDayReset: nil,
+                source: nil,
+                isLiveWarning: liveWarning
+            )
         }
         button.toolTip = menuBarTooltipTitle(title: title, status: status)
         button.setAccessibilityLabel("Codex Gauge \(menuBarAccessibilitySummary(status))")
+    }
+
+    private func isLiveWarningStatus(_ status: ServiceStatus?) -> Bool {
+        guard let status else {
+            return lastError != nil
+        }
+        return !status.ok || isNonLiveSource(status.source) || !(status.error ?? "").isEmpty
     }
 
     private func menuBarTooltipTitle(title: String, status: ServiceStatus?) -> String {
@@ -3677,7 +3711,30 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         return max(1.0, min(3.0, buttonScale ?? screenScale ?? 2.0))
     }
 
-    private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?) -> NSImage {
+    private func statusPixelAligned(_ value: CGFloat) -> CGFloat {
+        let scale = max(1.0, currentStatusImageScale)
+        return (value * scale).rounded() / scale
+    }
+
+    private func statusPixelAlignedPoint(_ point: NSPoint) -> NSPoint {
+        NSPoint(x: statusPixelAligned(point.x), y: statusPixelAligned(point.y))
+    }
+
+    private func statusPixelAlignedRect(_ rect: NSRect) -> NSRect {
+        let minX = statusPixelAligned(rect.minX)
+        let minY = statusPixelAligned(rect.minY)
+        let maxX = statusPixelAligned(rect.maxX)
+        let maxY = statusPixelAligned(rect.maxY)
+        let minimum = 1.0 / max(1.0, currentStatusImageScale)
+        return NSRect(
+            x: minX,
+            y: minY,
+            width: max(minimum, maxX - minX),
+            height: max(minimum, maxY - minY)
+        )
+    }
+
+    private func makeStatusImage(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, source: String?, isLiveWarning: Bool = false) -> NSImage {
         let scale = statusImageScale()
         guard let bitmap = NSBitmapImageRep(
             bitmapDataPlanes: nil,
@@ -3698,6 +3755,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
         bitmap.size = statusImageSize
         NSGraphicsContext.saveGraphicsState()
+        let previousStatusImageScale = currentStatusImageScale
+        currentStatusImageScale = scale
+        defer {
+            currentStatusImageScale = previousStatusImageScale
+            NSGraphicsContext.restoreGraphicsState()
+        }
         NSGraphicsContext.current = context
         context.shouldAntialias = true
         context.cgContext.scaleBy(x: scale, y: scale)
@@ -3706,7 +3769,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
         let palette = gaugePalette()
 
-        if isUnavailableStatus(fiveHourLeft: fiveHourLeft, sevenDayLeft: sevenDayLeft, source: source) {
+        if isLiveWarning {
+            drawLiveWarningGauge(palette: palette)
+        } else if isUnavailableStatus(fiveHourLeft: fiveHourLeft, sevenDayLeft: sevenDayLeft, source: source) {
             drawUnavailableGauge(palette: palette)
         } else {
             drawPlanBGauge(
@@ -3717,7 +3782,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 palette: palette
             )
         }
-        NSGraphicsContext.restoreGraphicsState()
         image.addRepresentation(bitmap)
         image.isTemplate = false
         return image
@@ -3756,6 +3820,27 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         drawMenuBarRefreshCountdown(fiveHourReset: nil, sevenDayReset: nil, palette: palette)
     }
 
+    private func drawLiveWarningGauge(palette: GaugePalette) {
+        drawMenuBarUsagePercentBars(fiveHourLeft: nil, sevenDayLeft: nil, palette: palette)
+        drawMenuBarLiveUnavailableHint(palette: palette)
+    }
+
+    private func drawMenuBarLiveUnavailableHint(palette: GaugePalette) {
+        let warningColor = morandiMenuBarClay().withAlphaComponent(isDarkMenuBar() ? 0.98 : 0.90)
+        drawMenuBarCountdownText(
+            text: "open",
+            rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 10.0, width: menuBarRefreshCountdownRect.width, height: 9.0),
+            palette: palette,
+            color: warningColor
+        )
+        drawMenuBarCountdownText(
+            text: "Codex",
+            rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 1.0, width: menuBarRefreshCountdownRect.width, height: 9.0),
+            palette: palette,
+            color: warningColor
+        )
+    }
+
     private func drawPlanBGauge(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, palette: GaugePalette) {
         drawMenuBarUsagePercentBars(fiveHourLeft: fiveHourLeft, sevenDayLeft: sevenDayLeft, palette: palette)
         drawMenuBarRefreshCountdown(fiveHourReset: fiveHourReset, sevenDayReset: sevenDayReset, palette: palette)
@@ -3772,16 +3857,22 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             .font: NSFont.monospacedDigitSystemFont(ofSize: 7.8, weight: .bold),
             .foregroundColor: palette.primaryText,
         ]
-        (window as NSString).draw(at: NSPoint(x: menuBarUsagePercentRect.minX, y: y - 3.0), withAttributes: windowAttrs)
+        (window as NSString).draw(
+            at: statusPixelAlignedPoint(NSPoint(x: menuBarUsagePercentRect.minX, y: y - 3.0)),
+            withAttributes: windowAttrs
+        )
 
         let percentText = compactMenuBarPercentText(value)
         let valueAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: percentText.count > 2 ? 6.2 : 6.4, weight: .bold),
             .foregroundColor: value == nil ? palette.mutedText : palette.primaryText,
         ]
-        (percentText as NSString).draw(at: NSPoint(x: menuBarUsagePercentRect.minX + 17, y: y - 3.0), withAttributes: valueAttrs)
+        (percentText as NSString).draw(
+            at: statusPixelAlignedPoint(NSPoint(x: menuBarUsagePercentRect.minX + 17, y: y - 3.0)),
+            withAttributes: valueAttrs
+        )
 
-        let railRect = NSRect(x: menuBarUsagePercentRect.minX + 39, y: y, width: quotaRailWidth, height: 4.0)
+        let railRect = statusPixelAlignedRect(NSRect(x: menuBarUsagePercentRect.minX + 39, y: y, width: quotaRailWidth, height: 4.0))
         drawMenuBarUsagePercentBar(value: value, rect: railRect, palette: palette, fillColor: menuBarQuotaColor(value, palette: palette))
     }
 
@@ -3816,12 +3907,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         drawMenuBarCountdownText(text: sevenDayText, rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 1.0, width: menuBarRefreshCountdownRect.width, height: 9.0), palette: palette)
     }
 
-    private func drawMenuBarCountdownText(text resetText: String, rect: NSRect, palette: GaugePalette) {
+    private func drawMenuBarCountdownText(text resetText: String, rect: NSRect, palette: GaugePalette, color: NSColor? = nil) {
         let attrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 6.2, weight: .bold),
-            .foregroundColor: palette.primaryText.withAlphaComponent(isDarkMenuBar() ? 0.96 : 0.88),
+            .foregroundColor: color ?? palette.primaryText.withAlphaComponent(isDarkMenuBar() ? 0.96 : 0.88),
         ]
-        (resetText as NSString).draw(at: NSPoint(x: rect.minX + 1.0, y: rect.minY + 1.0), withAttributes: attrs)
+        (resetText as NSString).draw(
+            at: statusPixelAlignedPoint(NSPoint(x: rect.minX + 1.0, y: rect.minY + 1.0)),
+            withAttributes: attrs
+        )
     }
 
     private func drawQuotaRail(value: Int?, rect: NSRect, palette: GaugePalette) {
@@ -4029,13 +4123,19 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func nextRefreshInterval(for status: ServiceStatus?) -> TimeInterval {
+        guard let status else {
+            return normalRefreshInterval
+        }
+        guard status.ok && !isNonLiveSource(status.source) else {
+            return recoveryRefreshInterval
+        }
+        guard !isUnavailableStatus(status) else {
+            return recoveryRefreshInterval
+        }
         if let fixed = fixedRefreshInterval() {
             return fixed
         }
-        guard status?.ok == true else {
-            return normalRefreshInterval
-        }
-        let lowestQuota = [status?.fiveHourLeft, status?.sevenDayLeft].compactMap { $0 }.min() ?? 100
+        let lowestQuota = [status.fiveHourLeft, status.sevenDayLeft].compactMap { $0 }.min() ?? 100
         if lowestQuota < 10 {
             return criticalRefreshInterval
         }
