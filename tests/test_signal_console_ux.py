@@ -56,11 +56,11 @@ class SignalConsoleUXTests(unittest.TestCase):
         usage_row_body = swift_function_body(source, "private func drawMenuBarUsagePercentRow(")
 
         for token in [
-            "statusItemWidth: CGFloat = 116",
-            "statusImageSize = NSSize(width: 110, height: 22)",
-            "menuBarUsagePercentRect = NSRect(x: 5, y: 3, width: 58, height: 16)",
-            "menuBarRefreshCountdownRect = NSRect(x: 68, y: 2.2, width: 36, height: 17.6)",
-            "for x in [64] as [CGFloat]",
+            "statusItemWidth: CGFloat = 98",
+            "statusImageSize = NSSize(width: 92, height: 22)",
+            "menuBarUsagePercentRect = NSRect(x: 4, y: 3, width: 50, height: 16)",
+            "menuBarRefreshCountdownRect = NSRect(x: 58, y: 2.2, width: 32, height: 17.6)",
+            "quotaRailWidth: CGFloat = 18",
             "drawMenuBarUsagePercentBars",
             "drawMenuBarCountdownText",
             "compactMenuBarPercentText",
@@ -83,6 +83,11 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertNotIn("drawMenuBarSystemMetricStrip", source)
         self.assertNotIn("drawMenuBarBattery", source)
         self.assertNotIn("drawResetMoodFace", source)
+        self.assertNotIn("drawMenuBarChrome", source)
+        self.assertNotIn("drawMenuBarMorandiDivider", source)
+        self.assertNotIn("drawSourceIndicator", source)
+        self.assertNotIn("drawStatusStateBadge", source)
+        self.assertNotIn("drawResetMinimalMarker", source)
         self.assertNotIn("drawMoodLane", source)
 
     def test_reset_countdowns_keep_minutes_without_a_face_marker(self):

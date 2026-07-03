@@ -15,7 +15,7 @@ Stop guessing how much Codex you have left.
 
 Codex Gauge puts your 5-hour and 7-day usage percentages, usage bars, and reset countdowns directly in the macOS menu bar, with a compact Signal Console when you need more detail.
 
-Codex Gauge 会把 Codex 5 小时和 7 天使用百分比、使用条、重置倒计时和数据来源直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态。
+Codex Gauge 会把 Codex 5 小时和 7 天使用百分比、使用条和重置倒计时直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态和数据来源。
 
 Open Codex once, keep Codex Gauge running, and the menu bar refreshes hands-free.
 
@@ -36,7 +36,7 @@ What makes it different:
 - Built for one job: Codex quota at a glance.
 - Native menu bar first, detailed Signal Console only when you click.
 - Transparent Morandi rails instead of a noisy dashboard wedged into the status bar.
-- Clear labels for Live, Last live, Snapshot, and Codex closed states.
+- Clear Signal Console labels for Live, Last live, Snapshot, and Codex closed states.
 - Local-only diagnostics and reports, designed to avoid private prompt/session content.
 
 Codex Gauge is an **Unofficial** macOS menu bar app for people who use Codex heavily and want a Codex rate limit tracker that stays local.
@@ -85,8 +85,8 @@ _Menu bar strip render. Static sample values; live values update in the installe
   可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
 - Signal Console states explain Live, Codex closed, and unavailable data directly in the popover
   Signal Console 会在弹出面板解释 Live、Codex closed 和不可用状态
-- Menu bar states mark Live and Open explicitly; zero persistence disables stored Cache and Snapshot fallback in the app
-  菜单栏会明确标记 Live 和 Open；Zero persistence 模式会在 App 中关闭本地 Cache 和 Snapshot fallback
+- Signal Console and tooltip states explain Live and Open; zero persistence disables stored Cache and Snapshot fallback in the app
+  Signal Console 和 tooltip 会解释 Live 与 Open 状态；Zero persistence 模式会在 App 中关闭本地 Cache 和 Snapshot fallback
 - Setup Doctor and Copy Diagnostics help debug local setup without copying prompts, cookies, auth files, or logs
   Setup Doctor 和 Copy Diagnostics 可帮助排查本地设置，但不会复制 prompts、Cookie、auth 文件或日志
 - Self-contained app bundle with its helper inside `Contents/Resources`
@@ -102,9 +102,9 @@ This is an actual app-rendered Signal Console screenshot generated from the nati
 
 ## Compact menu bar
 
-The compact menu bar gauge uses a transparent system-monitor design: usage percentages and Morandi bars on the left, reset countdown text on the right.
+The compact menu bar gauge uses a transparent system-monitor design: usage percentages and Morandi bars on the left, reset countdown text on the right, with no capsule, divider, source stripe, or cap dot.
 
-紧凑菜单栏仪表使用透明系统监控风格：左侧显示使用百分比和 Morandi 条，右侧显示重置倒计时文字。
+紧凑菜单栏仪表使用透明系统监控风格：左侧显示使用百分比和 Morandi 条，右侧显示重置倒计时文字；没有胶囊背景、分割线、来源竖条或端点圆点。
 
 The public screenshot uses generated sample values so it does not expose account-specific timing; the real menu bar countdown updates live.
 

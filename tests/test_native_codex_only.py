@@ -91,11 +91,11 @@ class NativeCodexOnlyTests(unittest.TestCase):
     def test_native_app_draws_codex_usage_and_refresh_status_image(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("statusItemWidth: CGFloat = 116", source)
-        self.assertIn("statusImageSize = NSSize(width: 110, height: 22)", source)
+        self.assertIn("statusItemWidth: CGFloat = 98", source)
+        self.assertIn("statusImageSize = NSSize(width: 92, height: 22)", source)
         self.assertIn("menuBarUsagePercentRect", source)
         self.assertIn("menuBarRefreshCountdownRect", source)
-        self.assertIn("quotaRailWidth: CGFloat = 21", source)
+        self.assertIn("quotaRailWidth: CGFloat = 18", source)
         self.assertIn("makeStatusImage", source)
         self.assertIn("fiveHourReset: status.fiveHourReset", source)
         self.assertIn("sevenDayReset: status.sevenDayReset", source)
@@ -119,7 +119,6 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("bucketedGaugeColor", source)
         self.assertIn("resetLaneColor", source)
         self.assertIn("fillColor: menuBarQuotaColor(value, palette: palette)", source)
-        self.assertIn("drawResetMinimalMarker", source)
         self.assertIn("moodPulseStep", source)
         self.assertIn("animationTimer", source)
         self.assertIn("startMoodAnimation", source)
@@ -134,7 +133,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("menuBarTooltipTitle(title: title, status: status)", source)
 
         make_status_body = source.split("private func makeStatusImage(", 1)[1].split(
-            "private func drawMenuBarChrome", 1
+            "private func morandiMenuBarSage", 1
         )[0]
         self.assertIn("drawPlanBGauge(", make_status_body)
         self.assertNotIn("drawMenuBarHardwareSignals(", make_status_body)
@@ -154,7 +153,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
     def test_status_image_renderer_avoids_core_animation_backing_store_churn(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
         make_status_body = source.split("private func makeStatusImage(", 1)[1].split(
-            "private func drawSourceIndicator", 1
+            "private func morandiMenuBarSage", 1
         )[0]
         animation_body = source.split("private func startMoodAnimation", 1)[1].split(
             "private func stopMoodAnimation", 1
@@ -184,19 +183,17 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("refreshLabel", source)
         self.assertIn("statusTooltipTitle", source)
 
-    def test_native_app_marks_non_live_data_sources_in_menu_bar(self):
+    def test_native_app_keeps_non_live_state_detail_out_of_the_menu_bar_glyph(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
         self.assertIn('"Last live ·"', source)
         self.assertIn('case "last_live"', source)
-        self.assertIn("drawSourceIndicator(source: source", source)
-        self.assertIn("drawStatusStateBadge(source: source", source)
-        self.assertIn("statusImageStateLabel(source: source", source)
-        self.assertIn('return "Cache"', source)
-        self.assertIn('return "Snapshot"', source)
-        self.assertIn('return "Open"', source)
-        self.assertIn("sourceIndicatorColor", source)
         self.assertIn("Last live", source)
+        self.assertIn("menuBarTooltipTitle(title: title, status: status)", source)
+        self.assertNotIn("drawSourceIndicator", source)
+        self.assertNotIn("drawStatusStateBadge", source)
+        self.assertNotIn("statusImageStateLabel", source)
+        self.assertNotIn("sourceIndicatorColor", source)
 
     def test_native_app_surfaces_version_and_release_link(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()

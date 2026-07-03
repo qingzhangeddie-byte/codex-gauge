@@ -12,7 +12,7 @@ Codex Gauge 是一个**安静、安全的 Codex 菜单栏额度仪表**，用于
 
 不用再猜自己还剩多少 Codex。
 
-Codex Gauge 会把 Codex 5 小时和 7 天使用百分比、使用条、重置倒计时和数据来源直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态。
+Codex Gauge 会把 Codex 5 小时和 7 天使用百分比、使用条和重置倒计时直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态和数据来源。
 
 打开一次 Codex 后保持 Codex Gauge 运行，菜单栏就会自动刷新，不需要额外设置浏览器或复制登录信息。
 
@@ -29,7 +29,7 @@ bash install.sh
 - 只做一件事：让 Codex 额度一眼可见。
 - 菜单栏优先，只有点开时才显示更完整的 Signal Console。
 - 使用克制的 Morandi 额度条，不把状态栏做成吵闹的小 dashboard。
-- 清楚标注 Live、Last live、Snapshot 和 Codex closed 状态。
+- Signal Console 清楚标注 Live、Last live、Snapshot 和 Codex closed 状态。
 - 诊断和报告都只在本地生成，避免复制私人的 prompt、session 或日志内容。
 
 ![Codex Gauge 静态示例菜单栏：使用百分比条和重置倒计时](docs/assets/codex-gauge-menubar-live.png)
@@ -52,7 +52,7 @@ _菜单栏条形渲染图。这里是静态示例数值；安装后的 App 会�
 - 偏好设置只在当前运行会话中生效，支持主题、自适应、5 分钟和 10 分钟刷新
 - 可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
 - Signal Console 会在弹出面板解释 Live、Codex closed 和不可用状态
-- 菜单栏会明确标记 Live 和 Open；Zero persistence 模式会在 App 中关闭本地 Cache 和 Snapshot fallback
+- Signal Console 和 tooltip 会解释 Live 与 Open 状态；Zero persistence 模式会在 App 中关闭本地 Cache 和 Snapshot fallback
 - Setup Doctor 和 Copy Diagnostics 可帮助排查本地设置，但不会复制 prompts、Cookie、auth 文件或日志
 - 原生 App 自带 helper，安装后不依赖源码目录
 - Zero persistence 模式不保留 LaunchAgent、保存的偏好、历史、缓存、report、运行日志或 support-folder 存储
@@ -65,7 +65,7 @@ _菜单栏条形渲染图。这里是静态示例数值；安装后的 App 会�
 
 ## 紧凑菜单栏
 
-紧凑菜单栏仪表使用透明系统监控风格：左侧显示使用百分比和 Morandi 条，右侧显示重置倒计时文字。
+紧凑菜单栏仪表使用透明系统监控风格：左侧显示使用百分比和 Morandi 条，右侧显示重置倒计时文字；没有胶囊背景、分割线、来源竖条或端点圆点。
 
 公开截图使用生成的示例数值，避免暴露具体账户时间；真实菜单栏倒计时会实时更新。
 

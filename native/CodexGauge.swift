@@ -1799,12 +1799,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let watchRefreshInterval: TimeInterval = 3 * 60
     private let criticalRefreshInterval: TimeInterval = 2 * 60
     private let tenMinuteRefreshInterval: TimeInterval = 10 * 60
-    private let statusItemWidth: CGFloat = 116
-    private let statusImageSize = NSSize(width: 110, height: 22)
-    private let menuBarUsagePercentRect = NSRect(x: 5, y: 3, width: 58, height: 16)
-    private let menuBarRefreshCountdownRect = NSRect(x: 68, y: 2.2, width: 36, height: 17.6)
+    private let statusItemWidth: CGFloat = 98
+    private let statusImageSize = NSSize(width: 92, height: 22)
+    private let menuBarUsagePercentRect = NSRect(x: 4, y: 3, width: 50, height: 16)
+    private let menuBarRefreshCountdownRect = NSRect(x: 58, y: 2.2, width: 32, height: 17.6)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
-    private let quotaRailWidth: CGFloat = 21
+    private let quotaRailWidth: CGFloat = 18
     private let signalRailSegments = 10
     private let codexCliBundlePath = "/Applications/Codex.app/Contents/Resources/codex"
     private let normalQuotaColor = NSColor(calibratedRed: 0.58, green: 1.00, blue: 0.89, alpha: 0.95)
@@ -3705,10 +3705,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let image = NSImage(size: statusImageSize)
 
         let palette = gaugePalette()
-        let nonLiveMode = isNonLiveSource(source)
-        drawMenuBarChrome(source: source, nonLiveMode: nonLiveMode, palette: palette)
-        drawSourceIndicator(source: source, palette: palette)
-        drawStatusStateBadge(source: source, palette: palette)
 
         if isUnavailableStatus(fiveHourLeft: fiveHourLeft, sevenDayLeft: sevenDayLeft, source: source) {
             drawUnavailableGauge(palette: palette)
@@ -3725,21 +3721,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         image.addRepresentation(bitmap)
         image.isTemplate = false
         return image
-    }
-
-    private func drawMenuBarChrome(source: String?, nonLiveMode: Bool, palette: GaugePalette) {
-        for x in [64] as [CGFloat] {
-            drawMenuBarMorandiDivider(x: x, palette: palette)
-        }
-    }
-
-    private func drawMenuBarMorandiDivider(x: CGFloat, palette: GaugePalette) {
-        let divider = NSBezierPath()
-        divider.move(to: NSPoint(x: x, y: 5.8))
-        divider.line(to: NSPoint(x: x, y: statusImageSize.height - 5.8))
-        divider.lineWidth = 0.45
-        palette.mutedText.withAlphaComponent(isDarkMenuBar() ? 0.32 : 0.42).setStroke()
-        divider.stroke()
     }
 
     private func morandiMenuBarSage() -> NSColor {
@@ -3764,76 +3745,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         isDarkMenuBar()
             ? NSColor(calibratedRed: 0.64, green: 0.59, blue: 0.53, alpha: 0.96)
             : NSColor(calibratedRed: 0.52, green: 0.48, blue: 0.42, alpha: 0.96)
-    }
-
-    private func drawSourceIndicator(source: String?, palette: GaugePalette) {
-        guard let color = sourceIndicatorColor(source) else {
-            return
-        }
-        let marker = NSBezierPath(
-            roundedRect: NSRect(x: 2, y: 4, width: 2.5, height: statusImageSize.height - 8),
-            xRadius: 1.25,
-            yRadius: 1.25
-        )
-        color.setFill()
-        marker.fill()
-    }
-
-    private func drawStatusStateBadge(source: String?, palette: GaugePalette) {
-        guard isNonLiveSource(source) || source == nil else {
-            return
-        }
-        let label = statusImageStateLabel(source: source)
-        let color = sourceIndicatorColor(source) ?? unavailableSourceColor()
-        let width: CGFloat = label == "Snapshot" ? 42 : 32
-        let rect = NSRect(x: 7, y: 16.2, width: width, height: 5.8)
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 4.8, weight: .bold),
-            .foregroundColor: color.withAlphaComponent(isDarkMenuBar() ? 0.88 : 0.72),
-        ]
-        (label as NSString).draw(at: NSPoint(x: rect.minX + 3.5, y: rect.minY + 0.4), withAttributes: attrs)
-    }
-
-    private func statusImageStateLabel(source: String?) -> String {
-        switch source {
-        case "last_live":
-            return "Cache"
-        case "local_snapshot":
-            return "Snapshot"
-        case nil:
-            return "Open"
-        default:
-            return "Live"
-        }
-    }
-
-    private func drawSignalSourceRail(source: String?, palette: GaugePalette) {
-        let color = sourceIndicatorColor(source) ?? morandiMenuBarSage()
-        let alpha: CGFloat = isNonLiveSource(source) ? 0.36 : 0.58
-        let rail = NSBezierPath(
-            roundedRect: NSRect(x: 7, y: statusImageSize.height - 2.8, width: statusImageSize.width - 14, height: 1.2),
-            xRadius: 0.6,
-            yRadius: 0.6
-        )
-        color.withAlphaComponent(alpha).setFill()
-        rail.fill()
-    }
-
-    private func sourceIndicatorColor(_ source: String?) -> NSColor? {
-        switch source {
-        case "last_live":
-            return morandiMenuBarClay()
-        case "local_snapshot":
-            return morandiMenuBarMist().withAlphaComponent(0.78)
-        case .some:
-            return morandiMenuBarSage().withAlphaComponent(0.84)
-        case .none:
-            return unavailableSourceColor()
-        }
-    }
-
-    private func unavailableSourceColor() -> NSColor {
-        morandiMenuBarClay().withAlphaComponent(0.88)
     }
 
     private func isUnavailableStatus(fiveHourLeft: Int?, sevenDayLeft: Int?, source: String?) -> Bool {
@@ -3868,9 +3779,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             .font: NSFont.monospacedDigitSystemFont(ofSize: percentText.count > 2 ? 5.0 : 5.5, weight: .bold),
             .foregroundColor: value == nil ? palette.mutedText : palette.primaryText,
         ]
-        (percentText as NSString).draw(at: NSPoint(x: menuBarUsagePercentRect.minX + 16, y: y - 2.6), withAttributes: valueAttrs)
+        (percentText as NSString).draw(at: NSPoint(x: menuBarUsagePercentRect.minX + 15, y: y - 2.6), withAttributes: valueAttrs)
 
-        let railRect = NSRect(x: menuBarUsagePercentRect.minX + 37, y: y, width: quotaRailWidth, height: 3.4)
+        let railRect = NSRect(x: menuBarUsagePercentRect.minX + 33, y: y, width: quotaRailWidth, height: 3.4)
         drawMenuBarUsagePercentBar(value: value, rect: railRect, palette: palette, fillColor: menuBarQuotaColor(value, palette: palette))
     }
 
@@ -3896,9 +3807,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let fill = NSBezierPath(roundedRect: fillRect, xRadius: rect.height / 2, yRadius: rect.height / 2)
         fillColor.withAlphaComponent(0.88).setFill()
         fill.fill()
-
-        let capCenter = NSPoint(x: min(rect.maxX - 1.2, fillRect.maxX), y: rect.midY)
-        drawResetMinimalMarker(center: capCenter, radius: 1.15, fill: fillColor)
     }
 
     private func drawMenuBarRefreshCountdown(fiveHourReset: Double?, sevenDayReset: Double?, palette: GaugePalette) {
@@ -3955,12 +3863,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         default:
             return morandiMenuBarSage()
         }
-    }
-
-    private func drawResetMinimalMarker(center: NSPoint, radius: CGFloat, fill: NSColor) {
-        let marker = NSBezierPath(ovalIn: NSRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
-        fill.withAlphaComponent(0.92).setFill()
-        marker.fill()
     }
 
     private func drawGaugeRail(value: Int?, rect: NSRect, palette: GaugePalette, fillColor: NSColor) {
