@@ -185,6 +185,11 @@ def _read_codex_rate_limits_stdio(codex_cli: str, timeout: int) -> dict:
             },
             {
                 "jsonrpc": "2.0",
+                "method": "notifications/initialized",
+                "params": {},
+            },
+            {
+                "jsonrpc": "2.0",
                 "id": 2,
                 "method": "account/rateLimits/read",
                 "params": None,

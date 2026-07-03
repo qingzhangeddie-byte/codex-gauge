@@ -412,6 +412,64 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
             source.index("_read_codex_rate_limits_ws"),
         )
 
+    def test_stdio_app_server_client_sends_initialized_before_rate_limit_request(self):
+        helper = load_helper()
+        writes = []
+
+        class FakeStdin:
+            def write(self, value):
+                writes.append(json.loads(value))
+
+            def flush(self):
+                pass
+
+        class FakeStdout:
+            def __init__(self):
+                self.lines = [
+                    json.dumps({"id": 1, "result": {"ok": True}}) + "\n",
+                    json.dumps({
+                        "id": 2,
+                        "result": {
+                            "rateLimits": {
+                                "limitId": "codex",
+                                "primary": {"usedPercent": 12, "resetsAt": 1_800_000_000},
+                                "secondary": {"usedPercent": 34, "resetsAt": 1_800_086_400},
+                                "planType": "pro",
+                            }
+                        },
+                    }) + "\n",
+                ]
+
+            def readline(self):
+                return self.lines.pop(0)
+
+        class FakeProcess:
+            pid = 12345
+
+            def __init__(self):
+                self.stdin = FakeStdin()
+                self.stdout = FakeStdout()
+
+            def poll(self):
+                return None
+
+        fake_process = FakeProcess()
+
+        def fake_select(readers, _writers, _errors, _timeout):
+            return (readers, [], []) if fake_process.stdout.lines else ([], [], [])
+
+        with mock.patch.object(helper.subprocess, "Popen", return_value=fake_process), \
+             mock.patch.object(helper.select, "select", side_effect=fake_select), \
+             mock.patch.object(helper, "_terminate_process_group"):
+            result = helper._read_codex_rate_limits_stdio("/Applications/Codex.app/Contents/Resources/codex", 5)
+
+        self.assertEqual(result["primary"]["used_percent"], 12)
+        self.assertEqual(
+            [message.get("method") for message in writes],
+            ["initialize", "notifications/initialized", "account/rateLimits/read"],
+        )
+        self.assertEqual(writes[2]["id"], 2)
+
     def test_codex_subprocess_env_strips_python_launcher_build_vars(self):
         helper = load_helper()
 
