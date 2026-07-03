@@ -1799,12 +1799,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let watchRefreshInterval: TimeInterval = 3 * 60
     private let criticalRefreshInterval: TimeInterval = 2 * 60
     private let tenMinuteRefreshInterval: TimeInterval = 10 * 60
-    private let statusItemWidth: CGFloat = 98
-    private let statusImageSize = NSSize(width: 92, height: 22)
-    private let menuBarUsagePercentRect = NSRect(x: 4, y: 3, width: 50, height: 16)
-    private let menuBarRefreshCountdownRect = NSRect(x: 58, y: 2.2, width: 32, height: 17.6)
+    private let statusItemWidth: CGFloat = 112
+    private let statusImageSize = NSSize(width: 106, height: 22)
+    private let menuBarUsagePercentRect = NSRect(x: 4, y: 3, width: 62, height: 16)
+    private let menuBarRefreshCountdownRect = NSRect(x: 70, y: 2, width: 34, height: 18)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
-    private let quotaRailWidth: CGFloat = 18
+    private let quotaRailWidth: CGFloat = 22
     private let signalRailSegments = 10
     private let codexCliBundlePath = "/Applications/Codex.app/Contents/Resources/codex"
     private let normalQuotaColor = NSColor(calibratedRed: 0.58, green: 1.00, blue: 0.89, alpha: 0.95)
@@ -3762,26 +3762,26 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func drawMenuBarUsagePercentBars(fiveHourLeft: Int?, sevenDayLeft: Int?, palette: GaugePalette) {
-        drawMenuBarUsagePercentRow(window: "5h", quotaLeft: fiveHourLeft, y: 13.1, palette: palette)
-        drawMenuBarUsagePercentRow(window: "7d", quotaLeft: sevenDayLeft, y: 4.1, palette: palette)
+        drawMenuBarUsagePercentRow(window: "5h", quotaLeft: fiveHourLeft, y: 13.0, palette: palette)
+        drawMenuBarUsagePercentRow(window: "7d", quotaLeft: sevenDayLeft, y: 4.0, palette: palette)
     }
 
     private func drawMenuBarUsagePercentRow(window: String, quotaLeft: Int?, y: CGFloat, palette: GaugePalette) {
         let value = quotaLeft
         let windowAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 7.2, weight: .bold),
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 7.8, weight: .bold),
             .foregroundColor: palette.primaryText,
         ]
         (window as NSString).draw(at: NSPoint(x: menuBarUsagePercentRect.minX, y: y - 3.0), withAttributes: windowAttrs)
 
         let percentText = compactMenuBarPercentText(value)
         let valueAttrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: percentText.count > 2 ? 5.0 : 5.5, weight: .bold),
+            .font: NSFont.monospacedDigitSystemFont(ofSize: percentText.count > 2 ? 6.2 : 6.4, weight: .bold),
             .foregroundColor: value == nil ? palette.mutedText : palette.primaryText,
         ]
-        (percentText as NSString).draw(at: NSPoint(x: menuBarUsagePercentRect.minX + 15, y: y - 2.6), withAttributes: valueAttrs)
+        (percentText as NSString).draw(at: NSPoint(x: menuBarUsagePercentRect.minX + 17, y: y - 3.0), withAttributes: valueAttrs)
 
-        let railRect = NSRect(x: menuBarUsagePercentRect.minX + 33, y: y, width: quotaRailWidth, height: 3.4)
+        let railRect = NSRect(x: menuBarUsagePercentRect.minX + 39, y: y, width: quotaRailWidth, height: 4.0)
         drawMenuBarUsagePercentBar(value: value, rect: railRect, palette: palette, fillColor: menuBarQuotaColor(value, palette: palette))
     }
 
@@ -3812,16 +3812,16 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func drawMenuBarRefreshCountdown(fiveHourReset: Double?, sevenDayReset: Double?, palette: GaugePalette) {
         let fiveHourText = fiveHourResetCountdown(fiveHourReset)
         let sevenDayText = sevenDayResetCountdown(sevenDayReset)
-        drawMenuBarCountdownText(text: fiveHourText, rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 11.0, width: menuBarRefreshCountdownRect.width, height: 8.0), palette: palette)
-        drawMenuBarCountdownText(text: sevenDayText, rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 2.8, width: menuBarRefreshCountdownRect.width, height: 8.0), palette: palette)
+        drawMenuBarCountdownText(text: fiveHourText, rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 10.0, width: menuBarRefreshCountdownRect.width, height: 9.0), palette: palette)
+        drawMenuBarCountdownText(text: sevenDayText, rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 1.0, width: menuBarRefreshCountdownRect.width, height: 9.0), palette: palette)
     }
 
     private func drawMenuBarCountdownText(text resetText: String, rect: NSRect, palette: GaugePalette) {
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: resetText.count > 3 ? 4.7 : 5.5, weight: .bold),
-            .foregroundColor: palette.primaryText.withAlphaComponent(isDarkMenuBar() ? 0.86 : 0.76),
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 6.2, weight: .bold),
+            .foregroundColor: palette.primaryText.withAlphaComponent(isDarkMenuBar() ? 0.96 : 0.88),
         ]
-        (resetText as NSString).draw(at: NSPoint(x: rect.minX + 1.0, y: rect.minY + 1.5), withAttributes: attrs)
+        (resetText as NSString).draw(at: NSPoint(x: rect.minX + 1.0, y: rect.minY + 1.0), withAttributes: attrs)
     }
 
     private func drawQuotaRail(value: Int?, rect: NSRect, palette: GaugePalette) {

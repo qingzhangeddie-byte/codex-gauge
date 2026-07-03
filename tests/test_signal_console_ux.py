@@ -56,11 +56,15 @@ class SignalConsoleUXTests(unittest.TestCase):
         usage_row_body = swift_function_body(source, "private func drawMenuBarUsagePercentRow(")
 
         for token in [
-            "statusItemWidth: CGFloat = 98",
-            "statusImageSize = NSSize(width: 92, height: 22)",
-            "menuBarUsagePercentRect = NSRect(x: 4, y: 3, width: 50, height: 16)",
-            "menuBarRefreshCountdownRect = NSRect(x: 58, y: 2.2, width: 32, height: 17.6)",
-            "quotaRailWidth: CGFloat = 18",
+            "statusItemWidth: CGFloat = 112",
+            "statusImageSize = NSSize(width: 106, height: 22)",
+            "menuBarUsagePercentRect = NSRect(x: 4, y: 3, width: 62, height: 16)",
+            "menuBarRefreshCountdownRect = NSRect(x: 70, y: 2, width: 34, height: 18)",
+            "quotaRailWidth: CGFloat = 22",
+            "drawMenuBarUsagePercentRow(window: \"5h\", quotaLeft: fiveHourLeft, y: 13.0",
+            "drawMenuBarUsagePercentRow(window: \"7d\", quotaLeft: sevenDayLeft, y: 4.0",
+            "NSFont.monospacedDigitSystemFont(ofSize: 7.8",
+            "NSFont.monospacedDigitSystemFont(ofSize: 6.2",
             "drawMenuBarUsagePercentBars",
             "drawMenuBarCountdownText",
             "compactMenuBarPercentText",
