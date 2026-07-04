@@ -74,8 +74,10 @@ class SignalConsoleUXTests(unittest.TestCase):
             "systemMonitorMenuBarTextColor",
             "systemMonitorMenuBarBlue",
             "let cornerRadius = min(0.9, rect.height / 4.0)",
+            "let fillInset: CGFloat = 1.0",
+            "let innerTrackRect = statusPixelAlignedRect(trackRect.insetBy(dx: fillInset, dy: fillInset))",
             "let minimumVisibleFillWidth: CGFloat = 2.4",
-            "max(minimumVisibleFillWidth, trackRect.width * fraction)",
+            "max(minimumVisibleFillWidth, innerTrackRect.width * fraction)",
             "track.addClip()",
             "fillRect.fill()",
             "statusItemView.window?.effectiveAppearance ?? statusItemView.effectiveAppearance",
@@ -98,7 +100,6 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertIn("compactMenuBarPercentText(value)", usage_row_body)
         self.assertIn("percentText as NSString", usage_row_body)
         self.assertNotIn("let cornerRadius = rect.height / 2", source)
-        self.assertNotIn("let innerRect = rect.insetBy(dx: 1.0, dy: 1.0)", source)
         self.assertNotIn("systemMonitorMenuBarMeterOutlineColor().setStroke()", source)
         self.assertNotIn("NSColor(calibratedWhite: 1.0, alpha: 0.12)", source)
         self.assertNotIn("NSColor(calibratedWhite: 0.08, alpha: 0.07)", source)

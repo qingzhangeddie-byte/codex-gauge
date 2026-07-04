@@ -3924,24 +3924,26 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let track = NSBezierPath(roundedRect: trackRect, xRadius: cornerRadius, yRadius: cornerRadius)
         systemMonitorMenuBarMeterTrackColor().setFill()
         track.fill()
+        let fillInset: CGFloat = 1.0
+        let innerTrackRect = statusPixelAlignedRect(trackRect.insetBy(dx: fillInset, dy: fillInset))
 
         guard let value else {
             return
         }
 
         let fraction = clampedFraction(value)
-        guard fraction > 0 else {
+        guard fraction > 0, innerTrackRect.width > 0, innerTrackRect.height > 0 else {
             return
         }
 
         let minimumVisibleFillWidth: CGFloat = 2.4
-        let fillWidth = min(trackRect.width, max(minimumVisibleFillWidth, trackRect.width * fraction))
+        let fillWidth = min(innerTrackRect.width, max(minimumVisibleFillWidth, innerTrackRect.width * fraction))
         let fillRect = statusPixelAlignedRect(
             NSRect(
-                x: trackRect.minX,
-                y: trackRect.minY,
+                x: innerTrackRect.minX,
+                y: innerTrackRect.minY,
                 width: fillWidth,
-                height: trackRect.height
+                height: innerTrackRect.height
             )
         )
         NSGraphicsContext.saveGraphicsState()

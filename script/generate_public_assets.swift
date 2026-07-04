@@ -136,6 +136,8 @@ func drawMenuBarHorizontalQuotaBar(value: CGFloat, rect: NSRect, fill: NSColor, 
     let shell = NSBezierPath(roundedRect: rect, xRadius: 1.0, yRadius: 1.0)
     track.setFill()
     shell.fill()
+    let fillInset: CGFloat = 1.0
+    let innerRect = rect.insetBy(dx: fillInset, dy: fillInset)
 
     let fraction = max(0, min(1, value))
     guard fraction > 0 else {
@@ -143,10 +145,10 @@ func drawMenuBarHorizontalQuotaBar(value: CGFloat, rect: NSRect, fill: NSColor, 
     }
 
     let fillRect = NSRect(
-        x: rect.minX,
-        y: rect.minY,
-        width: min(rect.width, max(4.4, rect.width * fraction)),
-        height: rect.height
+        x: innerRect.minX,
+        y: innerRect.minY,
+        width: min(innerRect.width, max(4.4, innerRect.width * fraction)),
+        height: innerRect.height
     )
     NSGraphicsContext.saveGraphicsState()
     shell.addClip()
