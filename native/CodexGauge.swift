@@ -1834,10 +1834,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         frame: NSRect(x: 0, y: 0, width: statusItemWidth, height: NSStatusBar.system.thickness)
     )
     private let menuBarUsagePercentRect = NSRect(x: 2, y: 3, width: 54, height: 16)
-    private let menuBarHorizontalRailRect = NSRect(x: 46, y: 3, width: 20, height: 16)
-    private let menuBarRefreshCountdownRect = NSRect(x: 67, y: 2, width: 26, height: 18)
+    private let menuBarHorizontalRailRect = NSRect(x: 46, y: 3, width: 22, height: 16)
+    private let menuBarRefreshCountdownRect = NSRect(x: 69, y: 2, width: 24, height: 18)
     private let signalPopoverSize = NSSize(width: 560, height: 560)
-    private let quotaRailSize = NSSize(width: 20, height: 5)
+    private let quotaRailSize = NSSize(width: 22, height: 5)
     private let signalRailSegments = 10
     private let codexCliBundlePath = "/Applications/Codex.app/Contents/Resources/codex"
     private let normalQuotaColor = NSColor(calibratedRed: 0.58, green: 1.00, blue: 0.89, alpha: 0.95)
@@ -3919,7 +3919,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func drawMenuBarHorizontalQuotaBar(value: Int?, rect: NSRect, palette: GaugePalette, fillColor: NSColor) {
-        let cornerRadius = min(1.5, rect.height / 2.0)
+        let cornerRadius = min(0.9, rect.height / 4.0)
         let trackRect = statusPixelAlignedRect(rect)
         let track = NSBezierPath(roundedRect: trackRect, xRadius: cornerRadius, yRadius: cornerRadius)
         systemMonitorMenuBarMeterTrackColor().setFill()
@@ -3934,7 +3934,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return
         }
 
-        let fillWidth = min(trackRect.width, max(1.0 / max(1.0, currentStatusImageScale), trackRect.width * fraction))
+        let minimumVisibleFillWidth: CGFloat = 2.4
+        let fillWidth = min(trackRect.width, max(minimumVisibleFillWidth, trackRect.width * fraction))
         let fillRect = statusPixelAlignedRect(
             NSRect(
                 x: trackRect.minX,
@@ -3992,8 +3993,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func systemMonitorMenuBarMeterTrackColor() -> NSColor {
         isDarkMenuBar()
-            ? NSColor(calibratedWhite: 1.0, alpha: 0.18)
-            : NSColor(calibratedWhite: 0.08, alpha: 0.16)
+            ? NSColor(calibratedWhite: 1.0, alpha: 0.12)
+            : NSColor(calibratedWhite: 0.08, alpha: 0.07)
     }
 
     private func systemMonitorMenuBarMeterOutlineColor() -> NSColor {

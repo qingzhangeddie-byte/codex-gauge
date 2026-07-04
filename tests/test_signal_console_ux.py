@@ -62,9 +62,9 @@ class SignalConsoleUXTests(unittest.TestCase):
             "statusItemView.autoresizingMask = [.width, .height]",
             "override func viewDidChangeEffectiveAppearance()",
             "menuBarUsagePercentRect = NSRect(x: 2, y: 3, width: 54, height: 16)",
-            "menuBarHorizontalRailRect = NSRect(x: 46, y: 3, width: 20, height: 16)",
-            "menuBarRefreshCountdownRect = NSRect(x: 67, y: 2, width: 26, height: 18)",
-            "quotaRailSize = NSSize(width: 20, height: 5)",
+            "menuBarHorizontalRailRect = NSRect(x: 46, y: 3, width: 22, height: 16)",
+            "menuBarRefreshCountdownRect = NSRect(x: 69, y: 2, width: 24, height: 18)",
+            "quotaRailSize = NSSize(width: 22, height: 5)",
             "drawMenuBarUsagePercentRow(window: \"5h\", quotaLeft: fiveHourLeft, y: 13.0",
             "drawMenuBarUsagePercentRow(window: \"7d\", quotaLeft: sevenDayLeft, y: 4.0",
             "NSFont.monospacedDigitSystemFont(ofSize: 8.0, weight: .semibold)",
@@ -73,15 +73,17 @@ class SignalConsoleUXTests(unittest.TestCase):
             "drawMenuBarHorizontalQuotaBar",
             "systemMonitorMenuBarTextColor",
             "systemMonitorMenuBarBlue",
-            "let cornerRadius = min(1.5, rect.height / 2.0)",
+            "let cornerRadius = min(0.9, rect.height / 4.0)",
+            "let minimumVisibleFillWidth: CGFloat = 2.4",
+            "max(minimumVisibleFillWidth, trackRect.width * fraction)",
             "track.addClip()",
             "fillRect.fill()",
             "statusItemView.window?.effectiveAppearance ?? statusItemView.effectiveAppearance",
             "NSColor(calibratedWhite: 0.97, alpha: 0.96)",
             "NSColor(calibratedRed: 0.18, green: 0.56, blue: 0.96, alpha: 0.92)",
             "NSColor(calibratedRed: 0.58, green: 0.63, blue: 0.75, alpha: 0.98)",
-            "NSColor(calibratedWhite: 1.0, alpha: 0.18)",
-            "NSColor(calibratedWhite: 0.08, alpha: 0.16)",
+            "NSColor(calibratedWhite: 1.0, alpha: 0.12)",
+            "NSColor(calibratedWhite: 0.08, alpha: 0.07)",
             "drawMenuBarCountdownText",
             "compactMenuBarPercentText",
             "morandiMenuBarSage",
@@ -99,6 +101,8 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertNotIn("let innerRect = rect.insetBy(dx: 1.0, dy: 1.0)", source)
         self.assertNotIn("systemMonitorMenuBarMeterOutlineColor().setStroke()", source)
         self.assertNotIn("NSColor(calibratedWhite: 0.07, alpha: 0.96)", source)
+        self.assertNotIn("NSColor(calibratedWhite: 0.08, alpha: 0.16)", source)
+        self.assertNotIn("NSColor(calibratedWhite: 0.08, alpha: 0.12)", source)
         self.assertNotIn("drawMenuBarVerticalQuotaMeter", source)
         self.assertNotIn("drawMenuBarMinimalMorandiPill", source)
         self.assertNotIn("morandiMenuBarShellTop", source)

@@ -133,7 +133,7 @@ func menuBarText(_ value: String, at point: NSPoint, size: CGFloat, weight: NSFo
 
 func drawMenuBarHorizontalQuotaBar(value: CGFloat, rect: NSRect, fill: NSColor, track: NSColor, stroke: NSColor) {
     _ = stroke
-    let shell = NSBezierPath(roundedRect: rect, xRadius: 1.8, yRadius: 1.8)
+    let shell = NSBezierPath(roundedRect: rect, xRadius: 1.0, yRadius: 1.0)
     track.setFill()
     shell.fill()
 
@@ -145,7 +145,7 @@ func drawMenuBarHorizontalQuotaBar(value: CGFloat, rect: NSRect, fill: NSColor, 
     let fillRect = NSRect(
         x: rect.minX,
         y: rect.minY,
-        width: min(rect.width, max(1.0, rect.width * fraction)),
+        width: min(rect.width, max(4.4, rect.width * fraction)),
         height: rect.height
     )
     NSGraphicsContext.saveGraphicsState()
@@ -184,7 +184,7 @@ func writeMenuBarPNG(_ path: String) throws {
     let ink = NSColor(calibratedRed: 0.22, green: 0.26, blue: 0.25, alpha: 0.98)
     let line = NSColor.clear
     let systemMonitorBlue = NSColor(calibratedRed: 0.58, green: 0.63, blue: 0.75, alpha: 0.98)
-    let meterTrack = NSColor(calibratedWhite: 0.08, alpha: 0.16)
+    let meterTrack = NSColor(calibratedWhite: 0.08, alpha: 0.07)
     let taupe = NSColor(calibratedRed: 0.52, green: 0.48, blue: 0.42, alpha: 0.96)
 
     NSGradient(colors: [
