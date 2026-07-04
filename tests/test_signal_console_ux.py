@@ -82,8 +82,8 @@ class SignalConsoleUXTests(unittest.TestCase):
             "NSColor(calibratedWhite: 0.97, alpha: 0.96)",
             "Sampled from the adjacent iStat Menus CPU fill block (#8696B9).",
             "NSColor(deviceRed: 134.0 / 255.0, green: 150.0 / 255.0, blue: 185.0 / 255.0, alpha: 1.0)",
-            "NSColor(calibratedWhite: 1.0, alpha: 0.12)",
-            "NSColor(calibratedWhite: 0.08, alpha: 0.07)",
+            "Sampled from the adjacent iStat Menus CPU meter well around the blue fill.",
+            "NSColor(deviceWhite: 0.08, alpha: 0.95)",
             "drawMenuBarCountdownText",
             "compactMenuBarPercentText",
             "morandiMenuBarSage",
@@ -100,6 +100,8 @@ class SignalConsoleUXTests(unittest.TestCase):
         self.assertNotIn("let cornerRadius = rect.height / 2", source)
         self.assertNotIn("let innerRect = rect.insetBy(dx: 1.0, dy: 1.0)", source)
         self.assertNotIn("systemMonitorMenuBarMeterOutlineColor().setStroke()", source)
+        self.assertNotIn("NSColor(calibratedWhite: 1.0, alpha: 0.12)", source)
+        self.assertNotIn("NSColor(calibratedWhite: 0.08, alpha: 0.07)", source)
         self.assertNotIn("NSColor(calibratedWhite: 0.07, alpha: 0.96)", source)
         self.assertNotIn("NSColor(calibratedWhite: 0.08, alpha: 0.16)", source)
         self.assertNotIn("NSColor(calibratedWhite: 0.08, alpha: 0.12)", source)

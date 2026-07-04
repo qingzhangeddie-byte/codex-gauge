@@ -3991,9 +3991,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func systemMonitorMenuBarMeterTrackColor() -> NSColor {
-        isDarkMenuBar()
-            ? NSColor(calibratedWhite: 1.0, alpha: 0.12)
-            : NSColor(calibratedWhite: 0.08, alpha: 0.07)
+        // Sampled from the adjacent iStat Menus CPU meter well around the blue fill.
+        NSColor(deviceWhite: 0.08, alpha: 0.95)
     }
 
     private func systemMonitorMenuBarMeterOutlineColor() -> NSColor {
