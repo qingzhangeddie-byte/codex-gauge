@@ -183,7 +183,7 @@ func writeMenuBarPNG(_ path: String) throws {
 
     let ink = NSColor(calibratedRed: 0.22, green: 0.26, blue: 0.25, alpha: 0.98)
     let line = NSColor.clear
-    let systemMonitorBlue = NSColor(calibratedRed: 0.58, green: 0.63, blue: 0.75, alpha: 0.98)
+    let systemMonitorBlue = NSColor(deviceRed: 134.0 / 255.0, green: 150.0 / 255.0, blue: 185.0 / 255.0, alpha: 1.0)
     let meterTrack = NSColor(calibratedWhite: 0.08, alpha: 0.07)
     let taupe = NSColor(calibratedRed: 0.52, green: 0.48, blue: 0.42, alpha: 0.96)
 
