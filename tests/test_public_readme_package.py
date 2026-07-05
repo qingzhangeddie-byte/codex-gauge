@@ -9,6 +9,7 @@ class PublicReadmePackageTests(unittest.TestCase):
         self.assertTrue(readme.startswith("# Codex Gauge\n"))
         self.assertIn("https://github.com/qingzhangeddie-byte/codex-gauge/actions/workflows/test.yml/badge.svg", readme)
         self.assertIn("https://github.com/qingzhangeddie-byte/codex-gauge/releases/latest", readme)
+        self.assertIn("docs/assets/codex-gauge-logo.png", readme)
         self.assertIn("docs/assets/codex-gauge-github-hero.png", readme)
         self.assertIn("docs/assets/codex-gauge-menubar-live.png", readme)
         self.assertIn("A calm, safe macOS menu bar app to check Codex usage", readme)
@@ -91,12 +92,12 @@ class PublicReadmePackageTests(unittest.TestCase):
             "Codex quota at a glance",
             "System-monitor bars",
             "Signal Console labels for Live, Last live, Snapshot, and Codex closed states",
-            "Zero persistence mode",
+            "Local-only storage model",
             "Clear legacy data removes old Codex Gauge history",
             "actual next-refresh countdown",
             "Codex closed",
             "Reset timing",
-            "directly and removes any old Codex Gauge LaunchAgent plist",
+            "registers `~/Library/LaunchAgents/app.codexgauge.menubar.plist`",
         ]:
             self.assertIn(phrase, readme)
 
@@ -178,8 +179,8 @@ class PublicReadmePackageTests(unittest.TestCase):
         self.assertTrue(readme.startswith("# Codex Gauge\n"))
         self.assertIn("安静、安全的 Codex 菜单栏额度仪表", readme)
         self.assertIn("实时重置倒计时", readme)
-        self.assertIn("Zero persistence 模式", readme)
-        self.assertIn("不保留 LaunchAgent", readme)
+        self.assertIn("本地存储模型", readme)
+        self.assertIn("开机启动 LaunchAgent", readme)
         self.assertIn("git clone https://github.com/qingzhangeddie-byte/codex-gauge.git", readme)
         for phrase in [
             "## FAQ",
@@ -202,7 +203,7 @@ class PublicReadmePackageTests(unittest.TestCase):
         self.assertIn("zero persistence", privacy)
         self.assertIn("read-only emergency fallback", privacy)
         self.assertIn("Codex app-server", privacy)
-        self.assertIn("does not install a LaunchAgent", privacy)
+        self.assertIn("startup login", privacy)
 
 
 if __name__ == "__main__":

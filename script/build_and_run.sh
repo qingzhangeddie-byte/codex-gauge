@@ -6,7 +6,7 @@ APP_NAME="CodexGauge"
 LEGACY_APP_NAME="AiLimitStatus"
 BUNDLE_ID="app.codexgauge.menubar"
 MIN_SYSTEM_VERSION="13.0"
-APP_VERSION="0.9.2"
+APP_VERSION="0.9.3"
 APP_BUILD="1"
 RELEASE_URL="https://github.com/qingzhangeddie-byte/codex-gauge/releases"
 UPDATE_TEAM_ID="${CODEX_GAUGE_UPDATE_TEAM_ID:-}"
@@ -39,7 +39,6 @@ unload_launch_agent() {
 
 stop_app() {
   unload_launch_agent
-  rm -f "$AGENT_PLIST" >/dev/null 2>&1 || true
   rm -rf "$LEGACY_SUPPORT_DIR" >/dev/null 2>&1 || true
   pkill -x "$APP_NAME" >/dev/null 2>&1 || true
   pkill -x "$LEGACY_APP_BINARY_NAME" >/dev/null 2>&1 || true
@@ -113,6 +112,9 @@ build_bundle() {
     swiftc "$BUILD_MAIN" -o "$stage_binary" -framework Cocoa -framework UserNotifications
   chmod +x "$stage_binary"
   cp "$ROOT_DIR/native/codex_status.py" "$stage_resources/codex_status.py"
+  if [[ -f "$ROOT_DIR/native/assets/CodexGauge.icns" ]]; then
+    cp "$ROOT_DIR/native/assets/CodexGauge.icns" "$stage_resources/CodexGauge.icns"
+  fi
 
   cat >"$stage_info_plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -125,6 +127,8 @@ build_bundle() {
   <string>$BUNDLE_ID</string>
   <key>CFBundleName</key>
   <string>Codex Gauge</string>
+  <key>CFBundleIconFile</key>
+  <string>CodexGauge</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
@@ -166,6 +170,31 @@ launch_app_binary() {
   /usr/bin/open -na "$app_path"
 }
 
+install_launch_agent() {
+  local app_path="$1"
+  local agent_dir="$HOME/Library/LaunchAgents"
+  mkdir -p "$agent_dir"
+  cat >"$AGENT_PLIST" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>$AGENT_LABEL</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/open</string>
+    <string>-na</string>
+    <string>$app_path</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+</dict>
+</plist>
+PLIST
+  chmod 644 "$AGENT_PLIST"
+}
+
 install_app() {
   local target="/Applications/$APP_NAME.app"
   local legacy_target="/Applications/$LEGACY_APP_NAME.app"
@@ -183,12 +212,16 @@ install_app() {
 
   rm -rf "$legacy_target" >/dev/null 2>&1 || true
   if copy_verified_app "$target"; then
+    install_launch_agent "$target"
     launch_app_binary "$target"
+    printf "Installed %s and enabled startup launch\n" "$target"
     return
   fi
 
   if copy_verified_app "$user_target"; then
+    install_launch_agent "$user_target"
     launch_app_binary "$user_target"
+    printf "Installed %s and enabled startup launch\n" "$user_target"
     return
   fi
 

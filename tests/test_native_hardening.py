@@ -28,6 +28,9 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertIn('stage_binary="$stage_macos/$APP_BINARY_NAME"', script)
         self.assertIn('swiftc "$BUILD_MAIN" -o "$stage_binary" -framework Cocoa -framework UserNotifications', script)
         self.assertIn('cp "$ROOT_DIR/native/codex_status.py" "$stage_resources/codex_status.py"', script)
+        self.assertIn('cp "$ROOT_DIR/native/assets/CodexGauge.icns" "$stage_resources/CodexGauge.icns"', script)
+        self.assertIn("CFBundleIconFile", script)
+        self.assertIn("<string>CodexGauge</string>", script)
         self.assertIn('<string>$APP_NAME</string>', script)
         self.assertIn('ditto --norsrc --noextattr "$stage_bundle" "$APP_BUNDLE"', script)
         self.assertIn('pkill -x "$LEGACY_APP_BINARY_NAME"', script)
@@ -60,7 +63,7 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertIn('"CODEX_GAUGE_NO_STORAGE": "1"', source)
         self.assertIn("removePersistentAppStorage()", source)
         self.assertIn("removeLegacySupportDirectory()", source)
-        self.assertIn("Zero persistence", source)
+        self.assertIn("startup LaunchAgent only; no quota cache", source)
         self.assertNotIn("UserDefaults.standard", source)
         self.assertNotIn("try data.write", source)
         self.assertIn('LEGACY_SUPPORT_DIR="$HOME/Library/Application Support/CodexGauge"', build_script)
@@ -111,8 +114,8 @@ class NativeHardeningTests(unittest.TestCase):
 
         for label in [
             "Blue Ceramic",
-            "Zero persistence",
-            "No stored cache or snapshot",
+            "Local only",
+            "Startup agent, no quota cache",
             "Run Full Diagnostics",
             "Copy Diagnostics",
             "Check Now",
@@ -138,7 +141,7 @@ class NativeHardeningTests(unittest.TestCase):
             "does not read `~/.codex/auth.json`",
             "zero persistence",
             "Codex app-server",
-            "does not install a LaunchAgent",
+            "startup login",
         ]:
             self.assertIn(phrase, privacy)
         for token in ["SSD", "CPU/RAM", "battery", "Battery", "Power Saver", "hardware"]:

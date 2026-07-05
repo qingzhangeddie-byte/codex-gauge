@@ -1,6 +1,6 @@
 # Publishing Codex Gauge Safely
 
-This project publishes one supported surface: the native Codex Gauge menu bar app. It is Codex-only and bundles `native/codex_status.py` inside the app. It does not read browser sessions or `~/.codex/auth.json`. The app runs in zero persistence mode: no LaunchAgent, support-folder logs, caches, histories, reports, or saved preferences.
+This project publishes one supported surface: the native Codex Gauge menu bar app. It is Codex-only and bundles `native/codex_status.py` inside the app. It does not read browser sessions or `~/.codex/auth.json`. The app keeps only its startup LaunchAgent locally, with no support-folder logs, quota caches, histories, reports, or saved refresh preferences.
 
 ## Privacy
 
@@ -25,7 +25,7 @@ This runs the unit tests, builds the app, verifies a clean no-xattr app copy wit
 ./script/package_release.sh
 ```
 
-This builds `native/dist/release/CodexGauge-$APP_VERSION.zip`, writes `CodexGauge-$APP_VERSION.zip.sha256`, and includes `Install Codex Gauge.command` plus `README-INSTALL.txt`. The package contains the app bundle and installer only; it must not include logs, source checkout files, local support data, or files from `~/Library/Application Support/CodexGauge`. The installer launches the app directly and removes any old Codex Gauge LaunchAgent plist.
+This builds `native/dist/release/CodexGauge-$APP_VERSION.zip`, `native/dist/release/CodexGauge-$APP_VERSION.dmg`, and matching `.sha256` files. The package includes `Install Codex Gauge.command` plus `README-INSTALL.txt`. It contains the app bundle and installer only; it must not include logs, source checkout files, local support data, or files from `~/Library/Application Support/CodexGauge`. The installer launches the app and writes `~/Library/LaunchAgents/app.codexgauge.menubar.plist` for startup login.
 
 The generated package is ad-hoc signed and not notarized until Developer ID signing is configured. Treat it as a source-built convenience package, not the final 1.0 distribution path.
 
@@ -62,11 +62,11 @@ A Homebrew cask is a good public install path after signing and notarization. Ke
 
 1. Run `./script/release_check.sh`.
 2. Confirm live data is labeled Live and unavailable data asks the user to open Codex.
-3. Confirm zero persistence mode creates no support-folder logs, caches, histories, reports, saved preferences, or LaunchAgent plist.
-4. Run `./script/package_release.sh` and verify the zip plus checksum.
-5. Create tag `v0.9.2` on the public clean-history commit.
+3. Confirm startup login creates only `~/Library/LaunchAgents/app.codexgauge.menubar.plist` and no support-folder logs, caches, histories, reports, or saved refresh preferences.
+4. Run `./script/package_release.sh` and verify the zip, DMG, and checksum files.
+5. Create tag `v0.9.3` on the public clean-history commit.
 6. Sign and notarize with external credentials.
-7. Publish a zipped app bundle or DMG.
+7. Publish the zipped app bundle and DMG.
 8. Update the Homebrew cask checksum.
 
 ## Fresh Public Repository Checklist
@@ -75,7 +75,7 @@ A Homebrew cask is a good public install path after signing and notarization. Ke
 - Point the clean repo remote at `git@github.com:qingzhangeddie-byte/codex-gauge.git`.
 - Push with `git push -u origin main --tags` only after the GitHub repo is a fresh non-fork repo.
 - Verify `git clone https://github.com/qingzhangeddie-byte/codex-gauge.git` works before announcing.
-- Create the GitHub Release for `v0.9.2`; the README release badge should not point at an older identity.
+- Create the GitHub Release for `v0.9.3`; the README release badge should not point at an older identity.
 - Set GitHub About description: `Calm macOS menu bar gauge for OpenAI Codex usage: 5h/7d horizontal bars, live reset countdowns, local-only diagnostics`.
 - Set GitHub topics: `macos`, `menubar`, `menu-bar-app`, `codex`, `openai`, `swift`, `rate-limit`, `usage-monitor`, `developer-tools`.
 - Upload the refreshed `docs/assets/codex-gauge-social-preview.png` as the repository social preview after confirming it uses sample values only. Use `docs/assets/codex-gauge-github-hero.png` at the top of README and release notes.

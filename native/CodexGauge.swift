@@ -1670,7 +1670,7 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             title: "Last live",
             detail: "Cached",
             statusTitle: "Non-live fallback disabled in app",
-            statusDetail: "Zero persistence keeps no cached fallback",
+            statusDetail: "Startup login only; no cached fallback",
             fiveHourLeft: 58,
             sevenDayLeft: 63,
             fiveHourResetText: "2h14m",
@@ -1746,7 +1746,7 @@ private func signalConsolePreviewModel(
     let doctorChecks = [
         DoctorCheck(title: "Codex process", state: unavailable ? "yellow" : "green", detail: unavailable ? "Closed" : "Open"),
         DoctorCheck(title: "Menu bar source", state: "green", detail: "OK"),
-        DoctorCheck(title: "Session storage", state: "green", detail: "Zero persistence"),
+        DoctorCheck(title: "Session storage", state: "green", detail: "No quota cache"),
         DoctorCheck(title: "Last fetch", state: unavailable ? "grey" : "green", detail: unavailable ? "--" : "OK"),
     ]
     return SignalConsoleModel(
@@ -1874,7 +1874,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private lazy var resourcesDir = Bundle.main.resourcePath ?? FileManager.default.currentDirectoryPath
     private lazy var supportDir = applicationSupportDirectory()
     private lazy var pythonPath = infoString("CodexGaugePythonPath", fallback: "/usr/bin/python3")
-    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.9.2")
+    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.9.3")
     private lazy var releaseURL = infoString("CodexGaugeReleaseURL", fallback: "https://github.com/qingzhangeddie-byte/codex-gauge/releases")
     private lazy var expectedUpdateSigningTeamID = infoString("CodexGaugeUpdateTeamID", fallback: "").trimmingCharacters(in: .whitespacesAndNewlines)
     private lazy var usagePath = resolveUsagePath()
@@ -2530,8 +2530,31 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         TARGET_APP="$2"
         CURRENT_PID="$3"
         CLEANUP_DIR="$4"
+        AGENT_LABEL="app.codexgauge.menubar"
         AGENT_PLIST="$HOME/Library/LaunchAgents/app.codexgauge.menubar.plist"
         UPDATE_TARGET="$TARGET_APP.update"
+        install_launch_agent() {
+          /bin/mkdir -p "$HOME/Library/LaunchAgents"
+          /bin/cat >"$AGENT_PLIST" <<PLIST
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>Label</key>
+          <string>$AGENT_LABEL</string>
+          <key>ProgramArguments</key>
+          <array>
+            <string>/usr/bin/open</string>
+            <string>-na</string>
+            <string>$TARGET_APP</string>
+          </array>
+          <key>RunAtLoad</key>
+          <true/>
+        </dict>
+        </plist>
+        PLIST
+          /bin/chmod 644 "$AGENT_PLIST"
+        }
         while /bin/kill -0 "$CURRENT_PID" >/dev/null 2>&1; do
           /bin/sleep 0.2
         done
@@ -2541,6 +2564,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         /usr/bin/codesign --verify --deep --strict "$UPDATE_TARGET"
         /bin/rm -rf "$TARGET_APP"
         /bin/mv "$UPDATE_TARGET" "$TARGET_APP"
+        install_launch_agent
         /usr/bin/open -na "$TARGET_APP"
         /bin/rm -rf "$CLEANUP_DIR"
         """
@@ -2745,7 +2769,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     @objc private func generateUsageReport() {
         if !persistentStorageEnabled {
             guard let status = snapshot?.codex, status.ok else {
-                showReportAlert(title: "Live summary unavailable", detail: "Zero persistence mode keeps no stored quota history. Open Codex and refresh for a current live summary.")
+                showReportAlert(title: "Live summary unavailable", detail: "Codex Gauge keeps no stored quota history. Open Codex and refresh for a current live summary.")
                 return
             }
             let report = liveUsageSummaryText(status)
@@ -2784,7 +2808,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     @objc private func clearLocalData() {
         let alert = NSAlert()
         alert.messageText = "Clear legacy data?"
-        alert.informativeText = "Codex Gauge runs in Zero persistence mode. This removes old history, last-live cache, report, log, and LaunchAgent files from earlier builds. It does not touch Codex, browser cookies, Keychain, or auth files."
+        alert.informativeText = "Codex Gauge keeps only its startup LaunchAgent when launch at login is enabled. This removes old history, last-live cache, report, and log files from earlier builds. It does not touch Codex, browser cookies, Keychain, auth files, or the current startup setting."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Clear Legacy Data")
         alert.addButton(withTitle: "Cancel")
@@ -2828,7 +2852,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         } else {
             setStatusImage(title: "Codex quota")
         }
-        showReportAlert(title: "Legacy data cleared", detail: removed == 0 ? "No legacy history, cache, report, log, or LaunchAgent files were present." : "Cleared \(removed) legacy Codex Gauge file(s).")
+        showReportAlert(title: "Legacy data cleared", detail: removed == 0 ? "No legacy history, cache, report, or log files were present." : "Cleared \(removed) legacy Codex Gauge file(s).")
     }
 
     private func removePersistentAppStorage() {
@@ -2839,8 +2863,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             }
             try? manager.removeItem(atPath: path)
         }
-        removeLaunchAgentPlist()
-        unloadLaunchAgent()
         _ = try? removeLegacySupportDirectory()
     }
 
@@ -2870,7 +2892,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openSupportFolder() {
-        showReportAlert(title: "Zero persistence", detail: "Codex Gauge does not keep a support folder. Clear legacy removes old app files if earlier builds created them.")
+        showReportAlert(title: "Local only", detail: "Codex Gauge keeps only its startup LaunchAgent and does not keep a support folder. Clear legacy removes old app files if earlier builds created them.")
     }
 
     @objc private func quit() {
@@ -2927,9 +2949,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         guard let checkbox = sender as? NSButton else {
             return
         }
-        checkbox.state = .off
-        removeLaunchAgentPlist()
-        unloadLaunchAgent()
+        if checkbox.state == .on {
+            if !installLaunchAgentForCurrentApp() {
+                checkbox.state = .off
+                showReportAlert(title: "Startup not enabled", detail: "Codex Gauge could not write the LaunchAgent. Try installing the app again or check permissions for ~/Library/LaunchAgents.")
+            }
+        } else {
+            removeLaunchAgentPlist()
+            unloadLaunchAgent()
+        }
     }
 
     private func refresh() {
@@ -3216,10 +3244,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         content.addSubview(notifications)
         notificationsCheckbox = notifications
 
-        let login = NSButton(checkboxWithTitle: "Launch at login disabled", target: self, action: #selector(launchAtLoginPreferenceChanged))
+        let login = NSButton(checkboxWithTitle: "Launch at login", target: self, action: #selector(launchAtLoginPreferenceChanged))
         login.frame = NSRect(x: leftColumnX, y: 136, width: columnWidth, height: 22)
         login.contentTintColor = theme.textSecondary
-        login.isEnabled = false
         content.addSubview(login)
         launchAtLoginCheckbox = login
 
@@ -3243,8 +3270,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         storageCard.layer?.borderColor = theme.panelBorder.withAlphaComponent(0.24).cgColor
         storageCard.layer?.borderWidth = 1
         content.addSubview(storageCard)
-        storageCard.addSubview(utilityLabel("Zero persistence", frame: NSRect(x: 12, y: 25, width: 150, height: 14), size: 10, weight: .semibold, color: theme.textPrimary))
-        storageCard.addSubview(utilityLabel("No stored cache or snapshot", frame: NSRect(x: 12, y: 11, width: 160, height: 12), size: 9, weight: .medium, color: theme.blueAccent))
+        storageCard.addSubview(utilityLabel("Local only", frame: NSRect(x: 12, y: 25, width: 150, height: 14), size: 10, weight: .semibold, color: theme.textPrimary))
+        storageCard.addSubview(utilityLabel("Startup agent, no quota cache", frame: NSRect(x: 12, y: 11, width: 170, height: 12), size: 9, weight: .medium, color: theme.blueAccent))
 
         let resetDefaults = NSButton(title: "Reset to Defaults...", target: self, action: #selector(resetSessionPreferences))
         resetDefaults.frame = NSRect(x: labelX, y: 20, width: 126, height: 30)
@@ -3264,7 +3291,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         refreshPopup?.selectItem(withTitle: refreshTitle(for: mode))
         themePopup?.selectItem(withTitle: currentSignalConsoleTheme().name)
         notificationsCheckbox?.state = notificationsEnabled() ? .on : .off
-        launchAtLoginCheckbox?.state = .off
+        launchAtLoginCheckbox?.state = isLaunchAgentConfigured() ? .on : .off
     }
 
     private func refreshTitle(for mode: String) -> String {
@@ -3562,7 +3589,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             DoctorCheck(
                 title: "Session storage",
                 state: launchAgentRunning ? "amber" : "green",
-                detail: launchAgentRunning ? "Removing old LaunchAgent" : "Zero persistence"
+                detail: launchAgentRunning ? "Startup enabled" : "Startup off"
             ),
             DoctorCheck(
                 title: "Notifications permission",
@@ -3607,7 +3634,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
         menu.addItem(NSMenuItem.separator())
         addDisabled("Codex Gauge v" + appVersion)
-        addDisabled("Storage: Zero persistence")
+        addDisabled("Storage: startup only, no quota cache")
         if let lastUpdateSummary {
             addDisabled(lastUpdateSummary)
         }
@@ -3661,7 +3688,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
         switch status.source {
         case "last_live":
-            return "Zero persistence keeps no cached fallback in app mode"
+            return "Startup login only; no cached fallback in app mode"
         case "local_snapshot":
             return "Live data stalled; using a fresh Codex rate-limit snapshot"
         case "live", nil:
@@ -4422,7 +4449,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             "# Codex Gauge Live Summary",
             "",
             "Generated: \(reportDateString(Date()))",
-            "Storage mode: Zero persistence",
+            "Storage mode: startup LaunchAgent only; no quota cache",
             "Current source: \(sourceDisplayName(status.source))",
             "",
             "## Current quota",
@@ -4654,7 +4681,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func sourceTooltipSuffix(_ source: String?) -> String? {
         switch source {
         case "last_live":
-            return "Zero persistence keeps no cached fallback"
+            return "Startup login only; no cached fallback"
         case "live", nil:
             return nil
         default:
@@ -4779,11 +4806,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             "Codex Gauge Diagnostics",
             "App version: \(appVersion)",
             "Helper path: bundled codex_status.py \(helperState)",
-            "Storage mode: Zero persistence",
+            "Storage mode: startup LaunchAgent only; no quota cache",
             "Current data source: \(source)",
             "Last refresh time: \(lastRefresh)",
             "Last error summary: \(error)",
-            "Legacy LaunchAgent state: \(launchState)",
+            "LaunchAgent state: \(launchState)",
             "Notifications permission: \(notificationState)",
             "Refresh mode: \(currentRefreshMode())",
             "Updater state: \(lastUpdateSummary ?? "manual check only")",
@@ -4799,7 +4826,37 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func installLaunchAgentForCurrentApp() -> Bool {
-        false
+        let manager = FileManager.default
+        let agentDir = URL(fileURLWithPath: NSHomeDirectory())
+            .appendingPathComponent("Library/LaunchAgents", isDirectory: true)
+        let appPath = Bundle.main.bundlePath
+        let plist = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>Label</key>
+          <string>\(xmlEscaped(launchAgentLabel))</string>
+          <key>ProgramArguments</key>
+          <array>
+            <string>/usr/bin/open</string>
+            <string>-na</string>
+            <string>\(xmlEscaped(appPath))</string>
+          </array>
+          <key>RunAtLoad</key>
+          <true/>
+        </dict>
+        </plist>
+        """
+        do {
+            try manager.createDirectory(at: agentDir, withIntermediateDirectories: true, attributes: nil)
+            try plist.write(toFile: launchAgentPlistPath, atomically: true, encoding: .utf8)
+            appendLog("launch agent plist installed path=\(launchAgentPlistPath)")
+            return true
+        } catch {
+            appendLog("launch agent install failed error=\(error.localizedDescription)")
+            return false
+        }
     }
 
     private func removeLaunchAgentPlist() {

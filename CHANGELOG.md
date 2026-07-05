@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## v0.9.3 - 2026-07-05
+
+- Added a Codex Gauge logo and app icon built from the final horizontal menu bar meter language.
+- Added DMG packaging alongside the existing zip package, with SHA-256 checksums for both release assets.
+- Enabled startup launch through a user LaunchAgent while keeping quota cache, logs, histories, reports, and saved refresh preferences off.
+- Updated install, privacy, publishing, and README copy to describe the startup-only local storage model accurately.
+
 ## v0.9.2 - 2026-07-03
 
 - Minimized the menu bar glyph by removing the capsule remnants, divider, source stripe, state badge, and usage-bar cap dot.

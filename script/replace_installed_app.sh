@@ -36,7 +36,7 @@ verify_app_bundle() {
   [[ -x "$app_path/Contents/MacOS/$APP_NAME" ]] || return 1
   [[ -f "$app_path/Contents/Resources/codex_status.py" ]] || return 1
   [[ "$(plutil -extract CodexGaugeUsagePath raw -o - "$app_path/Contents/Info.plist" 2>/dev/null)" == "codex_status.py" ]] || return 1
-  [[ "$(plutil -extract CFBundleShortVersionString raw -o - "$app_path/Contents/Info.plist" 2>/dev/null)" == "0.9.2" ]] || return 1
+  [[ "$(plutil -extract CFBundleShortVersionString raw -o - "$app_path/Contents/Info.plist" 2>/dev/null)" == "0.9.3" ]] || return 1
   [[ "$(plutil -extract CodexGaugeReleaseURL raw -o - "$app_path/Contents/Info.plist" 2>/dev/null)" == "https://github.com/qingzhangeddie-byte/codex-gauge/releases" ]] || return 1
   codesign --verify --deep --strict "$app_path" >/dev/null 2>&1 || return 1
 }
@@ -44,6 +44,31 @@ verify_app_bundle() {
 launch_app_binary() {
   local app_path="$1"
   /usr/bin/open -na "$app_path"
+}
+
+install_launch_agent() {
+  local app_path="$1"
+  local agent_dir="$HOME/Library/LaunchAgents"
+  mkdir -p "$agent_dir"
+  cat >"$AGENT_PLIST" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>$AGENT_LABEL</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/open</string>
+    <string>-na</string>
+    <string>$app_path</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+</dict>
+</plist>
+PLIST
+  chmod 644 "$AGENT_PLIST"
 }
 
 replace_without_admin() {
@@ -73,8 +98,9 @@ install_user_app() {
     printf "User app did not contain the bundled Codex Gauge helper; aborting.\n" >&2
     return 1
   fi
+  install_launch_agent "$USER_TARGET_APP"
   launch_app_binary "$USER_TARGET_APP"
-  printf "Installed user app %s from %s\n" "$USER_TARGET_APP" "$SOURCE_APP"
+  printf "Installed user app %s from %s and enabled startup launch\n" "$USER_TARGET_APP" "$SOURCE_APP"
 }
 
 install_tmp_app() {
@@ -104,6 +130,7 @@ if ! verify_app_bundle "$TARGET_APP"; then
   exit 1
 fi
 
+install_launch_agent "$TARGET_APP"
 launch_app_binary "$TARGET_APP"
 
-printf "Replaced %s with %s\n" "$TARGET_APP" "$SOURCE_APP"
+printf "Replaced %s with %s and enabled startup launch\n" "$TARGET_APP" "$SOURCE_APP"

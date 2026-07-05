@@ -47,15 +47,15 @@ _菜单栏条形渲染图。这里是静态示例数值；安装后的 App 会�
 - Preferences 和 Setup Doctor 会跟随当前选择的 Signal Console 主题
 - 趋势按真实时间窗口显示：当前 5 小时窗口变化，以及过去 24 小时内的 7 天额度变化，并直接标出正负百分比
 - Signal Console 可以复制当前实时摘要；不会保存 report 文件
-- Clear legacy data 只清理旧版本可能留下的历史、缓存、report、日志和 LaunchAgent 文件，不触碰 Codex 登录或会话数据
+- Clear legacy data 只清理旧版本可能留下的历史、缓存、report 和日志文件，不触碰 Codex 登录、会话数据或当前开机启动设置
 - 自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
-- 偏好设置只在当前运行会话中生效，支持主题、自适应、5 分钟和 10 分钟刷新
+- 主题和刷新频率偏好只在当前运行会话中生效；开机启动使用标准 macOS LaunchAgent 保存
 - 可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
 - Signal Console 会在弹出面板解释 Live、Codex closed 和不可用状态
 - Signal Console 和 tooltip 会解释 Live、Open 和只读 Snapshot fallback；Zero persistence 模式仍会关闭缓存写入
 - Setup Doctor 和 Copy Diagnostics 可帮助排查本地设置，但不会复制 prompts、Cookie、auth 文件或日志
 - 原生 App 自带 helper，安装后不依赖源码目录
-- Zero persistence 模式不保留 LaunchAgent、保存的偏好、历史、缓存、report、运行日志或 support-folder 存储
+- 本地存储模型只保留开机启动 LaunchAgent，不保存刷新偏好、历史、额度缓存、report、运行日志或 support-folder 存储
 - 原生菜单栏 App 不读取浏览器 Cookie
 - 原生菜单栏 App 不读取 `~/.codex/auth.json`
 
@@ -89,7 +89,7 @@ bash install.sh
 
 通常约一分钟后，菜单栏会出现 Codex 额度仪表。
 
-安装脚本会直接启动 App，并移除旧版本可能留下的 `~/Library/LaunchAgents/app.codexgauge.menubar.plist`。从菜单里选择 **Quit** 会停止菜单栏 App。
+安装脚本会直接启动 App，并写入 `~/Library/LaunchAgents/app.codexgauge.menubar.plist`，下次登录 macOS 时会自动打开 Codex Gauge。从菜单里选择 **Quit** 会停止当前菜单栏 App。
 
 从下载好的 release package 安装时，打开 `Install Codex Gauge.command`。
 
@@ -102,7 +102,7 @@ bash install.sh
 open native/dist/release
 ```
 
-生成的 zip 包含 `CodexGauge.app`、`Install Codex Gauge.command` 和 SHA-256 checksum。正式 1.0 公共版本应使用 Developer ID 签名、notarization，并在构建时设置 `CODEX_GAUGE_UPDATE_TEAM_ID`，这样 app 内安装才能验证发布者。
+生成的 release 输出包含 zip、DMG、`CodexGauge.app`、`Install Codex Gauge.command` 和 SHA-256 checksum 文件。正式 1.0 公共版本应使用 Developer ID 签名、notarization，并在构建时设置 `CODEX_GAUGE_UPDATE_TEAM_ID`，这样 app 内安装才能验证发布者。
 
 ## 和其他工具的不同
 
@@ -111,14 +111,14 @@ open native/dist/release
 | 菜单栏安全性 | 原生菜单栏 App 不读取浏览器 Cookie |
 | 本地登录安全性 | 原生菜单栏 App 不读取 `~/.codex/auth.json` |
 | 打包方式 | helper 打包在 App bundle 内部 |
-| 菜单栏常驻 | 当前会话直接启动，不安装 LaunchAgent |
+| 菜单栏常驻 | 通过用户级 LaunchAgent 登录时自动启动 |
 | 更新 | 手动检查 GitHub release，确认后 Install Update，只使用临时文件 |
 | 信息密度 | 同时展示 5 小时和 7 天额度 |
 | 刷新策略 | 根据额度余量自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后快速重试 |
 | 偏好设置 | 当前会话内的刷新频率、通知和主题控制 |
 | 通知 | 只在用户主动开启后提醒关键额度状态 |
 | Signal Console | 直接说明数据是实时还是不可用 |
-| Setup Doctor | 检查 Codex App、helper、实时数据、Zero persistence 和通知权限 |
+| Setup Doctor | 检查 Codex App、helper、实时数据、开机启动状态和通知权限 |
 | Diagnostics | 安全复制诊断信息，不包含 prompts、Cookie、auth 文件、session 内容、历史、缓存、report 或日志 |
 | 重置时间 | 下拉菜单直接显示重置时间 |
 | 安装方式 | 本地 clone 后一条命令安装，不建议网络管道执行 shell |

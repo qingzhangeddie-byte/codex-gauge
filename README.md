@@ -5,6 +5,8 @@
 [![License](https://img.shields.io/github/license/qingzhangeddie-byte/codex-gauge)](LICENSE)
 ![macOS 13+](https://img.shields.io/badge/macOS-13%2B-0f766e)
 
+<img src="docs/assets/codex-gauge-logo.png" alt="Codex Gauge logo" width="96">
+
 ![Codex Gauge rendered GitHub hero with system-monitor horizontal quota bars](docs/assets/codex-gauge-github-hero.png)
 
 _Rendered public image with static sample values. The installed app renders your live Codex usage percentages, horizontal bars, and reset countdowns._
@@ -75,12 +77,12 @@ _Menu bar strip render. Static sample values; live values update in the installe
   趋势不再按模糊样本数展示，而是显示当前 5 小时窗口变化，以及过去 24 小时内的 7 天额度变化，并直接标出正负百分比
 - Signal Console copies a current live-only summary; no report file is saved
   Signal Console 可以复制当前实时摘要；不会保存 report 文件
-- Clear legacy data removes old Codex Gauge history, cache, report, log, and LaunchAgent files from earlier builds without touching Codex auth/session data
-  Clear legacy data 只清理旧版本可能留下的历史、缓存、report、日志和 LaunchAgent 文件，不触碰 Codex 登录或会话数据
+- Clear legacy data removes old Codex Gauge history, cache, report, and log files from earlier builds without touching Codex auth/session data or the current startup setting
+  Clear legacy data 只清理旧版本可能留下的历史、缓存、report 和日志文件，不触碰 Codex 登录、会话数据或当前开机启动设置
 - Adaptive refresh: 5 minutes normally, 3 minutes when low, 2 minutes when critical, 1 minute after transient errors  
   自适应刷新：正常 5 分钟，额度偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
-- Session-only preferences for theme, Adaptive, 5-minute, or 10-minute refresh
-  偏好设置只在当前运行会话中生效，支持主题、自适应、5 分钟和 10 分钟刷新
+- Session-only preferences for theme, Adaptive, 5-minute, or 10-minute refresh; launch-at-login is stored as a standard macOS LaunchAgent
+  主题和刷新频率偏好只在当前运行会话中生效；开机启动使用标准 macOS LaunchAgent 保存
 - Opt-in notifications for low 5-hour quota, restored quota, and prolonged non-live data
   可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
 - Signal Console states explain Live, Codex closed, and unavailable data directly in the popover
@@ -91,8 +93,8 @@ _Menu bar strip render. Static sample values; live values update in the installe
   Setup Doctor 和 Copy Diagnostics 可帮助排查本地设置，但不会复制 prompts、Cookie、auth 文件或日志
 - Self-contained app bundle with its helper inside `Contents/Resources`
   自包含 App bundle，helper 打包在 `Contents/Resources` 内
-- Zero persistence mode: no LaunchAgent, saved preferences, local histories, caches, reports, runtime logs, or support-folder storage
-  Zero persistence 模式：不保留 LaunchAgent、保存的偏好、历史、缓存、report、运行日志或 support-folder 存储
+- Local-only storage model: startup LaunchAgent only, with no saved refresh preferences, local histories, quota caches, reports, runtime logs, or support-folder storage
+  本地存储模型：只保留开机启动 LaunchAgent，不保存刷新偏好、历史、额度缓存、report、运行日志或 support-folder 存储
 
 ![Codex Gauge Signal Console](docs/assets/codex-gauge-signal-console.png)
 
@@ -135,7 +137,7 @@ That installs the native app at:
 /Applications/CodexGauge.app
 ```
 
-Codex Gauge should appear in your menu bar with live Codex usage. The installer launches the app directly and removes any old Codex Gauge LaunchAgent plist; choosing **Quit** stops the menu bar app.
+Codex Gauge should appear in your menu bar with live Codex usage. The installer launches the app and registers `~/Library/LaunchAgents/app.codexgauge.menubar.plist` so it opens again at login; choosing **Quit** stops the current menu bar app.
 
 From a downloaded release package, open `Install Codex Gauge.command`.
 
@@ -148,7 +150,7 @@ For maintainers creating that package:
 open native/dist/release
 ```
 
-The generated zip includes `CodexGauge.app`, `Install Codex Gauge.command`, and a SHA-256 checksum. Public 1.0 builds should be Developer ID signed, notarized, and built with `CODEX_GAUGE_UPDATE_TEAM_ID` so in-app installs can verify the publisher.
+The generated release output includes a zip, a DMG, `CodexGauge.app`, `Install Codex Gauge.command`, and SHA-256 checksum files. Public 1.0 builds should be Developer ID signed, notarized, and built with `CODEX_GAUGE_UPDATE_TEAM_ID` so in-app installs can verify the publisher.
 
 ## Why Codex Gauge is different
 
@@ -157,7 +159,7 @@ The generated zip includes `CodexGauge.app`, `Install Codex Gauge.command`, and 
 | Native menu bar safety | No browser cookies in the menu bar app |
 | Local auth safety | No `~/.codex/auth.json` reads in the menu bar app |
 | Packaging | Self-contained app bundle with a bundled helper |
-| Menu bar persistence | Session-only direct launch; no LaunchAgent is installed |
+| Menu bar persistence | Launch-at-login via a standard user LaunchAgent |
 | Updates | Session-only GitHub release check plus manual Check for Updates, with confirmed Install Update and temporary files only |
 | Signal quality | Shows both 5-hour and 7-day quota instead of one vague number |
 | Menu bar style | System-monitor bars with adaptive text, blue fills, and quiet empty tracks |
@@ -165,7 +167,7 @@ The generated zip includes `CodexGauge.app`, `Install Codex Gauge.command`, and 
 | Preferences | Session-only refresh cadence, notifications, and theme controls |
 | Notifications | Opt-in alerts for the moments users actually care about |
 | Signal Console | Explains whether data is live or unavailable |
-| Setup Doctor | Local checks for Codex app, helper, live data, zero persistence, and notifications |
+| Setup Doctor | Local checks for Codex app, helper, live data, startup state, and notifications |
 | Diagnostics | Safe copy-only diagnostics that exclude prompts, cookies, auth files, session contents, histories, caches, reports, and logs |
 | Reset timing | Reset timing is visible in the dropdown |
 | Setup | Local clone, one install command, no network-piped shell script |
@@ -246,8 +248,8 @@ The plist should reference `codex_status.py`, not your source checkout.
 |---|---|
 | Codex live quota | Local Codex app-server |
 | Codex fallback quota | Read-only local Codex rate-limit snapshot when the live app-server stalls |
-| Menu bar persistence | None; direct app launch only |
-| App storage | None; old support files can be cleared as legacy data |
+| Menu bar persistence | User LaunchAgent for startup login |
+| App storage | No quota cache, logs, histories, reports, or saved refresh preferences |
 
 ## FAQ
 
@@ -282,7 +284,7 @@ python3 -m unittest discover -s tests -v
 
 ## Public Release Notes
 
-Read [Publishing](docs/PUBLISHING.md) before making a public release. `./script/package_release.sh` creates a zip and checksum for review. Public builds should be signed and notarized with your own Apple Developer credentials. Do not publish generated logs, local app bundles, `.venv`, `.env`, screenshots with account details, or files from `~/Library/Application Support/CodexGauge`.
+Read [Publishing](docs/PUBLISHING.md) before making a public release. `./script/package_release.sh` creates a zip, DMG, and checksum files for review. Public builds should be signed and notarized with your own Apple Developer credentials. Do not publish generated logs, local app bundles, `.venv`, `.env`, screenshots with account details, or files from `~/Library/Application Support/CodexGauge`.
 
 ## License
 

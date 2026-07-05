@@ -83,6 +83,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("v0.9.0", changelog)
         self.assertIn("v0.9.1", changelog)
         self.assertIn("v0.9.2", changelog)
+        self.assertIn("v0.9.3", changelog)
 
     def test_release_check_script_covers_public_release_gates(self):
         script_path = pathlib.Path("script/release_check.sh")
@@ -103,6 +104,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertNotIn("grep -R -I -n -E", script)
         self.assertIn("pixelWidth: 1280", script)
         self.assertIn("swift script/generate_theme_state_previews.swift", script)
+        self.assertIn("swift script/generate_logo_assets.swift", script)
         self.assertIn("swift script/generate_public_assets.swift", script)
         self.assertIn("script/render_signal_console_fixtures.sh", script)
         self.assertIn("Codex Gauge release check passed.", script)
@@ -113,15 +115,19 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         script = script_path.read_text()
 
         self.assertIn("CodexGauge-$APP_VERSION.zip", script)
+        self.assertIn("CodexGauge-$APP_VERSION.dmg", script)
         self.assertIn("COPYFILE_DISABLE=1", script)
         self.assertIn("ditto --norsrc --noextattr -c -k --keepParent", script)
         self.assertIn("shasum -a 256", script)
+        self.assertIn("hdiutil create", script)
         self.assertIn("Install Codex Gauge.command", script)
         self.assertIn("README-INSTALL.txt", script)
+        self.assertIn("swift script/generate_logo_assets.swift", script)
         self.assertIn("./script/build_and_run.sh --build-only", script)
         self.assertIn("AiLimitStatus.app", script)
         self.assertIn("app.codexgauge.menubar.plist", script)
         self.assertIn('rm -f "$AGENT_PLIST"', script)
+        self.assertIn("enabled startup launch", script)
         self.assertIn("launch_app_binary", script)
         self.assertNotIn("launchctl bootstrap", script)
         self.assertIn("not notarized", script)
@@ -149,18 +155,24 @@ class PublicReleaseHygieneTests(unittest.TestCase):
 
     def test_public_visual_assets_exist_and_are_bounded(self):
         hero = pathlib.Path("docs/assets/codex-gauge-github-hero.png")
+        logo = pathlib.Path("docs/assets/codex-gauge-logo.png")
         live = pathlib.Path("docs/assets/codex-gauge-menubar-live.png")
         console = pathlib.Path("docs/assets/codex-gauge-signal-console.png")
         social = pathlib.Path("docs/assets/codex-gauge-social-preview.png")
+        icns = pathlib.Path("native/assets/CodexGauge.icns")
 
         self.assertTrue(hero.exists())
+        self.assertTrue(logo.exists())
         self.assertTrue(live.exists())
         self.assertTrue(console.exists())
         self.assertTrue(social.exists())
+        self.assertTrue(icns.exists())
         self.assertLess(hero.stat().st_size, 3_000_000)
+        self.assertLess(logo.stat().st_size, 2_000_000)
         self.assertLess(live.stat().st_size, 2_000_000)
         self.assertLess(console.stat().st_size, 2_000_000)
         self.assertLess(social.stat().st_size, 3_000_000)
+        self.assertLess(icns.stat().st_size, 2_000_000)
 
         result = subprocess.run(
             ["sips", "-g", "pixelWidth", "-g", "pixelHeight", str(social)],
@@ -197,6 +209,15 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         )
         self.assertIn("pixelWidth: 430", live_result.stdout)
         self.assertIn("pixelHeight: 96", live_result.stdout)
+
+        logo_result = subprocess.run(
+            ["sips", "-g", "pixelWidth", "-g", "pixelHeight", str(logo)],
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+        )
+        self.assertIn("pixelWidth: 1024", logo_result.stdout)
+        self.assertIn("pixelHeight: 1024", logo_result.stdout)
 
     def test_public_asset_generator_draws_menu_bar_strip(self):
         script = pathlib.Path("script/generate_public_assets.swift").read_text()
@@ -351,7 +372,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         for phrase in [
             "git@github.com:qingzhangeddie-byte/codex-gauge.git",
             "git push -u origin main --tags",
-            "v0.9.2",
+            "v0.9.3",
             "repository social preview",
             "docs/assets/codex-gauge-social-preview.png",
             "private vulnerability reporting",
