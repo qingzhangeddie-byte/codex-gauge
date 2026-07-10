@@ -14,7 +14,7 @@ Codex Gauge 是一个**安静、安全的 Codex 菜单栏额度仪表**，用于
 
 Codex Gauge 会把 Codex 5 小时和 7 天使用百分比、横向条和重置倒计时直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态和数据来源。
 
-打开一次 Codex 后保持 Codex Gauge 运行，菜单栏就会自动刷新，不需要额外设置浏览器或复制登录信息。
+打开一次 ChatGPT 后保持 Codex Gauge 运行，菜单栏就会自动刷新，不需要额外设置浏览器或复制登录信息。
 
 不读取浏览器 Cookie，不读取 `~/.codex/auth.json`，不记录 prompt 或 response 内容。
 
@@ -29,8 +29,8 @@ bash install.sh
 - 只做一件事：让 Codex 额度一眼可见。
 - 菜单栏优先，只有点开时才显示更完整的 Signal Console。
 - 使用克制的系统监控风格横向条，不把状态栏做成吵闹的小 dashboard。
-- Signal Console 清楚标注 Live、Last live、Snapshot 和 Codex closed 状态。
-- 诊断和报告都只在本地生成，避免复制私人的 prompt、session 或日志内容。
+- 紧凑的 Signal Console 清楚标注 Live 和 ChatGPT unavailable 状态。
+- 不读取 Codex session 文件，也不保存额度历史、report 或日志。
 
 ![Codex Gauge 静态示例菜单栏：横向额度条和重置倒计时](docs/assets/codex-gauge-menubar-live.png)
 
@@ -40,22 +40,20 @@ _菜单栏条形渲染图。这里是静态示例数值；安装后的 App 会�
 
 - 菜单栏同时显示 5 小时和 7 天使用百分比、横向条，以及刷新倒计时
 - 系统监控风格的横向条让菜单栏里的额度健康状态更直观，同时不会变成很占位置的大组件
-- 自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口
+- 紧凑的 Signal Console 显示实时额度、重置时间、数据新鲜度和必要操作
 - Signal Console 显示真实的下次刷新倒计时，不再只是静态刷新标签
 - 三套可选主题：默认 Blue Ceramic，并提供 Signal Dark 和 Mono Graphite
 - 首次运行设置页会解释本地优先模式，并引导新用户打开 Codex、运行 Setup Doctor、开始使用菜单栏
 - Preferences 和 Setup Doctor 会跟随当前选择的 Signal Console 主题
-- 趋势按真实时间窗口显示：当前 5 小时窗口变化，以及过去 24 小时内的 7 天额度变化，并直接标出正负百分比
-- Signal Console 可以复制当前实时摘要；不会保存 report 文件
-- Clear legacy data 只清理旧版本可能留下的历史、缓存、report 和日志文件，不触碰 Codex 登录、会话数据或当前开机启动设置
+- 数据只从本地 Codex app-server 实时读取，不会扫描 Codex session 文件作为 fallback
 - 自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
 - 主题和刷新频率偏好只在当前运行会话中生效；开机启动使用标准 macOS LaunchAgent 保存
 - 可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
-- Signal Console 会在弹出面板解释 Live、Codex closed 和不可用状态
-- Signal Console 和 tooltip 会解释 Live、Open 和只读 Snapshot fallback；Zero persistence 模式仍会关闭缓存写入
+- Signal Console 会在弹出面板解释 Live、ChatGPT unavailable 和不可用状态
+- Signal Console 和 tooltip 会解释 Live 和 Open ChatGPT，不会把存储值当成当前实时数据
 - Setup Doctor 和 Copy Diagnostics 可帮助排查本地设置，但不会复制 prompts、Cookie、auth 文件或日志
 - 原生 App 自带 helper，安装后不依赖源码目录
-- 本地存储模型只保留开机启动 LaunchAgent，不保存刷新偏好、历史、额度缓存、report、运行日志或 support-folder 存储
+- 不保存额度历史、缓存、report 或运行日志文件；开机启动只使用标准 LaunchAgent
 - 原生菜单栏 App 不读取浏览器 Cookie
 - 原生菜单栏 App 不读取 `~/.codex/auth.json`
 
@@ -131,18 +129,18 @@ open native/dist/release
 CodexGauge.app/Contents/Resources/codex_status.py
 ```
 
-App 会通过打包的 helper 访问本地 Codex app-server 读取实时额度。App 运行 helper 时会启用 Zero persistence，所以实时读数不会被缓存。如果实时 app-server 卡住，App 模式可以只读读取 Codex 本地会话中的最新 rate-limit snapshot 作为应急 fallback。
+App 会通过打包的 helper 访问本地 Codex app-server 读取实时额度。整个数据路径只使用实时数据：不会缓存额度，不会创建使用历史文件，也不会扫描 Codex session 文件寻找 fallback。短暂读取失败时，正在运行的 App 最多保留 10 分钟内存中的上一次读数，同时明确显示错误并重试；该读数不会写入硬盘。
 
 它不读取浏览器 Cookie，不读取 `~/.codex/auth.json`，也不扫描无关的项目目录、浏览器 profile 或 Keychain。
 
-注意：Codex app-server 路径可能启动或刷新 Codex 5 小时窗口，因为它和 Codex 桌面端使用同一套本地服务。
+注意：Codex app-server 路径可能启动或刷新 Codex 5 小时窗口，因为它和 ChatGPT App 使用同一套本地服务。
 
 更多说明见：[Privacy Notes](docs/PRIVACY.md)、[Security Policy](SECURITY.md) 和 [Changelog](CHANGELOG.md)。
 
 ## 环境要求
 
 - macOS 13 或更新版本
-- 已安装并登录 Codex 桌面端或 Codex CLI
+- 已安装并登录 ChatGPT App 或 Codex CLI
 - 从源码构建需要 Xcode command line tools
 - 系统可用 `/usr/bin/python3`
 
@@ -195,11 +193,11 @@ plist 应该只引用 `codex_status.py`，不应该包含你的源码目录路�
 
 ### Codex Gauge 会读取 `~/.codex/auth.json` 吗？
 
-不会。App 优先使用本地 Codex app-server 获取实时额度，并以 Zero persistence 模式禁止 Codex Gauge 写入缓存；当实时数据卡住时，它可以只读读取 Codex 自己的最新 rate-limit snapshot。
+不会。App 只使用本地 Codex app-server 获取实时额度，不读取 Codex session 文件、浏览器 Cookie 或 `~/.codex/auth.json`。额度读数只存在内存中，不会缓存到硬盘。
 
 ### 这会触发 5 小时窗口吗？
 
-实时 Codex app-server 路径可能启动或刷新 Codex 5 小时窗口，因为它和 Codex 桌面端使用同一套本地服务。
+实时 Codex app-server 路径可能启动或刷新 Codex 5 小时窗口，因为它和 ChatGPT App 使用同一套本地服务。
 
 ## 开发验证
 

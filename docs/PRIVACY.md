@@ -6,17 +6,17 @@ Codex Gauge is designed as a local macOS utility. It does not provide Codex acce
 
 The native menu bar app:
 
-- reads live Codex quota through the local Codex app-server;
-- runs the bundled helper with zero persistence, so live readings are not cached;
-- may read a fresh Codex-owned rate-limit snapshot as a read-only emergency fallback when the live app-server stalls;
+- reads live Codex quota through the local Codex app-server using a live-only data path;
+- does not cache live readings or create quota-history, report, or runtime-log files;
+- does not read Codex session files or scan them for fallback quota values;
 - bundles its helper at `CodexGauge.app/Contents/Resources/codex_status.py`;
 - performs one session-only update check after launch, and also performs a manual update check when you choose Check for Updates, contacting GitHub Releases to read the latest public release metadata;
-- installs only a user LaunchAgent for startup login, and does not write support-folder logs, save refresh preferences, write histories, cache live quota, or save report files;
+- installs only a user LaunchAgent for startup login and does not create an Application Support folder;
 - does not read browser cookies;
 - does not read `~/.codex/auth.json`;
 - does not scan your source code, Documents folder, browser profile, or Keychain.
 
-The Codex app-server path can start or refresh the 5-hour Codex window because it talks to the same local Codex service that the Codex desktop app uses.
+The Codex app-server path can start or refresh the 5-hour Codex window because it talks to the same local Codex service that the ChatGPT app uses.
 
 The updater is confirmation-based. The automatic check is session-only and does not write prompt decisions to app storage.
 
@@ -25,6 +25,6 @@ The updater is confirmation-based. The automatic check is session-only and does 
 
 If you choose Install Update, Codex Gauge saves the downloaded update zip to a temporary directory, verifies that it contains the Codex Gauge app bundle, replaces the installed app, and removes the temporary directory after relaunch. It keeps no updater cache or background update schedule.
 
-Startup-only local storage is the default app mode. Codex Gauge may keep `~/Library/LaunchAgents/app.codexgauge.menubar.plist` so it can open at login. The app removes legacy Codex Gauge history, cache, report, and log files from earlier builds when it starts or when you choose Clear legacy data. It does not delete Codex auth/session data, and the read-only emergency snapshot fallback does not write Codex Gauge cache files.
+Codex Gauge may keep `~/Library/LaunchAgents/app.codexgauge.menubar.plist` so it can open at login. Usage readings remain in memory only. During a short live failure, the running app may continue showing its last in-memory reading for up to 10 minutes while it labels the failure and retries; that value is not written to disk.
 
 Codex Gauge does not ship a public broad usage CLI. The supported public artifact is the native menu bar app.

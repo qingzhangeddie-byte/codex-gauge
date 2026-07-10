@@ -281,11 +281,11 @@ try writePNG(consoleOutputPath) {
 
     drawPill("Live source", rect: NSRect(x: 74, y: 280, width: 132, height: 38), fill: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 0.13), stroke: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 0.30), text: NSColor(calibratedRed: 0.06, green: 0.22, blue: 0.21, alpha: 1.0), dot: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 1.0))
     drawPill("5h + 7d", rect: NSRect(x: 220, y: 280, width: 118, height: 38), fill: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.15), stroke: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.34), text: NSColor(calibratedRed: 0.28, green: 0.20, blue: 0.08, alpha: 1.0))
-    drawPill("Live summary", rect: NSRect(x: 352, y: 280, width: 144, height: 38), fill: NSColor(calibratedRed: 0.216, green: 0.424, blue: 0.561, alpha: 0.09), stroke: NSColor(calibratedRed: 0.216, green: 0.424, blue: 0.561, alpha: 0.20), text: NSColor(calibratedRed: 0.063, green: 0.137, blue: 0.227, alpha: 1.0))
+    drawPill("No history", rect: NSRect(x: 352, y: 280, width: 144, height: 38), fill: NSColor(calibratedRed: 0.216, green: 0.424, blue: 0.561, alpha: 0.09), stroke: NSColor(calibratedRed: 0.216, green: 0.424, blue: 0.561, alpha: 0.20), text: NSColor(calibratedRed: 0.063, green: 0.137, blue: 0.227, alpha: 1.0))
 
     drawRoundedRect(NSRect(x: 72, y: 382, width: 468, height: 84), radius: 26, fill: NSColor.white.withAlphaComponent(0.48), stroke: NSColor(calibratedRed: 0.10, green: 0.19, blue: 0.23, alpha: 0.16))
     drawImage(menuBar, in: NSRect(x: 160, y: 398, width: 260, height: 58))
-    drawText("Menu bar first. Fuller detail when you click.", in: NSRect(x: 78, y: 490, width: 420, height: 24), size: 16, weight: .medium, color: NSColor(calibratedRed: 0.42, green: 0.50, blue: 0.53, alpha: 0.90))
+    drawText("Menu bar first. Live detail when you click.", in: NSRect(x: 78, y: 490, width: 420, height: 24), size: 16, weight: .medium, color: NSColor(calibratedRed: 0.42, green: 0.50, blue: 0.53, alpha: 0.90))
 
     let shadow = NSShadow()
     shadow.shadowColor = NSColor.black.withAlphaComponent(0.18)
@@ -293,9 +293,9 @@ try writePNG(consoleOutputPath) {
     shadow.shadowOffset = NSSize(width: 0, height: -8)
     NSGraphicsContext.saveGraphicsState()
     shadow.set()
-    drawRoundedRect(NSRect(x: 604, y: 34, width: 604, height: 604), radius: 30, fill: NSColor.black.withAlphaComponent(0.08))
+    drawRoundedRect(NSRect(x: 604, y: 104, width: 604, height: 432), radius: 24, fill: NSColor.black.withAlphaComponent(0.08))
     NSGraphicsContext.restoreGraphicsState()
-    drawImage(blueCeramicPanel, in: NSRect(x: 604, y: 34, width: 604, height: 604))
+    drawImage(blueCeramicPanel, in: NSRect(x: 604, y: 104, width: 604, height: 432))
 }
 
 try writePNG(socialOutputPath) {
@@ -322,7 +322,7 @@ try writePNG(socialOutputPath) {
     shadow.shadowOffset = NSSize(width: 0, height: -8)
     NSGraphicsContext.saveGraphicsState()
     shadow.set()
-    drawRoundedRect(NSRect(x: 598, y: 32, width: 586, height: 586), radius: 28, fill: NSColor.black.withAlphaComponent(0.22))
+    drawRoundedRect(NSRect(x: 598, y: 100, width: 586, height: 420), radius: 24, fill: NSColor.black.withAlphaComponent(0.22))
     NSGraphicsContext.restoreGraphicsState()
-    drawImage(darkPanel, in: NSRect(x: 598, y: 32, width: 586, height: 586))
+    drawImage(darkPanel, in: NSRect(x: 598, y: 100, width: 586, height: 420))
 }

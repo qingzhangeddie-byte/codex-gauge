@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## v0.9.4 - 2026-07-10
+
+- Verified multiple live app-server readings before displaying quota, rejecting the intermittent stale `93% / 97%` snapshot while handling genuine reset-window rollovers correctly.
+- Updated the live helper for the renamed ChatGPT host and primed usage before reading rate limits so 5-hour and 7-day percentages stay accurate.
+- Removed Codex Gauge usage-history, cache, report, runtime-log, legacy-cleanup, and Codex session-file fallback paths; usage is now live-only and memory-only.
+- Rebuilt Signal Console as a compact 380 x 272 quota panel with Morandi blue horizontal bars, reset countdowns, freshness, and essential actions only.
+- Updated the open popover in place instead of recreating its view controller every second.
+- Refreshed public screenshots, privacy notes, security notes, publishing guidance, and release checks for the live-only architecture.
+
 ## v0.9.3 - 2026-07-05
 
 - Added a Codex Gauge logo and app icon built from the final horizontal menu bar meter language.

@@ -19,9 +19,9 @@ Codex Gauge puts your 5-hour and 7-day usage percentages, horizontal bars, and r
 
 Codex Gauge 会把 Codex 5 小时和 7 天使用百分比、横向条和重置倒计时直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态和数据来源。
 
-Open Codex once, keep Codex Gauge running, and the menu bar refreshes hands-free.
+Open ChatGPT once, keep Codex Gauge running, and the menu bar refreshes hands-free.
 
-打开一次 Codex 后保持 Codex Gauge 运行，菜单栏就会自动刷新，不需要额外设置浏览器或复制登录信息。
+打开一次 ChatGPT 后保持 Codex Gauge 运行，菜单栏就会自动刷新，不需要额外设置浏览器或复制登录信息。
 
 No browser cookies. No `~/.codex/auth.json`. No prompt or response logging.
 
@@ -38,8 +38,8 @@ What makes it different:
 - Built for one job: Codex quota at a glance.
 - Native menu bar first, detailed Signal Console only when you click.
 - Transparent system-monitor bars instead of a noisy dashboard wedged into the status bar.
-- Clear Signal Console labels for Live, Last live, Snapshot, and Codex closed states.
-- Local-only diagnostics and reports, designed to avoid private prompt/session content.
+- Compact live-only Signal Console with clear Live and ChatGPT unavailable states.
+- No Codex session-file scanning and no saved usage history.
 
 Codex Gauge is an **Unofficial** macOS menu bar app for people who use Codex heavily and want a Codex rate limit tracker that stays local.
 
@@ -63,8 +63,8 @@ _Menu bar strip render. Static sample values; live values update in the installe
   菜单栏紧凑显示 Codex 5 小时和 7 天使用百分比、横向条，以及刷新倒计时
 - System-monitor horizontal bars keep quota health readable without turning the menu bar into a large widget
   系统监控风格的横向条让菜单栏里的额度健康状态更直观，同时不会变成很占位置的大组件
-- Custom Signal Console popover with status, quota, reset timing, trend, doctor checks, diagnostics, and actions
-  自定义 Signal Console 弹出面板显示状态、额度、重置时间、趋势、诊断检查、安全诊断和操作入口；下拉菜单显示额度重置时间和上次刷新时间
+- Compact Signal Console with live quota, reset timing, freshness, and essential actions
+  紧凑的 Signal Console 显示实时额度、重置时间、数据新鲜度和必要操作；下拉菜单显示额度重置时间和上次刷新时间
 - Signal Console shows the actual next-refresh countdown, not a static refresh label
   Signal Console 显示真实的下次刷新倒计时，不再只是静态刷新标签
 - Three selectable themes: Blue Ceramic by default, Signal Dark, and Mono Graphite
@@ -73,28 +73,24 @@ _Menu bar strip render. Static sample values; live values update in the installe
   首次运行设置页会解释本地优先模式，并引导新用户打开 Codex、运行 Setup Doctor、开始使用菜单栏
 - Preferences and Setup Doctor use the same selected Signal Console theme
   Preferences 和 Setup Doctor 会跟随当前选择的 Signal Console 主题
-- Time-based trends show signed 5-hour movement in the current reset window and 7-day movement over the last 24 hours
-  趋势不再按模糊样本数展示，而是显示当前 5 小时窗口变化，以及过去 24 小时内的 7 天额度变化，并直接标出正负百分比
-- Signal Console copies a current live-only summary; no report file is saved
-  Signal Console 可以复制当前实时摘要；不会保存 report 文件
-- Clear legacy data removes old Codex Gauge history, cache, report, and log files from earlier builds without touching Codex auth/session data or the current startup setting
-  Clear legacy data 只清理旧版本可能留下的历史、缓存、report 和日志文件，不触碰 Codex 登录、会话数据或当前开机启动设置
+- Live-only data comes directly from the local Codex app-server; no fallback scans Codex session files
+  数据只从本地 Codex app-server 实时读取，不会扫描 Codex session 文件作为 fallback
 - Adaptive refresh: 5 minutes normally, 3 minutes when low, 2 minutes when critical, 1 minute after transient errors  
   自适应刷新：正常 5 分钟，额度偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
 - Session-only preferences for theme, Adaptive, 5-minute, or 10-minute refresh; launch-at-login is stored as a standard macOS LaunchAgent
   主题和刷新频率偏好只在当前运行会话中生效；开机启动使用标准 macOS LaunchAgent 保存
 - Opt-in notifications for low 5-hour quota, restored quota, and prolonged non-live data
   可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
-- Signal Console states explain Live, Codex closed, and unavailable data directly in the popover
-  Signal Console 会在弹出面板解释 Live、Codex closed 和不可用状态
-- Signal Console and tooltip states explain Live, Open, and read-only Snapshot fallback; zero persistence still disables cache writes
-  Signal Console 和 tooltip 会解释 Live、Open 和只读 Snapshot fallback；Zero persistence 模式仍会关闭缓存写入
+- Signal Console states explain Live, ChatGPT unavailable, and unavailable data directly in the popover
+  Signal Console 会在弹出面板解释 Live、ChatGPT unavailable 和不可用状态
+- Signal Console and tooltip states explain Live and Open ChatGPT without presenting stored values as current
+  Signal Console 和 tooltip 会解释 Live 和 Open ChatGPT，不会把存储值当成当前实时数据
 - Setup Doctor and Copy Diagnostics help debug local setup without copying prompts, cookies, auth files, or logs
   Setup Doctor 和 Copy Diagnostics 可帮助排查本地设置，但不会复制 prompts、Cookie、auth 文件或日志
 - Self-contained app bundle with its helper inside `Contents/Resources`
   自包含 App bundle，helper 打包在 `Contents/Resources` 内
-- Local-only storage model: startup LaunchAgent only, with no saved refresh preferences, local histories, quota caches, reports, runtime logs, or support-folder storage
-  本地存储模型：只保留开机启动 LaunchAgent，不保存刷新偏好、历史、额度缓存、report、运行日志或 support-folder 存储
+- No quota history, cache, report, or runtime log files; launch at login uses only a standard LaunchAgent
+  不保存额度历史、缓存、report 或运行日志文件；开机启动只使用标准 LaunchAgent
 
 ![Codex Gauge Signal Console](docs/assets/codex-gauge-signal-console.png)
 
@@ -194,18 +190,18 @@ The native menu bar app uses a bundled helper:
 CodexGauge.app/Contents/Resources/codex_status.py
 ```
 
-For live Codex quota, the app talks to the local Codex app-server through the bundled helper. The app runs that helper with zero persistence enabled, so successful live readings are not cached. If the live app-server stalls, app mode can read a fresh Codex-owned rate-limit snapshot from local Codex session data as a read-only emergency fallback.
+For live Codex quota, the app talks to the local Codex app-server through the bundled helper. The data path is live-only: Codex Gauge does not cache successful readings, create usage-history files, or scan Codex session files for fallback values. During a short live failure, the running app may keep its last in-memory reading visible for up to 10 minutes while clearly showing an error and retrying; that value is never written to disk.
 
 It does **not** read browser cookies, does **not** read `~/.codex/auth.json`, and does **not** scan unrelated project folders, browser profiles, or Keychain.
 
-Important limitation: the Codex app-server path can start or refresh the Codex 5-hour window because it talks to the same local Codex service used by the Codex desktop app.
+Important limitation: the Codex app-server path can start or refresh the Codex 5-hour window because it talks to the same local Codex service used by the ChatGPT app.
 
 More detail: [Privacy Notes](docs/PRIVACY.md), [Security Policy](SECURITY.md), and [Changelog](CHANGELOG.md).
 
 ## Requirements
 
 - macOS 13 or newer
-- Codex desktop app or Codex CLI installed and signed in
+- ChatGPT app or Codex CLI installed and signed in
 - Xcode command line tools for building from source
 - Python 3 available at `/usr/bin/python3`
 
@@ -247,9 +243,8 @@ The plist should reference `codex_status.py`, not your source checkout.
 | Data | Source |
 |---|---|
 | Codex live quota | Local Codex app-server |
-| Codex fallback quota | Read-only local Codex rate-limit snapshot when the live app-server stalls |
 | Menu bar persistence | User LaunchAgent for startup login |
-| App storage | No quota cache, logs, histories, reports, or saved refresh preferences |
+| App storage | No usage history, quota cache, reports, runtime logs, or saved refresh preferences |
 
 ## FAQ
 
@@ -267,11 +262,11 @@ No. The native menu bar app does not read browser cookies, browser profiles, Key
 
 ### Does Codex Gauge read `~/.codex/auth.json`?
 
-No. It uses the local Codex app-server for live usage. App mode sets `CODEX_GAUGE_NO_STORAGE=1` so Codex Gauge writes no cache; it may set `CODEX_GAUGE_READ_LOCAL_SNAPSHOT=1` to read a fresh Codex-owned rate-limit snapshot when live data stalls.
+No. It uses the local Codex app-server for live usage and does not read Codex session files, browser cookies, or `~/.codex/auth.json`. Usage readings remain in memory only and are never cached to disk.
 
 ### Does this trigger the 5-hour window?
 
-The live Codex app-server path can start or refresh the Codex 5-hour window because it talks to the same local Codex service used by the Codex desktop app.
+The live Codex app-server path can start or refresh the Codex 5-hour window because it talks to the same local Codex service used by the ChatGPT app.
 
 ## Development Checks
 

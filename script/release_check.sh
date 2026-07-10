@@ -21,7 +21,7 @@ ditto --norsrc --noextattr native/dist/CodexGauge.app "$TMP_PARENT/CodexGauge.ap
 codesign --verify --deep --strict "$TMP_PARENT/CodexGauge.app"
 
 INFO_PLIST="$TMP_PARENT/CodexGauge.app/Contents/Info.plist"
-[[ "$(plutil -extract CFBundleShortVersionString raw -o - "$INFO_PLIST")" == "0.9.3" ]]
+[[ "$(plutil -extract CFBundleShortVersionString raw -o - "$INFO_PLIST")" == "0.9.4" ]]
 [[ "$(plutil -extract CFBundleVersion raw -o - "$INFO_PLIST")" == "1" ]]
 [[ "$(plutil -extract CFBundleIconFile raw -o - "$INFO_PLIST")" == "CodexGauge" ]]
 [[ "$(plutil -extract CodexGaugeUsagePath raw -o - "$INFO_PLIST")" == "codex_status.py" ]]
@@ -47,8 +47,8 @@ sips -g pixelWidth -g pixelHeight docs/assets/codex-gauge-menubar-live.png | gre
 sips -g pixelWidth -g pixelHeight docs/assets/codex-gauge-logo.png | grep -q "pixelWidth: 1024"
 sips -g pixelWidth -g pixelHeight docs/assets/codex-gauge-logo.png | grep -q "pixelHeight: 1024"
 for fixture in docs/design/app-rendered-signal-console/*.png; do
-  sips -g pixelWidth -g pixelHeight "$fixture" | grep -q "pixelWidth: 1120"
-  sips -g pixelWidth -g pixelHeight "$fixture" | grep -q "pixelHeight: 1120"
+  sips -g pixelWidth -g pixelHeight "$fixture" | grep -q "pixelWidth: 760"
+  sips -g pixelWidth -g pixelHeight "$fixture" | grep -q "pixelHeight: 544"
 done
 
 printf "Codex Gauge release check passed.\n"

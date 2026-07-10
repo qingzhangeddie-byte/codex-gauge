@@ -35,7 +35,6 @@ class SignalConsoleUXTests(unittest.TestCase):
             "fiveHourResetText",
             "sevenDayResetText",
             "nextRefreshText",
-            "doctorChecks",
         ]:
             self.assertIn(token, model_block)
         for blocked in [
@@ -128,29 +127,29 @@ class SignalConsoleUXTests(unittest.TestCase):
     def test_reset_countdowns_keep_minutes_without_a_face_marker(self):
         source = swift_source()
         compact_body = swift_function_body(source, "private func compactResetCountdown(")
-        lane_body = swift_function_body(source, "private func drawResetCountdownLane(")
 
         self.assertIn("compactResetCountdown(epoch, includeMinutes: true, includeDays: false)", source)
         self.assertIn("compactResetCountdown(epoch, includeMinutes: false, includeDays: true)", source)
         self.assertIn('return "\\(minutes)m"', compact_body)
         self.assertIn('return "\\(hours)h\\(remainingMinutes)m"', compact_body)
         self.assertIn('return "\\(days)d\\(remainingHours)h"', compact_body)
-        self.assertIn("drawRoundedRect", lane_body)
-        self.assertIn("fillWidth", lane_body)
-        self.assertIn("resetLaneGradient", lane_body)
-        self.assertNotIn("drawCircle", lane_body)
-        self.assertNotIn("face", lane_body.lower())
+        self.assertIn('drawText("resets \\(resetText)"', source)
+        self.assertNotIn("drawResetCountdownLane", source)
+        self.assertNotIn("face", compact_body.lower())
 
-    def test_signal_console_shows_codex_only_diagnostics_and_no_device_telemetry(self):
+    def test_signal_console_is_compact_live_only_and_accessible(self):
         source = swift_source()
 
         for token in [
-            "Codex-only signal",
-            "No device telemetry sampled",
-            'title: "Codex app found"',
+            "signalPopoverSize = NSSize(width: 380, height: 272)",
+            'setAccessibilityLabel("Codex Gauge quota")',
+            'symbol: "arrow.clockwise"',
+            'symbol: "gearshape"',
+            'symbol: "power"',
+            'title: "ChatGPT app found"',
             'title: "Helper works"',
             'title: "Live data available"',
-            'title: "Session storage"',
+            'title: "Launch at login"',
             'title: "Notifications permission"',
             "safeDiagnosticsText",
             "Excludes: browser cookies",
@@ -163,6 +162,9 @@ class SignalConsoleUXTests(unittest.TestCase):
             "CPU/RAM",
             "readCPUUsagePercent",
             "readRAMUsagePercent",
+            '"Clear legacy"',
+            '"Usage summary"',
+            '"Movement"',
         ]:
             self.assertNotIn(blocked, source)
 
@@ -172,11 +174,13 @@ class SignalConsoleUXTests(unittest.TestCase):
             "private func signalConsolePreviewModel", 1
         )[0]
 
-        for slug in ['"live"', '"codex-closed"', '"last-live"', '"low-quota"', '"reset-soon"']:
+        for slug in ['"live"', '"codex-closed"', '"low-quota"', '"reset-soon"']:
             self.assertIn(slug, preview_body)
         self.assertIn('fiveHourResetText: "4h59m"', preview_body)
         self.assertIn('sevenDayResetText: "6d23h"', preview_body)
         self.assertIn('fiveHourResetText: "59m"', preview_body)
+        self.assertIn('planName: unavailable ? "Live only" : "Codex Pro"', source)
+        self.assertNotIn('"last-live"', preview_body)
         self.assertNotIn("battery-mode", preview_body)
         self.assertNotIn("plugged-in-full", preview_body)
 
@@ -204,8 +208,8 @@ class SignalConsoleUXTests(unittest.TestCase):
                 text=True,
                 stdout=subprocess.PIPE,
             )
-            self.assertIn("pixelWidth: 1120", result.stdout)
-            self.assertIn("pixelHeight: 1120", result.stdout)
+            self.assertIn("pixelWidth: 760", result.stdout)
+            self.assertIn("pixelHeight: 544", result.stdout)
 
 
 if __name__ == "__main__":

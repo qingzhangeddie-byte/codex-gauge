@@ -3,9 +3,7 @@ import datetime
 import importlib.util
 import io
 import json
-import os
 import pathlib
-import tempfile
 import unittest
 from unittest import mock
 
@@ -21,13 +19,6 @@ def load_helper():
 
 
 class NativeCodexStatusHelperTests(unittest.TestCase):
-    def setUp(self):
-        self.support_tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.support_tmp.cleanup)
-        self.support_env = mock.patch.dict(os.environ, {"CODEX_GAUGE_SUPPORT_DIR": self.support_tmp.name})
-        self.support_env.start()
-        self.addCleanup(self.support_env.stop)
-
     def test_helper_avoids_browser_cookies_auth_files_and_claude(self):
         source = HELPER_PATH.read_text()
 
@@ -50,6 +41,34 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
         self.assertIn('"Codex Gauge"', source)
         self.assertNotIn("AI_LIMIT_CODEX_CLI_PATH", source)
         self.assertNotIn('"ai-limit"', source)
+
+    def test_finds_codex_cli_inside_renamed_chatgpt_app(self):
+        helper = load_helper()
+        chatgpt_cli = "/Applications/ChatGPT.app/Contents/Resources/codex"
+
+        with mock.patch.object(helper.shutil, "which", return_value=None), \
+             mock.patch.object(
+                 helper.pathlib.Path,
+                 "is_file",
+                 autospec=True,
+                 side_effect=lambda path: str(path) == chatgpt_cli,
+             ), \
+             mock.patch.object(
+                 helper.os,
+                 "access",
+                 side_effect=lambda path, _mode: str(path) == chatgpt_cli,
+             ):
+            result = helper.find_codex_cli()
+
+        self.assertEqual(result, chatgpt_cli)
+
+    def test_default_codex_path_includes_renamed_chatgpt_app(self):
+        helper = load_helper()
+
+        with mock.patch.dict(helper.os.environ, {}, clear=True):
+            env = helper.codex_subprocess_env()
+
+        self.assertTrue(env["PATH"].startswith("/Applications/ChatGPT.app/Contents/Resources:"))
 
     def test_builds_codex_json_snapshot_from_live_rate_limits(self):
         helper = load_helper()
@@ -89,367 +108,47 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
         self.assertIsNone(snapshot["codex"]["five_hour_reset"])
         self.assertIsNone(snapshot["codex"]["seven_day_reset"])
 
-    def test_live_rate_limits_are_cached_for_short_outages(self):
+    def test_live_only_helper_never_writes_or_scans_fallback_files(self):
+        source = HELPER_PATH.read_text()
+
+        for token in [
+            "last-live-status.json",
+            "CODEX_GAUGE_SUPPORT_DIR",
+            "CODEX_GAUGE_NO_STORAGE",
+            "CODEX_GAUGE_READ_LOCAL_SNAPSHOT",
+            "latest_last_live_rate_limits_cache",
+            "latest_local_codex_rate_limits_snapshot",
+            ".codex\" / \"sessions",
+            ".rglob(\"*.jsonl\")",
+        ]:
+            self.assertNotIn(token, source)
+
+    def test_live_failure_returns_clear_unavailable_status_without_fallback(self):
         helper = load_helper()
 
-        with mock.patch.object(helper, "live_codex_rate_limits", return_value={
-            "plan": "pro",
-            "primary": {"percent_used": 27, "resets_at": 1_800_000_100},
-            "secondary": {"percent_used": 11, "resets_at": 1_800_000_200},
-        }), mock.patch.object(helper, "_write_last_live_rate_limits_cache", create=True) as write_cache:
-            snapshot = helper.build_status_snapshot()
-
-        self.assertTrue(snapshot["codex"]["ok"])
-        write_cache.assert_called_once()
-
-    def test_no_storage_mode_skips_cache_writes_and_local_fallbacks(self):
-        helper = load_helper()
-
-        with mock.patch.dict(helper.os.environ, {"CODEX_GAUGE_NO_STORAGE": "1"}), \
-             mock.patch.object(helper, "live_codex_rate_limits", return_value={
-                 "plan": "pro",
-                 "primary": {"percent_used": 27, "resets_at": 1_800_000_100},
-                 "secondary": {"percent_used": 11, "resets_at": 1_800_000_200},
-             }), \
-             mock.patch.object(helper, "_write_last_live_rate_limits_cache", wraps=helper._write_last_live_rate_limits_cache) as write_cache:
-            snapshot = helper.build_status_snapshot()
-
-        self.assertTrue(snapshot["codex"]["ok"])
-        self.assertEqual(snapshot["codex"]["source"], "live")
-        write_cache.assert_called_once()
-        self.assertFalse(list(pathlib.Path(self.support_tmp.name).glob("*")))
-
-        with mock.patch.dict(helper.os.environ, {"CODEX_GAUGE_NO_STORAGE": "1"}), \
-             mock.patch.object(helper, "live_codex_rate_limits", side_effect=helper.CodexRemoteError("offline")), \
-             mock.patch.object(helper, "latest_last_live_rate_limits_cache", wraps=helper.latest_last_live_rate_limits_cache) as last_live, \
-             mock.patch.object(helper, "latest_local_codex_rate_limits_snapshot", wraps=helper.latest_local_codex_rate_limits_snapshot) as local_snapshot:
+        with mock.patch.object(
+            helper,
+            "live_codex_rate_limits",
+            side_effect=helper.CodexRemoteError("offline"),
+        ):
             snapshot = helper.build_status_snapshot()
 
         self.assertFalse(snapshot["codex"]["ok"])
         self.assertEqual(snapshot["codex"]["source"], "live")
+        self.assertIsNone(snapshot["codex"]["five_hour_left"])
+        self.assertIsNone(snapshot["codex"]["seven_day_left"])
         self.assertIn("Codex live usage unavailable", snapshot["codex"]["error"])
-        last_live.assert_called_once()
-        local_snapshot.assert_called_once()
-
-    def test_app_mode_can_use_read_only_local_snapshot_without_cache_writes(self):
-        helper = load_helper()
-        now = datetime.datetime.fromisoformat("2026-07-03T04:13:40+00:00").timestamp()
-        five_hour_reset = now + 45 * 60
-        seven_day_reset = now + 4 * 24 * 60 * 60
-
-        with tempfile.TemporaryDirectory() as tmp:
-            home = pathlib.Path(tmp)
-            session_dir = home / ".codex" / "sessions" / "2026" / "07" / "03"
-            session_dir.mkdir(parents=True)
-            session_path = session_dir / "fallback.jsonl"
-            session_path.write_text(
-                json.dumps({
-                    "timestamp": "2026-07-03T04:13:32.213Z",
-                    "rate_limits": {
-                        "limit_id": "codex",
-                        "primary": {
-                            "used_percent": 1,
-                            "window_minutes": 300,
-                            "resets_at": five_hour_reset,
-                        },
-                        "secondary": {
-                            "used_percent": 57,
-                            "window_minutes": 10080,
-                            "resets_at": seven_day_reset,
-                        },
-                        "plan_type": "pro",
-                    },
-                }) + "\n",
-                encoding="utf-8",
-            )
-            os.utime(session_path, (now, now))
-
-            with mock.patch.dict(helper.os.environ, {
-                "CODEX_GAUGE_NO_STORAGE": "1",
-                "CODEX_GAUGE_READ_LOCAL_SNAPSHOT": "1",
-            }), \
-                 mock.patch.object(helper, "live_codex_rate_limits", side_effect=helper.CodexRemoteError("timeout")), \
-                 mock.patch.object(helper.pathlib.Path, "home", return_value=home), \
-                 mock.patch.object(helper.time, "time", return_value=now):
-                snapshot = helper.build_status_snapshot()
-
-        self.assertTrue(snapshot["codex"]["ok"])
-        self.assertEqual(snapshot["codex"]["five_hour_left"], 99)
-        self.assertEqual(snapshot["codex"]["seven_day_left"], 43)
-        self.assertEqual(snapshot["codex"]["source"], "local_snapshot")
-        self.assertEqual(snapshot["codex"]["data_time"], "2026-07-03T04:13:32.213Z")
-        self.assertFalse(list(pathlib.Path(self.support_tmp.name).glob("*")))
-
-    def test_uses_recent_last_live_cache_when_live_and_snapshot_are_unavailable(self):
-        helper = load_helper()
-        now = datetime.datetime.fromisoformat("2026-06-12T17:40:00+00:00").timestamp()
-
-        with tempfile.TemporaryDirectory() as tmp:
-            support_dir = pathlib.Path(tmp)
-            cache_path = support_dir / "last-live-status.json"
-            cache_path.write_text(
-                json.dumps({
-                    "captured_at": "2026-06-12T17:35:00.000Z",
-                    "rate_limits": {
-                        "limit_id": "codex",
-                        "primary": {"used_percent": 36, "resets_at": now + 3600},
-                        "secondary": {"used_percent": 60, "resets_at": now + 86400},
-                        "plan_type": "pro",
-                    },
-                }),
-                encoding="utf-8",
-            )
-
-            with mock.patch.object(helper, "live_codex_rate_limits", side_effect=helper.CodexRemoteError("boom")), \
-                 mock.patch.object(helper, "latest_local_codex_rate_limits_snapshot", return_value=None), \
-                 mock.patch.dict(helper.os.environ, {"CODEX_GAUGE_SUPPORT_DIR": str(support_dir)}), \
-                 mock.patch.object(helper.time, "time", return_value=now):
-                snapshot = helper.build_status_snapshot()
-
-        self.assertTrue(snapshot["codex"]["ok"])
-        self.assertEqual(snapshot["codex"]["five_hour_left"], 64)
-        self.assertEqual(snapshot["codex"]["seven_day_left"], 40)
-        self.assertEqual(snapshot["codex"]["source"], "last_live")
-        self.assertEqual(snapshot["codex"]["data_time"], "2026-06-12T17:35:00.000Z")
-        self.assertIn("showing last live", snapshot["codex"]["error"])
-
-    def test_rejects_last_live_cache_with_implausible_reset_windows(self):
-        helper = load_helper()
-        now = datetime.datetime.fromisoformat("2026-06-12T17:40:00+00:00").timestamp()
-
-        with tempfile.TemporaryDirectory() as tmp:
-            support_dir = pathlib.Path(tmp)
-            (support_dir / "last-live-status.json").write_text(
-                json.dumps({
-                    "captured_at": "2026-06-12T17:35:00.000Z",
-                    "rate_limits": {
-                        "limit_id": "codex",
-                        "primary": {"used_percent": 36, "resets_at": now + 216 * 24 * 3600},
-                        "secondary": {"used_percent": 60, "resets_at": now + 216 * 24 * 3600},
-                        "plan_type": "pro",
-                    },
-                }),
-                encoding="utf-8",
-            )
-
-            with mock.patch.object(helper, "live_codex_rate_limits", side_effect=helper.CodexRemoteError("boom")), \
-                 mock.patch.object(helper, "latest_local_codex_rate_limits_snapshot", return_value=None), \
-                 mock.patch.dict(helper.os.environ, {"CODEX_GAUGE_SUPPORT_DIR": str(support_dir)}), \
-                 mock.patch.object(helper.time, "time", return_value=now):
-                snapshot = helper.build_status_snapshot()
-
-        self.assertFalse(snapshot["codex"]["ok"])
-        self.assertIsNone(snapshot["codex"]["five_hour_left"])
-        self.assertIsNone(snapshot["codex"]["seven_day_left"])
-
-    def test_rejects_old_last_live_cache(self):
-        helper = load_helper()
-        now = datetime.datetime.fromisoformat("2026-06-12T18:30:00+00:00").timestamp()
-
-        with tempfile.TemporaryDirectory() as tmp:
-            support_dir = pathlib.Path(tmp)
-            (support_dir / "last-live-status.json").write_text(
-                json.dumps({
-                    "captured_at": "2026-06-12T17:35:00.000Z",
-                    "rate_limits": {
-                        "limit_id": "codex",
-                        "primary": {"used_percent": 36, "resets_at": now + 3600},
-                        "secondary": {"used_percent": 60, "resets_at": now + 86400},
-                        "plan_type": "pro",
-                    },
-                }),
-                encoding="utf-8",
-            )
-
-            with mock.patch.object(helper, "live_codex_rate_limits", side_effect=helper.CodexRemoteError("boom")), \
-                 mock.patch.object(helper, "latest_local_codex_rate_limits_snapshot", return_value=None), \
-                 mock.patch.dict(helper.os.environ, {"CODEX_GAUGE_SUPPORT_DIR": str(support_dir)}), \
-                 mock.patch.object(helper.time, "time", return_value=now):
-                snapshot = helper.build_status_snapshot()
-
-        self.assertFalse(snapshot["codex"]["ok"])
-        self.assertIsNone(snapshot["codex"]["five_hour_left"])
-        self.assertIsNone(snapshot["codex"]["seven_day_left"])
 
     def test_missing_live_data_returns_clear_diagnostic(self):
         helper = load_helper()
 
-        with mock.patch.object(helper, "live_codex_rate_limits", return_value=None), \
-             mock.patch.object(helper, "latest_last_live_rate_limits_cache", return_value=None), \
-             mock.patch.object(helper, "latest_local_codex_rate_limits_snapshot", return_value=None):
+        with mock.patch.object(helper, "live_codex_rate_limits", return_value=None):
             snapshot = helper.build_status_snapshot()
 
         self.assertFalse(snapshot["codex"]["ok"])
         self.assertIn("Codex", snapshot["codex"]["error"])
         self.assertIsNone(snapshot["codex"]["five_hour_left"])
         self.assertIsNone(snapshot["codex"]["seven_day_left"])
-
-    def test_falls_back_to_recent_codex_session_rate_limit_snapshot(self):
-        helper = load_helper()
-        now = datetime.datetime.fromisoformat("2026-06-11T20:19:00+00:00").timestamp()
-        five_hour_reset = now + 3600
-        seven_day_reset = now + 24 * 3600
-
-        with tempfile.TemporaryDirectory() as tmp:
-            home = pathlib.Path(tmp)
-            session_dir = home / ".codex" / "sessions" / "2026" / "06" / "12"
-            session_dir.mkdir(parents=True)
-            session_path = session_dir / "rollout.jsonl"
-            session_path.write_text(
-                json.dumps({
-                    "timestamp": "2026-06-11T20:18:00.000Z",
-                    "type": "event_msg",
-                    "payload": {
-                        "type": "token_count",
-                        "rate_limits": {
-                            "limit_id": "codex",
-                            "primary": {
-                                "used_percent": 14,
-                                "window_minutes": 300,
-                                "resets_at": five_hour_reset,
-                            },
-                            "secondary": {
-                                "used_percent": 21,
-                                "window_minutes": 10080,
-                                "resets_at": seven_day_reset,
-                            },
-                            "plan_type": "pro",
-                        },
-                    },
-                }) + "\n",
-                encoding="utf-8",
-            )
-            os.utime(session_path, (now, now))
-
-            with mock.patch.object(helper, "live_codex_rate_limits", side_effect=helper.CodexRemoteError("boom")), \
-                 mock.patch.object(helper.pathlib.Path, "home", return_value=home), \
-                 mock.patch.object(helper.time, "time", return_value=now):
-                snapshot = helper.build_status_snapshot()
-
-        self.assertTrue(snapshot["codex"]["ok"])
-        self.assertEqual(snapshot["codex"]["five_hour_left"], 86)
-        self.assertEqual(snapshot["codex"]["seven_day_left"], 79)
-        self.assertEqual(snapshot["codex"]["five_hour_reset"], five_hour_reset)
-        self.assertEqual(snapshot["codex"]["seven_day_reset"], seven_day_reset)
-        self.assertEqual(snapshot["codex"]["plan"], "pro")
-        self.assertEqual(snapshot["codex"]["source"], "local_snapshot")
-        self.assertEqual(snapshot["codex"]["data_time"], "2026-06-11T20:18:00.000Z")
-
-    def test_local_snapshot_rejects_old_capture_even_when_reset_is_future(self):
-        helper = load_helper()
-        now = datetime.datetime.fromisoformat("2026-06-12T17:30:00+00:00").timestamp()
-
-        with tempfile.TemporaryDirectory() as tmp:
-            home = pathlib.Path(tmp)
-            session_dir = home / ".codex" / "sessions" / "2026" / "06" / "12"
-            session_dir.mkdir(parents=True)
-            session_path = session_dir / "rollout.jsonl"
-            session_path.write_text(
-                json.dumps({
-                    "timestamp": "2026-06-12T15:44:07.931Z",
-                    "rate_limits": {
-                        "limit_id": "codex",
-                        "primary": {
-                            "used_percent": 1,
-                            "window_minutes": 300,
-                            "resets_at": now + 2 * 60 * 60,
-                        },
-                        "secondary": {
-                            "used_percent": 49,
-                            "window_minutes": 10080,
-                            "resets_at": now + 6 * 24 * 60 * 60,
-                        },
-                        "plan_type": "pro",
-                    },
-                }) + "\n",
-                encoding="utf-8",
-            )
-            os.utime(session_path, (now, now))
-
-            with mock.patch.object(helper, "live_codex_rate_limits", side_effect=helper.CodexRemoteError("boom")), \
-                 mock.patch.object(helper.pathlib.Path, "home", return_value=home), \
-                 mock.patch.object(helper.time, "time", return_value=now):
-                snapshot = helper.build_status_snapshot()
-
-        self.assertFalse(snapshot["codex"]["ok"])
-        self.assertIsNone(snapshot["codex"]["five_hour_left"])
-        self.assertIsNone(snapshot["codex"]["seven_day_left"])
-        self.assertIn("Codex live usage unavailable", snapshot["codex"]["error"])
-
-    def test_local_snapshot_accepts_valid_seven_day_when_five_hour_is_stale(self):
-        helper = load_helper()
-        now = datetime.datetime.fromisoformat("2026-06-12T08:01:00+00:00").timestamp()
-        seven_day_reset = now + 6 * 24 * 60 * 60
-
-        with tempfile.TemporaryDirectory() as tmp:
-            home = pathlib.Path(tmp)
-            session_dir = home / ".codex" / "sessions" / "changed" / "layout" / "deeper" / "still-works"
-            session_dir.mkdir(parents=True)
-            session_path = session_dir / "rollout.jsonl"
-            session_path.write_text(
-                json.dumps({
-                    "timestamp": "2026-06-12T08:00:00.000Z",
-                    "rate_limits": {
-                        "limit_id": "codex",
-                        "primary": {
-                            "used_percent": 14,
-                            "window_minutes": 300,
-                            "resets_at": 1_600_000_000,
-                        },
-                        "secondary": {
-                            "used_percent": 21,
-                            "window_minutes": 10080,
-                            "resets_at": seven_day_reset,
-                        },
-                        "plan_type": "pro",
-                    },
-                }) + "\n",
-                encoding="utf-8",
-            )
-            os.utime(session_path, (now, now))
-
-            with mock.patch.object(helper, "live_codex_rate_limits", side_effect=helper.CodexRemoteError("boom")), \
-                 mock.patch.object(helper.pathlib.Path, "home", return_value=home), \
-                 mock.patch.object(helper.time, "time", return_value=now):
-                snapshot = helper.build_status_snapshot()
-
-        self.assertTrue(snapshot["codex"]["ok"])
-        self.assertIsNone(snapshot["codex"]["five_hour_left"])
-        self.assertEqual(snapshot["codex"]["seven_day_left"], 79)
-        self.assertIsNone(snapshot["codex"]["five_hour_reset"])
-        self.assertEqual(snapshot["codex"]["seven_day_reset"], seven_day_reset)
-        self.assertEqual(snapshot["codex"]["source"], "local_snapshot")
-        self.assertEqual(snapshot["title"], "5h --  7d 79%")
-
-    def test_local_snapshot_rejects_when_all_reset_windows_are_stale(self):
-        helper = load_helper()
-
-        with tempfile.TemporaryDirectory() as tmp:
-            home = pathlib.Path(tmp)
-            session_dir = home / ".codex" / "sessions" / "any-layout"
-            session_dir.mkdir(parents=True)
-            (session_dir / "rollout.jsonl").write_text(
-                json.dumps({
-                    "timestamp": "2026-06-12T08:00:00.000Z",
-                    "rate_limits": {
-                        "limit_id": "codex",
-                        "primary": {"used_percent": 14, "resets_at": 1_600_000_000},
-                        "secondary": {"used_percent": 21, "resets_at": 1_600_000_100},
-                        "plan_type": "pro",
-                    },
-                }) + "\n",
-                encoding="utf-8",
-            )
-
-            with mock.patch.object(helper, "live_codex_rate_limits", side_effect=helper.CodexRemoteError("boom")), \
-                 mock.patch.object(helper.pathlib.Path, "home", return_value=home), \
-                 mock.patch.object(helper.time, "time", return_value=1_700_000_000):
-                snapshot = helper.build_status_snapshot()
-
-        self.assertFalse(snapshot["codex"]["ok"])
-        self.assertIsNone(snapshot["codex"]["five_hour_left"])
-        self.assertIsNone(snapshot["codex"]["seven_day_left"])
-        self.assertIn("Codex live usage unavailable", snapshot["codex"]["error"])
 
     def test_helper_prefers_stdio_app_server_for_native_launch_context(self):
         source = HELPER_PATH.read_text()
@@ -464,10 +163,15 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
     def test_stdio_app_server_client_sends_initialized_before_rate_limit_request(self):
         helper = load_helper()
         writes = []
+        read_response_ids = []
+        read_ids_at_rate_limit_write = []
 
         class FakeStdin:
             def write(self, value):
-                writes.append(json.loads(value))
+                message = json.loads(value)
+                writes.append(message)
+                if message.get("method") == "account/rateLimits/read":
+                    read_ids_at_rate_limit_write.append(list(read_response_ids))
 
             def flush(self):
                 pass
@@ -476,13 +180,36 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
             def __init__(self):
                 self.lines = [
                     json.dumps({"id": 1, "result": {"ok": True}}) + "\n",
+                    json.dumps({"id": 2, "result": {"summary": {"lifetimeTokens": 123}}}) + "\n",
                     json.dumps({
-                        "id": 2,
+                        "id": 3,
                         "result": {
                             "rateLimits": {
                                 "limitId": "codex",
-                                "primary": {"usedPercent": 12, "resetsAt": 1_800_000_000},
-                                "secondary": {"usedPercent": 34, "resetsAt": 1_800_086_400},
+                                "primary": {"usedPercent": 7, "resetsAt": 1_800_000_120},
+                                "secondary": {"usedPercent": 3, "resetsAt": 1_800_086_420},
+                                "planType": "pro",
+                            }
+                        },
+                    }) + "\n",
+                    json.dumps({
+                        "id": 4,
+                        "result": {
+                            "rateLimits": {
+                                "limitId": "codex",
+                                "primary": {"usedPercent": 89, "resetsAt": 1_800_000_000},
+                                "secondary": {"usedPercent": 42, "resetsAt": 1_800_086_400},
+                                "planType": "pro",
+                            }
+                        },
+                    }) + "\n",
+                    json.dumps({
+                        "id": 5,
+                        "result": {
+                            "rateLimits": {
+                                "limitId": "codex",
+                                "primary": {"usedPercent": 89, "resetsAt": 1_800_000_000},
+                                "secondary": {"usedPercent": 42, "resetsAt": 1_800_086_400},
                                 "planType": "pro",
                             }
                         },
@@ -490,7 +217,9 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
                 ]
 
             def readline(self):
-                return self.lines.pop(0)
+                line = self.lines.pop(0)
+                read_response_ids.append(json.loads(line).get("id"))
+                return line
 
         class FakeProcess:
             pid = 12345
@@ -512,12 +241,103 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
              mock.patch.object(helper, "_terminate_process_group"):
             result = helper._read_codex_rate_limits_stdio("/Applications/Codex.app/Contents/Resources/codex", 5)
 
-        self.assertEqual(result["primary"]["used_percent"], 12)
+        self.assertEqual(result["primary"]["used_percent"], 89)
+        self.assertEqual(result["secondary"]["used_percent"], 42)
         self.assertEqual(
             [message.get("method") for message in writes],
-            ["initialize", "notifications/initialized", "account/rateLimits/read"],
+            [
+                "initialize",
+                "notifications/initialized",
+                "account/usage/read",
+                "account/rateLimits/read",
+                "account/rateLimits/read",
+                "account/rateLimits/read",
+            ],
         )
         self.assertEqual(writes[2]["id"], 2)
+        self.assertEqual(writes[3]["id"], 3)
+        self.assertEqual(writes[4]["id"], 4)
+        self.assertEqual(writes[5]["id"], 5)
+        self.assertTrue(all(2 in ids for ids in read_ids_at_rate_limit_write))
+
+    def test_verified_rate_limit_samples_accept_a_real_reset_instead_of_old_usage(self):
+        helper = load_helper()
+        now = 1_800_000_000
+        old_window = {
+            "limitId": "codex",
+            "primary": {
+                "usedPercent": 99,
+                "windowDurationMins": 300,
+                "resetsAt": now + 30,
+            },
+            "secondary": {
+                "usedPercent": 42,
+                "windowDurationMins": 10080,
+                "resetsAt": now + 4 * 24 * 60 * 60,
+            },
+            "planType": "pro",
+        }
+        new_window = {
+            "limitId": "codex",
+            "primary": {
+                "usedPercent": 2,
+                "windowDurationMins": 300,
+                "resetsAt": now + 5 * 60 * 60,
+            },
+            "secondary": {
+                "usedPercent": 42,
+                "windowDurationMins": 10080,
+                "resetsAt": now + 4 * 24 * 60 * 60,
+            },
+            "planType": "pro",
+        }
+
+        merged = helper._merge_remote_rate_limit_samples(
+            [old_window, new_window, new_window],
+            now=now,
+        )
+
+        self.assertEqual(merged["primary"]["used_percent"], 2)
+        self.assertEqual(merged["primary"]["resets_at"], now + 5 * 60 * 60)
+        self.assertEqual(merged["secondary"]["used_percent"], 42)
+
+    def test_verified_rate_limit_samples_ignore_an_expired_pre_reset_window(self):
+        helper = load_helper()
+        now = 1_800_000_000
+        expired = {
+            "limitId": "codex",
+            "primary": {
+                "usedPercent": 99,
+                "windowDurationMins": 300,
+                "resetsAt": now - 120,
+            },
+        }
+        current = {
+            "limitId": "codex",
+            "primary": {
+                "usedPercent": 3,
+                "windowDurationMins": 300,
+                "resetsAt": now + 5 * 60 * 60,
+            },
+        }
+
+        merged = helper._merge_remote_rate_limit_samples(
+            [expired, current, expired],
+            now=now,
+        )
+
+        self.assertEqual(merged["primary"]["used_percent"], 3)
+        self.assertEqual(merged["primary"]["resets_at"], now + 5 * 60 * 60)
+
+    def test_websocket_app_server_primes_usage_before_reading_rate_limits(self):
+        source = HELPER_PATH.read_text()
+        body = source.split("def _read_codex_rate_limits_ws", 1)[1].split(
+            "def _ws_handshake", 1
+        )[0]
+
+        self.assertLess(body.index('"account/usage/read"'), body.index('"account/rateLimits/read"'))
+        self.assertIn("RATE_LIMIT_SAMPLE_COUNT", body)
+        self.assertIn("_verified_remote_rate_limits(rate_limit_results)", body)
 
     def test_codex_subprocess_env_strips_python_launcher_build_vars(self):
         helper = load_helper()

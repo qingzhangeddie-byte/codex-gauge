@@ -18,5 +18,5 @@ The native app:
 - does not read `~/.codex/auth.json`;
 - does not read Keychain;
 - does not scan unrelated project folders;
-- reads live Codex quota through the local Codex app-server;
-- can use bounded recent Codex session `rate_limits` metadata as a Snapshot fallback.
+- reads live Codex quota through a live-only local Codex app-server path;
+- does not read Codex session files or keep a disk-backed fallback.

@@ -68,7 +68,7 @@ for ((i = 1; i <= ITERATIONS; i++)); do
   stdout_file="$tmpdir/stdout-$i.json"
   stderr_file="$tmpdir/stderr-$i.txt"
   observed_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-    if CODEX_GAUGE_SUPPORT_DIR="$tmpdir" CODEX_GAUGE_NO_STORAGE=1 "$PYTHON_BIN" "$HELPER" --status-json >"$stdout_file" 2>"$stderr_file"; then
+    if "$PYTHON_BIN" "$HELPER" --status-json >"$stdout_file" 2>"$stderr_file"; then
     "$PYTHON_BIN" - "$observed_at" "$stdout_file" >>"$OUT" <<'PY'
 import json
 import sys

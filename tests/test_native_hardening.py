@@ -19,6 +19,45 @@ HARDWARE_TOKENS = [
 
 
 class NativeHardeningTests(unittest.TestCase):
+    def test_storage_pipeline_is_removed_instead_of_runtime_disabled(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+        helper = pathlib.Path("native/codex_status.py").read_text()
+
+        for token in [
+            "HistorySample",
+            "persistentStorageEnabled",
+            "historyFileName",
+            "lastLiveCacheFileName",
+            "removePersistentAppStorage",
+            "localDataPathsForClearing",
+            "clearLocalData",
+            "generateUsageReport",
+            '"Clear legacy"',
+        ]:
+            self.assertNotIn(token, source)
+
+        for token in [
+            "LOCAL_SNAPSHOT_MAX_FILES",
+            "LAST_LIVE_CACHE_FILE",
+            "CODEX_GAUGE_NO_STORAGE",
+            "CODEX_GAUGE_READ_LOCAL_SNAPSHOT",
+            "latest_local_codex_rate_limits_snapshot",
+            "latest_last_live_rate_limits_cache",
+            '.rglob("*.jsonl")',
+        ]:
+            self.assertNotIn(token, helper)
+
+    def test_compact_signal_console_updates_in_place(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+        refresh_body = source.split("private func refreshSignalPopoverIfNeeded", 1)[1].split(
+            "private func applyTimerTolerance", 1
+        )[0]
+
+        self.assertIn("signalPopoverSize = NSSize(width: 380, height: 272)", source)
+        self.assertIn("private weak var signalConsolePanelView: SignalConsolePanelView?", source)
+        self.assertIn("signalConsolePanelView?.update(model: signalConsoleModel())", refresh_body)
+        self.assertNotIn("contentViewController = makeSignalConsoleViewController()", refresh_body)
+
     def test_build_script_bundles_codex_helper_as_direct_single_binary(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()
 
@@ -54,16 +93,17 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertNotIn("readCPUUsagePercent", source)
         self.assertNotIn("readRAMUsagePercent", source)
 
-    def test_zero_persistence_disables_app_storage_and_preferences(self):
+    def test_live_only_app_has_no_usage_storage_pipeline(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
         build_script = pathlib.Path("script/build_and_run.sh").read_text()
         replace_script = pathlib.Path("script/replace_installed_app.sh").read_text()
 
-        self.assertIn("private let persistentStorageEnabled = false", source)
-        self.assertIn('"CODEX_GAUGE_NO_STORAGE": "1"', source)
-        self.assertIn("removePersistentAppStorage()", source)
-        self.assertIn("removeLegacySupportDirectory()", source)
-        self.assertIn("startup LaunchAgent only; no quota cache", source)
+        self.assertIn("Live only · no usage history", source)
+        self.assertIn("Usage storage: none; launch at login uses a LaunchAgent", source)
+        self.assertNotIn("persistentStorageEnabled", source)
+        self.assertNotIn("CODEX_GAUGE_NO_STORAGE", source)
+        self.assertNotIn("removePersistentAppStorage", source)
+        self.assertNotIn("removeLegacySupportDirectory", source)
         self.assertNotIn("UserDefaults.standard", source)
         self.assertNotIn("try data.write", source)
         self.assertIn('LEGACY_SUPPORT_DIR="$HOME/Library/Application Support/CodexGauge"', build_script)
@@ -71,7 +111,7 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertIn('LEGACY_SUPPORT_DIR="$HOME/Library/Application Support/CodexGauge"', replace_script)
         self.assertIn('rm -rf "$LEGACY_SUPPORT_DIR"', replace_script)
 
-        append_log_body = source.split("private func appendLog", 1)[1].split("private func rotateLogIfNeeded", 1)[0]
+        append_log_body = source.split("private func appendLog", 1)[1].split("private func addDisabled", 1)[0]
         self.assertNotIn("FileHandle", append_log_body)
         self.assertNotIn("write(to:", append_log_body)
         self.assertNotIn("createDirectory", append_log_body)
@@ -114,14 +154,12 @@ class NativeHardeningTests(unittest.TestCase):
 
         for label in [
             "Blue Ceramic",
-            "Local only",
-            "Startup agent, no quota cache",
             "Run Full Diagnostics",
             "Copy Diagnostics",
             "Check Now",
             "Done",
-            "Codex-only signal",
-            "No device telemetry sampled",
+            "Live only · no usage history",
+            "Usage storage: none; launch at login uses a LaunchAgent",
         ]:
             self.assertIn(f'"{label}"', source)
 
@@ -139,7 +177,8 @@ class NativeHardeningTests(unittest.TestCase):
         for phrase in [
             "does not read browser cookies",
             "does not read `~/.codex/auth.json`",
-            "zero persistence",
+            "live-only",
+            "does not read Codex session files",
             "Codex app-server",
             "startup login",
         ]:

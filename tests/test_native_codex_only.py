@@ -39,7 +39,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("readabilityHandler", source)
         self.assertIn("stdoutBuffer", source)
         self.assertIn("stderrBuffer", source)
-        refresh_section = source[source.index("private func refresh()"):source.index("private func finishRefresh")]
+        refresh_section = source[source.index("private func refresh(force:"):source.index("private func finishRefresh")]
         self.assertNotIn('"asuser"', refresh_section)
         self.assertIn("URL(fileURLWithPath: pythonPath)", refresh_section)
         self.assertNotIn('"/usr/bin/env"', refresh_section)
@@ -51,7 +51,16 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertNotIn('AI_LIMIT_CODEX_APP_SERVER_ONLY', source)
         self.assertIn("codexCliBundlePath", source)
         self.assertIn("isExecutableFile(atPath: codexCliBundlePath)", source)
+        self.assertIn("/Applications/ChatGPT.app/Contents/Resources", source)
         self.assertIn("/Applications/Codex.app/Contents/Resources", source)
+
+    def test_native_app_resolves_the_renamed_chatgpt_host_by_bundle_identifier(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn('codexHostBundleIdentifier = "com.openai.codex"', source)
+        self.assertIn("urlForApplication(withBundleIdentifier: codexHostBundleIdentifier)", source)
+        self.assertIn('"Open ChatGPT"', source)
+        self.assertNotIn('NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications/Codex.app"))', source)
 
     def test_native_app_auto_refreshes_adaptively(self):
         source = native_swift_sources()
@@ -76,10 +85,11 @@ class NativeCodexOnlyTests(unittest.TestCase):
     def test_native_app_does_not_write_runtime_status_log(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn("CodexGauge-runtime.log", source)
         self.assertIn("appendLog", source)
         self.assertIn("title=\\(decoded.title)", source)
-        append_log_body = source.split("private func appendLog", 1)[1].split("private func rotateLogIfNeeded", 1)[0]
+        self.assertIn("runtimeLogMessages", source)
+        self.assertNotIn("CodexGauge-runtime.log", source)
+        append_log_body = source.split("private func appendLog", 1)[1].split("private func addDisabled", 1)[0]
         self.assertNotIn("FileHandle", append_log_body)
         self.assertNotIn("write(to:", append_log_body)
         self.assertNotIn("createDirectory", append_log_body)
@@ -89,11 +99,49 @@ class NativeCodexOnlyTests(unittest.TestCase):
         finish_refresh = source[source.index("private func finishRefresh"):source.index("private func rebuildMenu")]
 
         self.assertIn("let previousSnapshot = snapshot", finish_refresh)
-        self.assertIn("if isLiveRefreshFailure(decoded.codex), let previousSnapshot", finish_refresh)
+        self.assertIn("if isLiveRefreshFailure(decoded.codex), let previousSnapshot, canPreserveSnapshot(previousSnapshot)", finish_refresh)
         self.assertIn("snapshot = previousSnapshot", finish_refresh)
         self.assertIn("lastError = decoded.codex.error ??", finish_refresh)
         self.assertIn("setStatusImage(title: statusTooltipTitle(previousSnapshot), status: previousSnapshot.codex)", finish_refresh)
         self.assertIn("scheduleNextRefresh(after: lastError == nil ? nextRefreshInterval(for: snapshot?.codex) : recoveryRefreshInterval)", finish_refresh)
+
+    def test_native_app_expires_old_quota_instead_of_presenting_it_as_live(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("maximumStaleDisplayAge: TimeInterval = 10 * 60", source)
+        preserve_body = source.split("private func canPreserveSnapshot", 1)[1].split(
+            "private func finishRefresh", 1
+        )[0]
+        self.assertIn("snapshot.codex.dataTime ?? snapshot.updatedAt", preserve_body)
+        self.assertIn("maximumStaleDisplayAge", preserve_body)
+
+    def test_native_app_refreshes_on_wake_chatgpt_activation_and_panel_open(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+
+        self.assertIn("NSWorkspace.didWakeNotification", source)
+        self.assertIn("NSWorkspace.didActivateApplicationNotification", source)
+        self.assertIn("workspaceDidWake", source)
+        self.assertIn("workspaceApplicationDidActivate", source)
+        self.assertIn("runningApplication.bundleIdentifier == codexHostBundleIdentifier", source)
+        self.assertIn("refresh(force: true)", source)
+        show_body = source.split("private func showSignalConsolePopover()", 1)[1].split(
+            "private func refreshSignalPopoverIfNeeded", 1
+        )[0]
+        self.assertIn("refresh()", show_body)
+
+    def test_native_app_refresh_watchdog_unlocks_stalled_helpers(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+        refresh_body = source.split("private func refresh(", 1)[1].split(
+            "private func startMoodAnimation", 1
+        )[0]
+
+        self.assertIn("activeRefreshProcess", source)
+        self.assertIn("refreshGeneration", source)
+        self.assertIn("refreshTimeout: TimeInterval", source)
+        self.assertIn("generation: generation", refresh_body)
+        self.assertIn("self.finishRefresh(", refresh_body)
+        self.assertIn("status: -2", refresh_body)
+        self.assertIn("self.refreshGeneration == generation", refresh_body)
 
     def test_native_app_draws_codex_usage_in_native_status_view(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -132,7 +180,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
             self.assertNotIn(emoji, source)
         self.assertIn("fiveHourResetCountdown", source)
         self.assertIn("sevenDayResetCountdown", source)
-        self.assertIn("resetProgressPercent", source)
+        self.assertNotIn("resetProgressPercent", source)
         self.assertIn("bucketedGaugeColor", source)
         self.assertIn("resetLaneColor", source)
         self.assertIn("fillColor: systemMonitorMenuBarBlue()", source)
@@ -247,16 +295,17 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn('"7-day left"', source)
         self.assertIn("barString", source)
         self.assertIn('"Live · refreshed"', source)
-        self.assertIn('"Snapshot · refreshed"', source)
+        self.assertNotIn('"Snapshot · refreshed"', source)
         self.assertIn("refreshLabel", source)
         self.assertIn("statusTooltipTitle", source)
 
-    def test_native_app_keeps_non_live_state_detail_out_of_the_menu_bar_glyph(self):
+    def test_native_app_has_no_disk_backed_fallback_state(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
 
-        self.assertIn('"Last live ·"', source)
-        self.assertIn('case "last_live"', source)
-        self.assertIn("Last live", source)
+        self.assertNotIn('"Last live ·"', source)
+        self.assertNotIn('case "last_live"', source)
+        self.assertNotIn('case "local_snapshot"', source)
+        self.assertIn("last in-memory reading", source)
         self.assertIn("menuBarTooltipTitle(title: title, status: status)", source)
         self.assertNotIn("drawSourceIndicator", source)
         self.assertNotIn("drawStatusStateBadge", source)
@@ -450,7 +499,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("completeFirstRunSetup", source)
         self.assertIn('"Start in menu bar"', source)
         self.assertIn('"Local first. No cookies."', source)
-        self.assertIn('"Open Codex"', source)
+        self.assertIn('"Open ChatGPT"', source)
         self.assertIn('"Run Check"', source)
         self.assertIn("orderFrontRegardless", source)
         self.assertIn(".canJoinAllSpaces", source)

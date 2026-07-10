@@ -4,6 +4,19 @@ import unittest
 
 
 class PublicReleaseHygieneTests(unittest.TestCase):
+    def test_release_docs_and_soak_check_match_live_only_architecture(self):
+        security = pathlib.Path("SECURITY.md").read_text()
+        notice = pathlib.Path("NOTICE").read_text()
+        publishing = pathlib.Path("docs/PUBLISHING.md").read_text()
+        soak = pathlib.Path("script/soak_check.sh").read_text()
+
+        self.assertIn("live-only", security)
+        self.assertIn("live-only", notice)
+        self.assertIn("live-only", publishing)
+        self.assertNotIn("Snapshot fallback", security)
+        self.assertNotIn("CODEX_GAUGE_NO_STORAGE", publishing)
+        self.assertNotIn("CODEX_GAUGE_NO_STORAGE", soak)
+
     def test_gitignore_excludes_private_runtime_artifacts(self):
         gitignore = pathlib.Path(".gitignore").read_text()
 
@@ -84,6 +97,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("v0.9.1", changelog)
         self.assertIn("v0.9.2", changelog)
         self.assertIn("v0.9.3", changelog)
+        self.assertIn("v0.9.4", changelog)
 
     def test_release_check_script_covers_public_release_gates(self):
         script_path = pathlib.Path("script/release_check.sh")
@@ -103,6 +117,8 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("git grep -n -I -E", script)
         self.assertNotIn("grep -R -I -n -E", script)
         self.assertIn("pixelWidth: 1280", script)
+        self.assertIn("pixelWidth: 760", script)
+        self.assertIn("pixelHeight: 544", script)
         self.assertIn("swift script/generate_theme_state_previews.swift", script)
         self.assertIn("swift script/generate_logo_assets.swift", script)
         self.assertIn("swift script/generate_public_assets.swift", script)
@@ -273,7 +289,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
             "Signal Dark",
             "Mono Graphite",
             "Live",
-            "Codex closed",
+            "ChatGPT unavailable",
             "Live only",
             "Low quota",
             "Reset soon",
@@ -297,17 +313,14 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         expected = [
             "blue-ceramic-live.png",
             "blue-ceramic-codex-closed.png",
-            "blue-ceramic-last-live.png",
             "blue-ceramic-low-quota.png",
             "blue-ceramic-reset-soon.png",
             "signal-dark-live.png",
             "signal-dark-codex-closed.png",
-            "signal-dark-last-live.png",
             "signal-dark-low-quota.png",
             "signal-dark-reset-soon.png",
             "mono-graphite-live.png",
             "mono-graphite-codex-closed.png",
-            "mono-graphite-last-live.png",
             "mono-graphite-low-quota.png",
             "mono-graphite-reset-soon.png",
         ]
@@ -328,8 +341,8 @@ class PublicReleaseHygieneTests(unittest.TestCase):
                 text=True,
                 stdout=subprocess.PIPE,
             )
-            self.assertIn("pixelWidth: 1120", result.stdout)
-            self.assertIn("pixelHeight: 1120", result.stdout)
+            self.assertIn("pixelWidth: 760", result.stdout)
+            self.assertIn("pixelHeight: 544", result.stdout)
         self.assertFalse(list(fixture_dir.glob("*battery-mode.png")))
         self.assertFalse(list(fixture_dir.glob("*plugged-in-full.png")))
         self.assertIn("blue-ceramic", pathlib.Path("native/CodexGauge.swift").read_text())
@@ -338,6 +351,12 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         script = pathlib.Path("script/generate_public_assets.swift")
 
         self.assertTrue(script.exists())
+        script_text = script.read_text()
+        self.assertIn('"No history"', script_text)
+        self.assertIn("Menu bar first. Live detail when you click.", script_text)
+        self.assertNotIn('"Live summary"', script_text)
+        self.assertIn("NSRect(x: 604, y: 104, width: 604, height: 432)", script_text)
+        self.assertIn("NSRect(x: 598, y: 100, width: 586, height: 420)", script_text)
         script_text = script.read_text()
         self.assertIn("docs/design/app-rendered-signal-console/blue-ceramic-live.png", script_text)
         self.assertIn("docs/design/app-rendered-signal-console/signal-dark-live.png", script_text)
@@ -357,6 +376,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         install = pathlib.Path("install.sh").read_text()
 
         self.assertIn('APP_NAME="CodexGauge"', script)
+        self.assertIn('APP_VERSION="0.9.4"', script)
         self.assertIn('CFBundleName</key>', script)
         self.assertIn("Codex Gauge", script)
         self.assertIn("CodexGaugeUsagePath", script)
@@ -372,7 +392,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         for phrase in [
             "git@github.com:qingzhangeddie-byte/codex-gauge.git",
             "git push -u origin main --tags",
-            "v0.9.3",
+            "v0.9.4",
             "repository social preview",
             "docs/assets/codex-gauge-social-preview.png",
             "private vulnerability reporting",

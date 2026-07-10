@@ -77,7 +77,7 @@ let themes = [
 
 let states = [
     PreviewState(name: "Live", detail: "Current local app-server signal", source: "Source: Menu Bar", fiveHour: 82, sevenDay: 76, reset: "4h", status: NSColor.systemGreen),
-    PreviewState(name: "Codex closed", detail: "Open Codex desktop once to enable live usage", source: "No live quota yet", fiveHour: nil, sevenDay: nil, reset: "--", status: NSColor.systemOrange),
+    PreviewState(name: "ChatGPT unavailable", detail: "Open ChatGPT once to enable live usage", source: "No live quota yet", fiveHour: nil, sevenDay: nil, reset: "--", status: NSColor.systemOrange),
     PreviewState(name: "Live only", detail: "No quota cache or snapshot", source: "Storage: startup only", fiveHour: 58, sevenDay: 63, reset: "2h", status: NSColor.systemBlue),
     PreviewState(name: "Low quota", detail: "Adaptive refresh speeds up", source: "Source: Menu Bar", fiveHour: 9, sevenDay: 44, reset: "38m", status: NSColor.systemRed),
     PreviewState(name: "Reset soon", detail: "Countdown stays visible", source: "Source: Menu Bar", fiveHour: 80, sevenDay: 79, reset: "60m", status: NSColor.systemBlue),

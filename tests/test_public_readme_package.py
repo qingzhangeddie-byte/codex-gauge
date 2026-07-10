@@ -52,7 +52,7 @@ class PublicReadmePackageTests(unittest.TestCase):
         for phrase in [
             "Stop guessing how much Codex you have left.",
             "Codex Gauge puts your 5-hour and 7-day usage percentages, horizontal bars, and reset countdowns directly in the macOS menu bar",
-            "Open Codex once, keep Codex Gauge running, and the menu bar refreshes hands-free.",
+            "Open ChatGPT once, keep Codex Gauge running, and the menu bar refreshes hands-free.",
             "No browser cookies. No `~/.codex/auth.json`. No prompt or response logging.",
             "Install from source with one command:",
             "bash install.sh",
@@ -91,15 +91,17 @@ class PublicReadmePackageTests(unittest.TestCase):
             "Adaptive refresh",
             "Codex quota at a glance",
             "System-monitor bars",
-            "Signal Console labels for Live, Last live, Snapshot, and Codex closed states",
-            "Local-only storage model",
-            "Clear legacy data removes old Codex Gauge history",
+            "Compact live-only Signal Console",
+            "No Codex session-file scanning",
+            "No quota history, cache, report, or runtime log files",
             "actual next-refresh countdown",
-            "Codex closed",
+            "ChatGPT unavailable",
             "Reset timing",
             "registers `~/Library/LaunchAgents/app.codexgauge.menubar.plist`",
         ]:
             self.assertIn(phrase, readme)
+        for removed in ["Clear legacy data", "Snapshot fallback", "CODEX_GAUGE_NO_STORAGE"]:
+            self.assertNotIn(removed, readme)
 
     def test_readmes_explain_uninstall_and_notice(self):
         readme = pathlib.Path("README.md").read_text(encoding="utf-8")
@@ -179,8 +181,8 @@ class PublicReadmePackageTests(unittest.TestCase):
         self.assertTrue(readme.startswith("# Codex Gauge\n"))
         self.assertIn("安静、安全的 Codex 菜单栏额度仪表", readme)
         self.assertIn("实时重置倒计时", readme)
-        self.assertIn("本地存储模型", readme)
-        self.assertIn("开机启动 LaunchAgent", readme)
+        self.assertIn("不保存额度历史", readme)
+        self.assertIn("开机启动只使用标准 LaunchAgent", readme)
         self.assertIn("git clone https://github.com/qingzhangeddie-byte/codex-gauge.git", readme)
         for phrase in [
             "## FAQ",
@@ -200,10 +202,12 @@ class PublicReadmePackageTests(unittest.TestCase):
         self.assertIn("Codex Gauge Privacy Notes", privacy)
         self.assertIn("does not read browser cookies", privacy)
         self.assertIn("does not read `~/.codex/auth.json`", privacy)
-        self.assertIn("zero persistence", privacy)
-        self.assertIn("read-only emergency fallback", privacy)
+        self.assertIn("live-only", privacy)
+        self.assertIn("does not read Codex session files", privacy)
+        self.assertIn("does not create an Application Support folder", privacy)
         self.assertIn("Codex app-server", privacy)
         self.assertIn("startup login", privacy)
+        self.assertNotIn("read-only emergency fallback", privacy)
 
 
 if __name__ == "__main__":

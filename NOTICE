@@ -5,5 +5,5 @@ This project includes original upstream work from zhuchenxi113/ai-limit,
 licensed under the Apache License, Version 2.0.
 
 Codex Gauge substantially modifies that work into a Codex-only macOS menu bar
-app with a native AppKit status item, bundled helper, bounded local snapshot
-fallback, and public release hygiene checks.
+app with a native AppKit status item, bundled helper, live-only quota path,
+no usage-file storage, and public release hygiene checks.

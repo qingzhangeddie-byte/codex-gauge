@@ -22,13 +22,6 @@ private struct ServiceStatus: Decodable {
     let error: String?
 }
 
-private struct HistorySample: Codable {
-    let time: String
-    let source: String
-    let fiveHourLeft: Int?
-    let sevenDayLeft: Int?
-}
-
 private struct GitHubRelease: Decodable {
     let tagName: String
     let name: String?
@@ -99,159 +92,49 @@ private func healthSummaryText(_ checks: [DoctorCheck]) -> String {
     return "\(okCount) OK"
 }
 
-private struct TrendContext {
-    let sampleCount: Int
-    let liveSampleCount: Int
-    let firstTime: String?
-    let lastTime: String?
-    let latestSource: String?
-    let summaryText: String
-}
-
-private struct UsageReportSummary {
-    let windowLabel: String
-    let sampleCount: Int
-    let liveSampleCount: Int
-    let nonLiveSampleCount: Int
-    let firstFiveHourLeft: Int?
-    let latestFiveHourLeft: Int?
-    let firstSevenDayLeft: Int?
-    let latestSevenDayLeft: Int?
-    let largestFiveHourDrop: Int?
-    let largestSevenDayDrop: Int?
-    let sourceCounts: [String: Int]
-    let generatedAt: Date
-}
-
-private struct InlineUsageReportSummary {
-    let fiveHourMovement: String
-    let sevenDayMovement: String
-    let todaySummary: String
-}
-
 private struct SignalConsoleLayout {
     let bounds: NSRect
-    private let margin: CGFloat = 20
-    private let gutter: CGFloat = 12
-    private let innerInset: CGFloat = 16
-
-    func splitHorizontally(_ rect: NSRect, columns: Int, gap: CGFloat) -> [NSRect] {
-        guard columns > 0 else {
-            return []
-        }
-        let totalGap = gap * CGFloat(columns - 1)
-        let itemWidth = (rect.width - totalGap) / CGFloat(columns)
-        return (0..<columns).map { index in
-            NSRect(
-                x: rect.minX + CGFloat(index) * (itemWidth + gap),
-                y: rect.minY,
-                width: itemWidth,
-                height: rect.height
-            )
-        }
-    }
+    private let margin: CGFloat = 18
 
     var panelRect: NSRect {
-        bounds.insetBy(dx: 1, dy: 1)
+        bounds
     }
 
     var headerTitleRect: NSRect {
-        NSRect(x: margin, y: 18, width: 306, height: 24)
+        NSRect(x: margin, y: 16, width: 220, height: 24)
     }
 
-    var headerSignalPillRect: NSRect {
-        NSRect(x: 344, y: 16, width: 70, height: 28)
-    }
-
-    var headerSourcePillRect: NSRect {
-        NSRect(x: 422, y: 16, width: 118, height: 28)
-    }
-
-    var statusStripRect: NSRect {
-        NSRect(x: margin, y: 54, width: bounds.width - margin * 2, height: 42)
-    }
-
-    func statusStripDetailRect(unavailable: Bool) -> NSRect {
-        let rect = statusStripRect
-        return NSRect(x: rect.minX + 124, y: rect.minY + 9, width: unavailable ? 176 : 268, height: 18)
-    }
-
-    var closedSignalStateRect: NSRect {
-        let rect = statusStripRect
-        return NSRect(x: rect.maxX - 210, y: rect.minY + 7, width: 96, height: 28)
-    }
-
-    var nextRefreshPillRect: NSRect {
-        let rect = statusStripRect
-        return NSRect(x: rect.maxX - 104, y: rect.minY + 7, width: 86, height: 28)
-    }
-
-    var heroCardRect: NSRect {
-        NSRect(x: margin, y: 108, width: bounds.width - margin * 2, height: 152)
+    var headerStatusRect: NSRect {
+        NSRect(x: bounds.width - margin - 92, y: 17, width: 92, height: 20)
     }
 
     var fiveHourQuotaRowRect: NSRect {
-        NSRect(x: margin + 14, y: 124, width: bounds.width - 68, height: 58)
+        NSRect(x: margin, y: 58, width: bounds.width - margin * 2, height: 62)
     }
 
     var sevenDayQuotaRowRect: NSRect {
-        NSRect(x: margin + 14, y: 190, width: bounds.width - 68, height: 58)
+        NSRect(x: margin, y: 126, width: bounds.width - margin * 2, height: 62)
     }
 
-    var trendCardRect: NSRect {
-        NSRect(x: margin, y: 328, width: 248, height: 122)
+    var freshnessRect: NSRect {
+        NSRect(x: margin, y: 184, width: bounds.width - margin * 2 - 132, height: 20)
     }
 
-    var reportCardRect: NSRect {
-        let trend = trendCardRect
-        return NSRect(x: trend.maxX + gutter, y: trend.minY, width: bounds.width - margin - trend.maxX - gutter, height: trend.height)
+    var nextRefreshRect: NSRect {
+        NSRect(x: bounds.width - margin - 124, y: 184, width: 124, height: 20)
     }
 
-    var reportTodayTextRect: NSRect {
-        let card = reportCardRect
-        return NSRect(x: card.minX + innerInset, y: card.minY + 34, width: 212, height: 12)
+    var openChatGPTButtonRect: NSRect {
+        NSRect(x: margin, y: 226, width: 200, height: 34)
     }
 
-    var reportMetricRects: [NSRect] {
-        let card = reportCardRect
-        return splitHorizontally(
-            NSRect(x: card.minX + innerInset, y: card.minY + 52, width: card.width - innerInset * 2, height: 32),
-            columns: 2,
-            gap: 10
-        )
-    }
-
-    var copyReportButtonRect: NSRect {
-        let card = reportCardRect
-        return NSRect(x: card.minX + 18, y: card.maxY - 32, width: 108, height: 30)
-    }
-
-    var clearDataButtonRect: NSRect {
-        let card = reportCardRect
-        return NSRect(x: card.minX + 136, y: card.maxY - 32, width: 106, height: 30)
-    }
-
-    var healthRibbonRect: NSRect {
-        NSRect(x: margin, y: 454, width: bounds.width - margin * 2, height: 54)
-    }
-
-    var healthStatusGridRect: NSRect {
-        let rect = healthRibbonRect
-        return NSRect(x: rect.minX + 118, y: rect.minY + 12, width: 300, height: 30)
-    }
-
-    var runCheckButtonRect: NSRect {
-        let rect = healthRibbonRect
-        return NSRect(x: rect.maxX - 90, y: rect.minY + 13, width: 82, height: 28)
-    }
-
-    var bottomCommandButtonRects: [NSRect] {
-        [
-            NSRect(x: margin, y: 516, width: 122, height: 32),
-            NSRect(x: margin + 130, y: 516, width: 122, height: 32),
-            NSRect(x: margin + 260, y: 516, width: 122, height: 32),
-            NSRect(x: margin + 390, y: 516, width: 130, height: 32),
-        ]
+    var iconButtonRects: [NSRect] {
+        let size: CGFloat = 34
+        let gap: CGFloat = 8
+        let right = bounds.width - margin
+        return (0..<3).map { index in
+            NSRect(x: right - size - CGFloat(2 - index) * (size + gap), y: 226, width: size, height: size)
+        }
     }
 }
 
@@ -583,7 +466,7 @@ private final class ThemedUtilityPanelView: NSView {
 
         drawUtilityLogoMark(in: NSRect(x: sidebar.minX + 24, y: sidebar.maxY - 54, width: 34, height: 34), color: theme.blueAccent)
         drawUtilityText("Codex Gauge", in: NSRect(x: sidebar.minX + 64, y: sidebar.maxY - 42, width: 74, height: 14), size: 11, weight: .semibold, color: theme.textPrimary)
-        let items = ["General", "Appearance", "Signals", "Updates", "Storage", "Advanced", "About"]
+        let items = ["General", "Appearance", "Signals", "Updates", "About"]
         for (index, item) in items.enumerated() {
             let y = sidebar.maxY - 92 - CGFloat(index) * 34
             let rect = NSRect(x: sidebar.minX + 18, y: y, width: 116, height: 24)
@@ -703,18 +586,6 @@ private struct SignalConsoleModel {
     let sevenDayLeft: Int?
     let fiveHourResetText: String
     let sevenDayResetText: String
-    let fiveHourResetProgress: Int?
-    let sevenDayResetProgress: Int?
-    let fiveHourHistory: [Int]
-    let sevenDayHistory: [Int]
-    let fiveHourTrendText: String
-    let sevenDayTrendText: String
-    let trendContextText: String
-    let reportFiveHourMovement: String
-    let reportSevenDayMovement: String
-    let reportTodaySummary: String
-    let healthSummaryText: String
-    let doctorChecks: [DoctorCheck]
     let lastRefreshText: String
     let liveAgeText: String
     let nextRefreshText: String
@@ -724,13 +595,9 @@ private struct SignalConsoleModel {
 }
 
 private final class SignalConsolePanelView: NSView {
-    private let model: SignalConsoleModel
-    private let theme: SignalConsoleTheme
+    private var model: SignalConsoleModel
+    private var theme: SignalConsoleTheme
     private weak var target: AnyObject?
-    private let runCheckAction: Selector
-    private let generateReportAction: Selector
-    private let copyDiagnosticsAction: Selector
-    private let clearDataAction: Selector
     private let openCodexAction: Selector
     private let refreshAction: Selector
     private let preferencesAction: Selector
@@ -745,10 +612,6 @@ private final class SignalConsolePanelView: NSView {
         model: SignalConsoleModel,
         theme: SignalConsoleTheme,
         target: AnyObject,
-        runCheckAction: Selector,
-        generateReportAction: Selector,
-        copyDiagnosticsAction: Selector,
-        clearDataAction: Selector,
         openCodexAction: Selector,
         refreshAction: Selector,
         preferencesAction: Selector,
@@ -757,10 +620,6 @@ private final class SignalConsolePanelView: NSView {
         self.model = model
         self.theme = theme
         self.target = target
-        self.runCheckAction = runCheckAction
-        self.generateReportAction = generateReportAction
-        self.copyDiagnosticsAction = copyDiagnosticsAction
-        self.clearDataAction = clearDataAction
         self.openCodexAction = openCodexAction
         self.refreshAction = refreshAction
         self.preferencesAction = preferencesAction
@@ -769,6 +628,7 @@ private final class SignalConsolePanelView: NSView {
         wantsLayer = true
         layer?.backgroundColor = NSColor.clear.cgColor
         addSignalConsoleButtons()
+        updateAccessibility()
     }
 
     required init?(coder: NSCoder) {
@@ -780,16 +640,46 @@ private final class SignalConsolePanelView: NSView {
         drawSignalConsolePanel()
     }
 
+    func update(model: SignalConsoleModel) {
+        self.model = model
+        updateAccessibility()
+        needsDisplay = true
+    }
+
+    func apply(theme: SignalConsoleTheme) {
+        self.theme = theme
+        for case let button as NSButton in subviews {
+            let primary = button.title == "Open ChatGPT"
+            button.layer?.backgroundColor = (primary ? morandiQuotaBlue : theme.commandButtonBackground).cgColor
+            button.contentTintColor = theme.textPrimary
+            if primary {
+                button.attributedTitle = NSAttributedString(
+                    string: button.title,
+                    attributes: textAttributes(size: 13, weight: .semibold, color: theme.buttonPrimaryText, alignment: .center)
+                )
+            }
+        }
+        needsDisplay = true
+    }
+
+    private func updateAccessibility() {
+        setAccessibilityElement(true)
+        setAccessibilityRole(.group)
+        setAccessibilityLabel("Codex Gauge quota")
+        setAccessibilityValue(
+            "5-hour \(percentText(model.fiveHourLeft)) left, resets \(model.fiveHourResetText). "
+                + "7-day \(percentText(model.sevenDayLeft)) left, resets \(model.sevenDayResetText). "
+                + "Next refresh \(model.nextRefreshText)."
+        )
+    }
+
     private func addSignalConsoleButtons() {
         let layout = SignalConsoleLayout(bounds: bounds)
-        let commandRects = layout.bottomCommandButtonRects
-        addButton(title: "Copy summary", frame: layout.copyReportButtonRect, action: generateReportAction, style: .primary)
-        addButton(title: "Clear legacy", frame: layout.clearDataButtonRect, action: clearDataAction, style: .secondary)
-        addButton(title: "Run Check", frame: layout.runCheckButtonRect, action: runCheckAction, style: .secondary)
-        addButton(title: "Open Codex", frame: commandRects[0], action: openCodexAction, style: .command)
-        addButton(title: "Refresh Now", frame: commandRects[1], action: refreshAction, style: .command)
-        addButton(title: "Preferences", frame: commandRects[2], action: preferencesAction, style: .command)
-        addButton(title: "Quit", frame: commandRects[3], action: quitAction, style: .command)
+        let iconRects = layout.iconButtonRects
+        addButton(title: "Open ChatGPT", frame: layout.openChatGPTButtonRect, action: openCodexAction, style: .primary)
+        addIconButton(symbol: "arrow.clockwise", label: "Refresh now", frame: iconRects[0], action: refreshAction)
+        addIconButton(symbol: "gearshape", label: "Preferences", frame: iconRects[1], action: preferencesAction)
+        addIconButton(symbol: "power", label: "Quit Codex Gauge", frame: iconRects[2], action: quitAction)
     }
 
     private enum SignalButtonStyle {
@@ -803,23 +693,41 @@ private final class SignalConsolePanelView: NSView {
         button.frame = frame
         button.isBordered = false
         button.wantsLayer = true
-        button.layer?.cornerRadius = style == .command ? 12 : 10
+        button.layer?.cornerRadius = 7
         button.layer?.backgroundColor = buttonBackground(style).cgColor
         button.attributedTitle = NSAttributedString(
             string: title,
             attributes: textAttributes(
                 size: 13,
                 weight: style == .primary ? .semibold : .medium,
-                color: buttonTextColor(style)
+                color: buttonTextColor(style),
+                alignment: .center
             )
         )
+        button.alignment = .center
+        addSubview(button)
+    }
+
+    private func addIconButton(symbol: String, label: String, frame: NSRect, action: Selector) {
+        let button = NSButton(frame: frame)
+        button.target = target
+        button.action = action
+        button.isBordered = false
+        button.wantsLayer = true
+        button.layer?.cornerRadius = 7
+        button.layer?.backgroundColor = theme.commandButtonBackground.cgColor
+        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: label)
+        button.imagePosition = .imageOnly
+        button.contentTintColor = textPrimary
+        button.toolTip = label
+        button.setAccessibilityLabel(label)
         addSubview(button)
     }
 
     private func buttonBackground(_ style: SignalButtonStyle) -> NSColor {
         switch style {
         case .primary:
-            return mintAccent
+            return morandiQuotaBlue
         case .secondary:
             return theme.secondaryButtonBackground
         case .command:
@@ -839,26 +747,17 @@ private final class SignalConsolePanelView: NSView {
     private func drawSignalConsolePanel() {
         drawPanelBackground()
         drawHeader()
-        drawStatusStrip()
         drawSignalHeroCard()
-        drawTrendSection()
-        drawReportSection()
-        drawHealthRibbon()
-        drawInstrumentDivider(y: 510)
+        drawStatusStrip()
     }
 
     private func drawPanelBackground() {
         let layout = SignalConsoleLayout(bounds: bounds)
         let rect = layout.panelRect
-        let background = NSBezierPath(roundedRect: rect, xRadius: 18, yRadius: 18)
-        NSGradient(colors: [
-            panelStrongBackground,
-            panelBackground,
-        ])?.draw(in: background, angle: 90)
-        panelBorder.setStroke()
-        background.lineWidth = 1
-        background.stroke()
-        drawPanelAccentRail()
+        panelBackground.setFill()
+        rect.fill()
+        let wash = NSBezierPath(rect: NSRect(x: rect.minX, y: rect.minY, width: rect.width, height: 48))
+        NSGradient(colors: [panelStrongBackground, panelBackground])?.draw(in: wash, angle: 90)
     }
 
     private func drawPanelAccentRail() {
@@ -880,30 +779,23 @@ private final class SignalConsolePanelView: NSView {
     private func drawHeader() {
         let layout = SignalConsoleLayout(bounds: bounds)
         let title = layout.headerTitleRect
-        let next = layout.headerSignalPillRect
-        let source = layout.headerSourcePillRect
-        drawCircuitLogoMark(in: NSRect(x: title.minX, y: title.minY - 6, width: 30, height: 30), color: blueAccent)
-        drawText("Codex Gauge  •  Signal Console", x: title.minX + 40, y: title.minY, width: title.width - 40, height: title.height, size: 15, weight: .semibold, color: textPrimary)
-        drawPill(text: headerSignalText(), rect: next, color: headerSignalColor().withAlphaComponent(0.12), dotColor: headerSignalColor())
-        drawPill(text: model.sourcePill, rect: source, color: theme.secondaryButtonBackground)
+        let status = layout.headerStatusRect
+        drawText("Codex Gauge", x: title.minX, y: title.minY, width: 118, height: title.height, size: 16, weight: .semibold, color: textPrimary)
+        drawText(model.planName, x: title.minX + 124, y: title.minY + 3, width: 96, height: 18, size: 10, weight: .medium, color: textMuted)
+        let stateColor = sourceColor(source: model.source, unavailable: model.isUnavailable)
+        drawCircle(center: NSPoint(x: status.minX + 7, y: status.midY), radius: 3.5, color: stateColor, stroke: nil)
+        drawText(headerSignalText(), x: status.minX + 16, y: status.minY + 2, width: status.width - 16, height: 16, size: 11, weight: .semibold, color: stateColor)
+        drawInstrumentDivider(y: 48, xInset: 18)
     }
 
     private func drawStatusStrip() {
         let layout = SignalConsoleLayout(bounds: bounds)
-        let rect = layout.statusStripRect
         let stateColor = sourceColor(source: model.source, unavailable: model.isUnavailable)
-        drawRoundedRect(rect, radius: 13, fill: stateColor.withAlphaComponent(0.08), stroke: panelBorder.withAlphaComponent(0.42))
-        drawCircle(center: NSPoint(x: rect.minX + 18, y: rect.midY), radius: 4, color: stateColor, stroke: nil)
-        drawText("Live signal", x: rect.minX + 30, y: rect.minY + 9, width: 86, height: 18, size: 13, weight: .bold, color: stateColor)
-        let detail = layout.statusStripDetailRect(unavailable: model.isUnavailable)
-        drawText(statusStripDetail(), x: detail.minX, y: detail.minY, width: detail.width, height: detail.height, size: 12, weight: .regular, color: textSecondary)
-        if model.isUnavailable {
-            drawClosedSignalState(in: layout.closedSignalStateRect)
-        }
-        let next = layout.nextRefreshPillRect
-        drawRoundedRect(next, radius: 9, fill: theme.commandButtonBackground, stroke: panelBorder.withAlphaComponent(0.26))
-        drawText("next", x: next.minX + 10, y: next.minY + 6, width: 30, height: 14, size: 10, weight: .regular, color: textMuted)
-        drawText(model.nextRefreshText, x: next.minX + 46, y: next.minY + 6, width: 42, height: 14, size: 10, weight: .semibold, color: textPrimary, mono: true)
+        let freshness = model.isUnavailable ? model.stateDetail : "Updated \(model.liveAgeText)"
+        drawCircle(center: NSPoint(x: layout.freshnessRect.minX + 4, y: layout.freshnessRect.midY), radius: 2.8, color: stateColor, stroke: nil)
+        drawText(freshness, x: layout.freshnessRect.minX + 12, y: layout.freshnessRect.minY + 2, width: layout.freshnessRect.width - 12, height: 16, size: 10.5, weight: .medium, color: textSecondary)
+        drawText("Next \(model.nextRefreshText)", x: layout.nextRefreshRect.minX, y: layout.nextRefreshRect.minY + 2, width: layout.nextRefreshRect.width, height: 16, size: 10.5, weight: .medium, color: textMuted, mono: true, alignment: .right)
+        drawInstrumentDivider(y: 214, xInset: 18)
     }
 
     private func drawClosedSignalState(in rect: NSRect) {
@@ -914,45 +806,29 @@ private final class SignalConsolePanelView: NSView {
 
     private func drawSignalHeroCard() {
         let layout = SignalConsoleLayout(bounds: bounds)
-        let card = layout.heroCardRect
-        drawRoundedGradient(
-            card,
-            radius: 16,
-            gradient: NSGradient(colors: [
-                panelStrongBackground,
-                panelSoftBackground,
-            ]),
-            stroke: panelBorder
-        )
         drawQuotaWindowRow(
             window: "5h",
-            label: "5-hour quota left",
+            label: "5-hour quota",
             value: model.fiveHourLeft,
             resetText: model.fiveHourResetText,
-            resetProgress: model.fiveHourResetProgress,
             rect: layout.fiveHourQuotaRowRect
         )
-        drawInstrumentDivider(y: layout.fiveHourQuotaRowRect.maxY + 8, xInset: 20)
+        drawInstrumentDivider(y: 123, xInset: 18)
         drawQuotaWindowRow(
             window: "7d",
-            label: "7-day quota left",
+            label: "7-day quota",
             value: model.sevenDayLeft,
             resetText: model.sevenDayResetText,
-            resetProgress: model.sevenDayResetProgress,
             rect: layout.sevenDayQuotaRowRect
         )
     }
 
-    private func drawQuotaWindowRow(window: String, label: String, value: Int?, resetText: String, resetProgress: Int?, rect: NSRect) {
-        drawInstrumentRowBaseline(rect)
-        drawText(window, x: rect.minX + 14, y: rect.minY + 13, width: 38, height: 22, size: 19, weight: .bold, color: textPrimary, mono: true)
-        drawText("window", x: rect.minX + 14, y: rect.minY + 35, width: 48, height: 14, size: 8, weight: .bold, color: textSecondary)
-        drawText(label, x: rect.minX + 70, y: rect.minY + 12, width: 160, height: 16, size: 11, weight: .medium, color: textSecondary)
-        drawText(percentText(value), x: rect.minX + 236, y: rect.minY + 9, width: 54, height: 22, size: 17, weight: .bold, color: value == nil ? textMuted : quotaColor(value), mono: true)
-        drawQuotaRail(value: value, rect: NSRect(x: rect.minX + 70, y: rect.minY + 36, width: 196, height: 10))
-        drawText("reset", x: rect.minX + 288, y: rect.minY + 12, width: 34, height: 16, size: 10, weight: .medium, color: textSecondary)
-        drawText(resetText, x: rect.maxX - 76, y: rect.minY + 12, width: 60, height: 16, size: 10, weight: .semibold, color: resetTextColor(resetText), mono: true)
-        drawResetCountdownLane(value: resetProgress, rect: NSRect(x: rect.minX + 288, y: rect.minY + 36, width: 146, height: 9))
+    private func drawQuotaWindowRow(window: String, label: String, value: Int?, resetText: String, rect: NSRect) {
+        drawText(window, x: rect.minX, y: rect.minY + 3, width: 30, height: 20, size: 15, weight: .bold, color: textPrimary, mono: true)
+        drawText(percentText(value), x: rect.minX + 38, y: rect.minY, width: 62, height: 24, size: 18, weight: .bold, color: value == nil ? textMuted : quotaColor(value), mono: true)
+        drawText(label, x: rect.minX + 102, y: rect.minY + 5, width: 92, height: 16, size: 10.5, weight: .medium, color: textSecondary)
+        drawText("resets \(resetText)", x: rect.maxX - 116, y: rect.minY + 5, width: 116, height: 16, size: 10.5, weight: .medium, color: resetTextColor(resetText), mono: true, alignment: .right)
+        drawQuotaRail(value: value, rect: NSRect(x: rect.minX, y: rect.minY + 34, width: rect.width, height: 8))
     }
 
     private func drawInstrumentRowBaseline(_ rect: NSRect) {
@@ -968,102 +844,6 @@ private final class SignalConsolePanelView: NSView {
         rules.lineWidth = 0.8
         panelBorder.withAlphaComponent(0.44).setStroke()
         rules.stroke()
-    }
-
-    private func drawTrendSection() {
-        let layout = SignalConsoleLayout(bounds: bounds)
-        let card = layout.trendCardRect
-        drawRoundedRect(card, radius: 15, fill: panelSoftBackground, stroke: panelBorder.withAlphaComponent(0.50))
-        drawText("Movement", x: card.minX + 16, y: card.minY + 14, width: 86, height: 18, size: 12, weight: .bold, color: textPrimary)
-        drawText("last 24h", x: card.minX + 104, y: card.minY + 16, width: 44, height: 14, size: 8.6, weight: .regular, color: textMuted)
-        drawText("Quota movement", x: card.minX + 16, y: card.minY + 33, width: 78, height: 12, size: 8.2, weight: .bold, color: textMuted)
-        drawTrendContext()
-        drawTrendRow(label: "5h", text: model.fiveHourTrendText, values: model.fiveHourHistory, y: card.minY + 52)
-        drawTrendRow(label: "7d", text: model.sevenDayTrendText, values: model.sevenDayHistory, y: card.minY + 73)
-        drawText("Codex-only signal", x: card.minX + 16, y: card.minY + 96, width: card.width - 32, height: 12, size: 8.4, weight: .bold, color: blueAccent)
-        drawText("No device telemetry sampled", x: card.minX + 118, y: card.minY + 96, width: card.width - 134, height: 12, size: 7.6, weight: .medium, color: textMuted)
-    }
-
-    private func drawTrendContext() {
-        let layout = SignalConsoleLayout(bounds: bounds)
-        let card = layout.trendCardRect
-        drawText(model.trendContextText, x: card.minX + 96, y: card.minY + 33, width: card.width - 176, height: 12, size: 7.2, weight: .regular, color: textMuted)
-    }
-
-    private func drawTrendRow(label: String, text: String, values: [Int], y: CGFloat) {
-        let layout = SignalConsoleLayout(bounds: bounds)
-        let card = layout.trendCardRect
-        let signalText = "\(label) \(trendSignalText(values: values, fallback: text))"
-        let labelX = card.minX + 16
-        let sparklineRect = NSRect(x: card.minX + 84, y: y - 4, width: 46, height: 18)
-        drawText(signalText, x: labelX, y: y - 2, width: 52, height: 16, size: 9.2, weight: .bold, color: trendSignalColor(values: values), mono: true)
-        drawTrendSparkline(values: values, rect: sparklineRect)
-        drawTrendDeltaText(values: values, y: y)
-    }
-
-    private func drawTrendDeltaText(values: [Int], y: CGFloat) {
-        let layout = SignalConsoleLayout(bounds: bounds)
-        let card = layout.trendCardRect
-        let text = trendDeltaText(values)
-        drawText(
-            text,
-            x: card.minX + 136,
-            y: y,
-            width: 36,
-            height: 16,
-            size: text.count > 6 ? 7.8 : 9.5,
-            weight: .semibold,
-            color: trendDeltaTextColor(values: values),
-            mono: true
-        )
-    }
-
-    private func drawReportSection() {
-        let layout = SignalConsoleLayout(bounds: bounds)
-        let card = layout.reportCardRect
-        let metricRects = layout.reportMetricRects
-        let source = layout.reportTodayTextRect
-        drawRoundedRect(card, radius: 15, fill: panelSoftBackground, stroke: panelBorder.withAlphaComponent(0.50))
-        drawText("Usage summary", x: card.minX + 16, y: card.minY + 14, width: 118, height: 18, size: 12, weight: .bold, color: textPrimary)
-        drawText("local only", x: card.maxX - 62, y: card.minY + 14, width: 46, height: 18, size: 10, weight: .regular, color: textMuted)
-        drawText(model.reportTodaySummary, x: source.minX, y: source.minY, width: source.width, height: source.height, size: 8.8, weight: .regular, color: textMuted)
-        drawReportMetric(label: "5h move", value: model.reportFiveHourMovement, rect: metricRects[0])
-        drawReportMetric(label: "7d move", value: model.reportSevenDayMovement, rect: metricRects[1])
-    }
-
-    private func drawReportMetric(label: String, value: String, rect: NSRect) {
-        drawRoundedRect(rect, radius: 10, fill: theme.commandButtonBackground, stroke: panelBorder.withAlphaComponent(0.22))
-        drawText(label, x: rect.minX + 10, y: rect.minY + 6, width: rect.width - 20, height: 11, size: 8.5, weight: .medium, color: textMuted)
-        drawText(value, x: rect.minX + 10, y: rect.minY + 18, width: rect.width - 20, height: 13, size: 10.5, weight: .bold, color: reportMetricColor(value), mono: true)
-    }
-
-    private func reportMetricColor(_ value: String) -> NSColor {
-        if value.hasPrefix("-") {
-            return coralAccent
-        }
-        if value.hasPrefix("+") {
-            return mintAccent
-        }
-        return textSecondary
-    }
-
-    private func drawHealthRibbon() {
-        let layout = SignalConsoleLayout(bounds: bounds)
-        let rect = layout.healthRibbonRect
-        drawRoundedRect(rect, radius: 15, fill: panelSoftBackground, stroke: panelBorder.withAlphaComponent(0.50))
-        drawText("Health", x: rect.minX + 16, y: rect.minY + 17, width: 66, height: 18, size: 12, weight: .bold, color: textPrimary)
-        drawText(model.healthSummaryText, x: rect.minX + 16, y: rect.minY + 36, width: 94, height: 16, size: 10, weight: .regular, color: textMuted)
-        drawHealthStatusGrid(in: layout.healthStatusGridRect)
-    }
-
-    private func drawHealthStatusGrid(in rect: NSRect) {
-        let checks = Array(model.doctorChecks.prefix(6))
-        for (index, check) in checks.enumerated() {
-            let itemRect = NSRect(x: rect.minX + CGFloat(index) * 50, y: rect.minY, width: 45, height: rect.height)
-            drawRoundedRect(itemRect, radius: 9, fill: theme.commandButtonBackground, stroke: panelBorder.withAlphaComponent(0.20))
-            drawCircle(center: NSPoint(x: itemRect.minX + 12, y: itemRect.midY), radius: 3.4, color: doctorColor(check.state), stroke: nil)
-            drawText(healthShortLabel(check.title), x: itemRect.minX + 21, y: itemRect.minY + 8, width: 22, height: 14, size: 8.0, weight: .regular, color: textSecondary)
-        }
     }
 
     private func drawTrendSparkline(values: [Int], rect: NSRect) {
@@ -1218,23 +998,13 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func quotaFillGradient(value: Int) -> NSGradient? {
-        value < 25
-            ? NSGradient(colors: [coralAccent, theme.quotaLowEnd])
-            : NSGradient(colors: [mintAccent, theme.quotaHighEnd])
-    }
-
-    private var resetLaneGradient: NSGradient? {
-        NSGradient(colors: [coralAccent, theme.resetMidAccent, amberAccent])
-    }
-
-    private func drawResetCountdownLane(value: Int?, rect: NSRect) {
-        drawRoundedRect(rect, radius: rect.height / 2, fill: theme.trackFill, stroke: panelBorder.withAlphaComponent(0.18))
-        guard let value else {
-            return
+        if value < 10 {
+            return NSGradient(colors: [coralAccent, theme.quotaLowEnd])
         }
-        let fillWidth = max(rect.height, rect.width * clamped(value))
-        let fillRect = NSRect(x: rect.minX, y: rect.minY, width: min(rect.width, fillWidth), height: rect.height)
-        drawRoundedGradient(fillRect, radius: rect.height / 2, gradient: resetLaneGradient, stroke: nil)
+        if value < 25 {
+            return NSGradient(colors: [amberAccent, amberAccent])
+        }
+        return NSGradient(colors: [morandiQuotaBlue, morandiQuotaBlue])
     }
 
     private func drawWrappedText(_ text: String, rect: NSRect, size: CGFloat, weight: NSFont.Weight, color: NSColor) {
@@ -1262,17 +1032,7 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func headerSignalText() -> String {
-        if model.isUnavailable {
-            return "Closed"
-        }
-        switch model.source {
-        case "last_live":
-            return "Cache"
-        case "local_snapshot":
-            return "Snapshot"
-        default:
-            return "Live"
-        }
+        model.isUnavailable ? "Unavailable" : (model.isRefreshing ? "Refreshing" : "Live")
     }
 
     private func headerSignalColor() -> NSColor {
@@ -1281,19 +1041,12 @@ private final class SignalConsolePanelView: NSView {
 
     private func statusStripDetail() -> String {
         if model.isUnavailable {
-            return "Open Codex for live quota"
+            return "Open ChatGPT for live quota"
         }
         if model.isRefreshing {
             return "Refreshing quota now."
         }
-        switch model.source {
-        case "last_live":
-            return "Last live \(model.liveAgeText) · retrying"
-        case "local_snapshot":
-            return "Snapshot \(model.liveAgeText) · open Codex"
-        default:
-            return "Live \(model.liveAgeText) · refreshes every 5 min"
-        }
+        return "Live \(model.liveAgeText) · refreshes every 5 min"
     }
 
     private func shortTrendText(_ text: String) -> String {
@@ -1382,18 +1135,28 @@ private final class SignalConsolePanelView: NSView {
         size: CGFloat,
         weight: NSFont.Weight,
         color: NSColor,
-        mono: Bool = false
+        mono: Bool = false,
+        alignment: NSTextAlignment = .left
     ) {
         (text as NSString).draw(
             in: NSRect(x: x, y: y, width: width, height: height),
-            withAttributes: textAttributes(size: size, weight: weight, color: color, mono: mono)
+            withAttributes: textAttributes(size: size, weight: weight, color: color, mono: mono, alignment: alignment)
         )
     }
 
-    private func textAttributes(size: CGFloat, weight: NSFont.Weight, color: NSColor, mono: Bool = false) -> [NSAttributedString.Key: Any] {
-        [
+    private func textAttributes(
+        size: CGFloat,
+        weight: NSFont.Weight,
+        color: NSColor,
+        mono: Bool = false,
+        alignment: NSTextAlignment = .left
+    ) -> [NSAttributedString.Key: Any] {
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = alignment
+        return [
             .font: mono ? NSFont.monospacedDigitSystemFont(ofSize: size, weight: weight) : NSFont.systemFont(ofSize: size, weight: weight),
             .foregroundColor: color,
+            .paragraphStyle: paragraph,
         ]
     }
 
@@ -1424,29 +1187,26 @@ private final class SignalConsolePanelView: NSView {
             return textMuted
         }
         switch max(0, min(100, value)) {
-        case 0..<20:
+        case 0..<10:
             return coralAccent
-        case 20..<45:
-            return NSColor(calibratedRed: 1.00, green: 0.58, blue: 0.38, alpha: 0.96)
-        case 45..<75:
+        case 10..<25:
             return amberAccent
         default:
-            return mintAccent
+            return morandiQuotaBlue
         }
     }
 
+    private var morandiQuotaBlue: NSColor {
+        // Sampled from the adjacent iStat Menus CPU fill block (#8696B9).
+        NSColor(deviceRed: 134.0 / 255.0, green: 150.0 / 255.0, blue: 185.0 / 255.0, alpha: 1.0)
+    }
+
     private func sourceColor(source: String?, unavailable: Bool) -> NSColor {
+        _ = source
         if unavailable {
             return amberAccent
         }
-        switch source {
-        case "last_live":
-            return amberAccent
-        case "local_snapshot":
-            return blueAccent
-        default:
-            return mintAccent
-        }
+        return mintAccent
     }
 
     private func doctorColor(_ state: String) -> NSColor {
@@ -1479,8 +1239,8 @@ private final class SignalConsolePanelView: NSView {
 
     private func healthShortLabel(_ title: String) -> String {
         switch title {
-        case "Codex app found":
-            return "Codex"
+        case "ChatGPT app found":
+            return "ChatGPT"
         case "Helper works":
             return "Helper"
         case "Live data available":
@@ -1601,14 +1361,10 @@ private func renderSignalConsoleFixtures(outputDirectory: String? = nil) throws 
 private func renderSignalConsolePanel(model: SignalConsoleModel, theme: SignalConsoleTheme) throws -> NSImage {
     let target = SignalConsolePreviewTarget()
     let panel = SignalConsolePanelView(
-        frame: NSRect(origin: .zero, size: NSSize(width: 560, height: 560)),
+        frame: NSRect(origin: .zero, size: NSSize(width: 380, height: 272)),
         model: model,
         theme: theme,
         target: target,
-        runCheckAction: #selector(SignalConsolePreviewTarget.noop(_:)),
-        generateReportAction: #selector(SignalConsolePreviewTarget.noop(_:)),
-        copyDiagnosticsAction: #selector(SignalConsolePreviewTarget.noop(_:)),
-        clearDataAction: #selector(SignalConsolePreviewTarget.noop(_:)),
         openCodexAction: #selector(SignalConsolePreviewTarget.noop(_:)),
         refreshAction: #selector(SignalConsolePreviewTarget.noop(_:)),
         preferencesAction: #selector(SignalConsolePreviewTarget.noop(_:)),
@@ -1641,47 +1397,20 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             sevenDayLeft: 76,
             fiveHourResetText: "4h59m",
             sevenDayResetText: "6d23h",
-            fiveHourResetProgress: 18,
-            sevenDayResetProgress: 52,
             source: "live",
-            unavailable: false,
-            reportFive: "-8%",
-            reportSeven: "-3%",
-            todaySummary: "Today 12 · 5h -8% · 7d -3%"
+            unavailable: false
         )),
         ("codex-closed", signalConsolePreviewModel(
-            title: "Codex closed",
-            detail: "Open Codex",
-            statusTitle: "Open Codex desktop once to enable live usage",
-            statusDetail: "After Codex is open, Codex Gauge refreshes hands-free from the menu bar.",
+            title: "ChatGPT unavailable",
+            detail: "Open ChatGPT",
+            statusTitle: "Open ChatGPT once to enable live usage",
+            statusDetail: "After ChatGPT is open, Codex Gauge refreshes hands-free from the menu bar.",
             fiveHourLeft: nil,
             sevenDayLeft: nil,
             fiveHourResetText: "--",
             sevenDayResetText: "--",
-            fiveHourResetProgress: nil,
-            sevenDayResetProgress: nil,
             source: nil,
-            unavailable: true,
-            reportFive: "collecting",
-            reportSeven: "collecting",
-            todaySummary: "Today collecting · need 2 samples"
-        )),
-        ("last-live", signalConsolePreviewModel(
-            title: "Last live",
-            detail: "Cached",
-            statusTitle: "Non-live fallback disabled in app",
-            statusDetail: "Startup login only; no cached fallback",
-            fiveHourLeft: 58,
-            sevenDayLeft: 63,
-            fiveHourResetText: "2h14m",
-            sevenDayResetText: "4d8h",
-            fiveHourResetProgress: 62,
-            sevenDayResetProgress: 39,
-            source: "last_live",
-            unavailable: false,
-            reportFive: "-21%",
-            reportSeven: "-6%",
-            todaySummary: "Today 10 · 5h -21% · 7d -6%"
+            unavailable: true
         )),
         ("low-quota", signalConsolePreviewModel(
             title: "Live",
@@ -1692,13 +1421,8 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             sevenDayLeft: 44,
             fiveHourResetText: "38m",
             sevenDayResetText: "2d4h",
-            fiveHourResetProgress: 86,
-            sevenDayResetProgress: 70,
             source: "live",
-            unavailable: false,
-            reportFive: "-81%",
-            reportSeven: "-18%",
-            todaySummary: "Today 18 · 5h -81% · 7d -18%"
+            unavailable: false
         )),
         ("reset-soon", signalConsolePreviewModel(
             title: "Live",
@@ -1709,13 +1433,8 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             sevenDayLeft: 79,
             fiveHourResetText: "59m",
             sevenDayResetText: "6d20h",
-            fiveHourResetProgress: 92,
-            sevenDayResetProgress: 54,
             source: "live",
-            unavailable: false,
-            reportFive: "-2%",
-            reportSeven: "steady",
-            todaySummary: "Today 8 · 5h -2% · 7d steady"
+            unavailable: false
         )),
     ]
 
@@ -1735,22 +1454,11 @@ private func signalConsolePreviewModel(
     sevenDayLeft: Int?,
     fiveHourResetText: String,
     sevenDayResetText: String,
-    fiveHourResetProgress: Int?,
-    sevenDayResetProgress: Int?,
     source: String?,
-    unavailable: Bool,
-    reportFive: String,
-    reportSeven: String,
-    todaySummary: String
+    unavailable: Bool
 ) -> SignalConsoleModel {
-    let doctorChecks = [
-        DoctorCheck(title: "Codex process", state: unavailable ? "yellow" : "green", detail: unavailable ? "Closed" : "Open"),
-        DoctorCheck(title: "Menu bar source", state: "green", detail: "OK"),
-        DoctorCheck(title: "Session storage", state: "green", detail: "No quota cache"),
-        DoctorCheck(title: "Last fetch", state: unavailable ? "grey" : "green", detail: unavailable ? "--" : "OK"),
-    ]
     return SignalConsoleModel(
-        planName: unavailable ? "Codex Gauge" : "Codex Pro",
+        planName: unavailable ? "Live only" : "Codex Pro",
         sourcePill: "Source: Menu Bar",
         stateTitle: title,
         stateDetail: detail,
@@ -1760,18 +1468,6 @@ private func signalConsolePreviewModel(
         sevenDayLeft: sevenDayLeft,
         fiveHourResetText: fiveHourResetText,
         sevenDayResetText: sevenDayResetText,
-        fiveHourResetProgress: fiveHourResetProgress,
-        sevenDayResetProgress: sevenDayResetProgress,
-        fiveHourHistory: unavailable ? [] : [96, 88, 77, 69, fiveHourLeft ?? 0],
-        sevenDayHistory: unavailable ? [] : [91, 84, 78, 72, sevenDayLeft ?? 0],
-        fiveHourTrendText: unavailable ? "collecting" : reportFive,
-        sevenDayTrendText: unavailable ? "collecting" : reportSeven,
-        trendContextText: unavailable ? "Open Codex to start collecting live samples" : "Based on 12 live samples from 09:12 to 21:12",
-        reportFiveHourMovement: reportFive,
-        reportSevenDayMovement: reportSeven,
-        reportTodaySummary: todaySummary,
-        healthSummaryText: healthSummaryText(doctorChecks),
-        doctorChecks: doctorChecks,
         lastRefreshText: unavailable ? "none" : "21:12",
         liveAgeText: unavailable ? "unknown" : "2m ago",
         nextRefreshText: unavailable ? "1:00" : "4:58",
@@ -1786,6 +1482,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let runtimeLogQueue = DispatchQueue(label: "app.codexgauge.runtime-log", qos: .utility)
     private let menu = NSMenu()
     private var signalPopover: NSPopover?
+    private weak var signalConsolePanelView: SignalConsolePanelView?
     private var timer: Timer?
     private var animationTimer: Timer?
     private var popoverCountdownTimer: Timer?
@@ -1800,6 +1497,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var snapshot: UsageSnapshot?
     private var lastError: String?
     private var isRefreshing = false
+    private var activeRefreshProcess: Process?
+    private var refreshGeneration = 0
     private var allowTermination = false
     private var activity: NSObjectProtocol?
     private var moodPulseStep = 0
@@ -1818,15 +1517,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var sessionSignalConsoleThemeKey = blueCeramicThemeKey
     private var sessionRefreshMode = "adaptive"
     private var sessionNotificationsEnabled = false
-    private let persistentStorageEnabled = false
     private let moodAnimationFrameLimit = 8
-    private let maxHistorySamples = 720
-    private let historyRetentionWindow: TimeInterval = 48 * 60 * 60
     private let normalRefreshInterval: TimeInterval = 5 * 60
     private let watchRefreshInterval: TimeInterval = 3 * 60
     private let criticalRefreshInterval: TimeInterval = 2 * 60
     private let recoveryRefreshInterval: TimeInterval = 60
     private let tenMinuteRefreshInterval: TimeInterval = 10 * 60
+    private let refreshTimeout: TimeInterval = 20
+    private let maximumStaleDisplayAge: TimeInterval = 10 * 60
     private let statusItemWidth: CGFloat = 94
     private var currentStatusImageScale: CGFloat = 2.0
     private var statusItemStatus: ServiceStatus?
@@ -1836,24 +1534,25 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let menuBarUsagePercentRect = NSRect(x: 2, y: 3, width: 54, height: 16)
     private let menuBarHorizontalRailRect = NSRect(x: 46, y: 3, width: 22, height: 16)
     private let menuBarRefreshCountdownRect = NSRect(x: 69, y: 2, width: 24, height: 18)
-    private let signalPopoverSize = NSSize(width: 560, height: 560)
+    private let signalPopoverSize = NSSize(width: 380, height: 272)
     private let quotaRailSize = NSSize(width: 22, height: 5)
     private let signalRailSegments = 10
-    private let codexCliBundlePath = "/Applications/Codex.app/Contents/Resources/codex"
+    private let codexHostBundleIdentifier = "com.openai.codex"
+    private let bundledCodexCliSuffix = "Contents/Resources/codex"
+    private let codexHostFallbackPaths = [
+        "/Applications/ChatGPT.app",
+        NSHomeDirectory() + "/Applications/ChatGPT.app",
+        "/Applications/Codex.app",
+        NSHomeDirectory() + "/Applications/Codex.app",
+    ]
     private let normalQuotaColor = NSColor(calibratedRed: 0.58, green: 1.00, blue: 0.89, alpha: 0.95)
     private let warningQuotaColor = NSColor(calibratedRed: 1.00, green: 0.74, blue: 0.34, alpha: 0.96)
     private let criticalQuotaColor = NSColor(calibratedRed: 1.00, green: 0.34, blue: 0.40, alpha: 0.96)
     private let fiveHourMenuLabel = "5-hour left"
     private let sevenDayMenuLabel = "7-day left"
     private let liveRefreshMenuLabel = "Live · refreshed"
-    private let snapshotRefreshMenuLabel = "Snapshot · refreshed"
-    private let lastLiveRefreshMenuLabel = "Last live ·"
     private let fiveHourResetMenuLabel = "5h resets"
     private let sevenDayResetMenuLabel = "7d resets"
-    private let runtimeLogFileName = "CodexGauge-runtime.log"
-    private let historyFileName = "CodexGauge-history.json"
-    private let lastLiveCacheFileName = "last-live-status.json"
-    private let legacyUsageReportFileName = "CodexGauge-usage-report.md"
     private let launchAgentLabel = "app.codexgauge.menubar"
     private let launchAgentPlistName = "app.codexgauge.menubar.plist"
     private let latestReleaseAPIURL = "https://api.github.com/repos/qingzhangeddie-byte/codex-gauge/releases/latest"
@@ -1872,20 +1571,37 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let maxRuntimeLogMessages = 64
 
     private lazy var resourcesDir = Bundle.main.resourcePath ?? FileManager.default.currentDirectoryPath
-    private lazy var supportDir = applicationSupportDirectory()
     private lazy var pythonPath = infoString("CodexGaugePythonPath", fallback: "/usr/bin/python3")
-    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.9.3")
+    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.9.4")
     private lazy var releaseURL = infoString("CodexGaugeReleaseURL", fallback: "https://github.com/qingzhangeddie-byte/codex-gauge/releases")
     private lazy var expectedUpdateSigningTeamID = infoString("CodexGaugeUpdateTeamID", fallback: "").trimmingCharacters(in: .whitespacesAndNewlines)
     private lazy var usagePath = resolveUsagePath()
-    private lazy var logPath = "\(supportDir)/\(runtimeLogFileName)"
-    private lazy var historyPath = "\(supportDir)/\(historyFileName)"
+
+    private var codexHostAppURL: URL? {
+        if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: codexHostBundleIdentifier) {
+            return appURL
+        }
+        return codexHostFallbackPaths
+            .map { URL(fileURLWithPath: $0, isDirectory: true) }
+            .first { FileManager.default.fileExists(atPath: $0.path) }
+    }
+
+    private var codexCliBundlePath: String? {
+        var candidates = codexHostFallbackPaths.map {
+            URL(fileURLWithPath: $0, isDirectory: true)
+                .appendingPathComponent(bundledCodexCliSuffix)
+                .path
+        }
+        if let appURL = codexHostAppURL {
+            candidates.insert(appURL.appendingPathComponent(bundledCodexCliSuffix).path, at: 0)
+        }
+        return candidates.first { FileManager.default.isExecutableFile(atPath: $0) }
+    }
     private lazy var launchAgentPlistPath = NSHomeDirectory() + "/Library/LaunchAgents/" + launchAgentPlistName
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         registerDefaultPreferences()
-        removePersistentAppStorage()
         ProcessInfo.processInfo.disableAutomaticTermination("Codex Gauge menu bar status item")
         ProcessInfo.processInfo.disableSuddenTermination()
         activity = ProcessInfo.processInfo.beginActivity(
@@ -1895,11 +1611,26 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         installStatusItemView()
         setStatusImage(title: "Codex quota")
         rebuildMenu()
+        let workspaceNotifications = NSWorkspace.shared.notificationCenter
+        workspaceNotifications.addObserver(
+            self,
+            selector: #selector(workspaceDidWake(_:)),
+            name: NSWorkspace.didWakeNotification,
+            object: nil
+        )
+        workspaceNotifications.addObserver(
+            self,
+            selector: #selector(workspaceApplicationDidActivate(_:)),
+            name: NSWorkspace.didActivateApplicationNotification,
+            object: nil
+        )
         refresh()
         scheduleAutomaticUpdateCheck()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
+        activeRefreshProcess?.terminate()
         timer?.invalidate()
         automaticUpdateTimer?.invalidate()
         animationTimer?.invalidate()
@@ -1908,6 +1639,20 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         allowTermination ? .terminateNow : .terminateCancel
+    }
+
+    @objc private func workspaceDidWake(_ notification: Notification) {
+        refresh(force: true)
+    }
+
+    @objc private func workspaceApplicationDidActivate(_ notification: Notification) {
+        guard
+            let runningApplication = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+            runningApplication.bundleIdentifier == codexHostBundleIdentifier
+        else {
+            return
+        }
+        refresh()
     }
 
     private func installStatusItemView() {
@@ -1953,6 +1698,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func showSignalConsolePopover() {
+        refresh()
         let anchorView = statusItem.button ?? statusItemView
         let popover = signalPopover ?? NSPopover()
         popover.behavior = .transient
@@ -1967,10 +1713,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func refreshSignalPopoverIfNeeded() {
-        guard let signalPopover, signalPopover.isShown else {
+        guard signalPopover?.isShown == true else {
             return
         }
-        signalPopover.contentViewController = makeSignalConsoleViewController()
+        signalConsolePanelView?.update(model: signalConsoleModel())
     }
 
     private func applyTimerTolerance(_ timer: Timer, interval: TimeInterval) {
@@ -2018,10 +1764,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             model: signalConsoleModel(),
             theme: theme,
             target: self,
-            runCheckAction: #selector(openSetupDoctor),
-            generateReportAction: #selector(generateUsageReport),
-            copyDiagnosticsAction: #selector(copyDiagnostics),
-            clearDataAction: #selector(clearLocalData),
             openCodexAction: #selector(openCodexApp),
             refreshAction: #selector(refreshNow),
             preferencesAction: #selector(openPreferences),
@@ -2029,30 +1771,23 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         )
         panel.autoresizingMask = [.width, .height]
         visual.addSubview(panel)
+        signalConsolePanelView = panel
         controller.view = visual
         controller.preferredContentSize = signalPopoverSize
         return controller
     }
 
     private func signalConsoleModel() -> SignalConsoleModel {
-        let samples = readHistorySamples()
-        let doctorChecks = runSetupDoctorChecks()
         let now = Date()
-        let lastDaySamples = historySamples(since: now.addingTimeInterval(-24 * 60 * 60), from: samples)
 
         if let snapshot {
             let status = snapshot.codex
             let unavailable = isUnavailableStatus(status)
             let title = signalStateTitle(status)
             let statusAgeText = relativeAgeText(status.dataTime ?? snapshot.updatedAt, now: now)
-            let fiveHourSamples = currentFiveHourWindowSamples(from: samples, resetEpoch: status.fiveHourReset, now: now)
-            let sevenDaySamples = lastDaySamples
-            let fiveHourHistory = quotaHistoryValues(fiveHourSamples, \.fiveHourLeft)
-            let sevenDayHistory = quotaHistoryValues(sevenDaySamples, \.sevenDayLeft)
-            let inlineReport = inlineUsageReportSummary(samples: lastDaySamples, status: status)
             return SignalConsoleModel(
                 planName: status.ok ? planTitle(status) : "Codex Gauge",
-                sourcePill: "Source: Menu Bar",
+                sourcePill: "Live only",
                 stateTitle: title.title,
                 stateDetail: title.detail,
                 statusTitle: sourceStatusTitle(status),
@@ -2061,18 +1796,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 sevenDayLeft: unavailable ? nil : status.sevenDayLeft,
                 fiveHourResetText: unavailable ? "--" : fiveHourResetCountdown(status.fiveHourReset),
                 sevenDayResetText: unavailable ? "--" : sevenDayResetCountdown(status.sevenDayReset),
-                fiveHourResetProgress: unavailable ? nil : resetProgressPercent(epoch: status.fiveHourReset, windowHours: 5),
-                sevenDayResetProgress: unavailable ? nil : resetProgressPercent(epoch: status.sevenDayReset, windowHours: 24 * 7),
-                fiveHourHistory: fiveHourHistory,
-                sevenDayHistory: sevenDayHistory,
-                fiveHourTrendText: trendText(values: fiveHourHistory, suffix: "this window"),
-                sevenDayTrendText: trendText(values: sevenDayHistory, suffix: "in 24h"),
-                trendContextText: trendContextText(samples: lastDaySamples, latestSource: status.source),
-                reportFiveHourMovement: inlineReport.fiveHourMovement,
-                reportSevenDayMovement: inlineReport.sevenDayMovement,
-                reportTodaySummary: inlineReport.todaySummary,
-                healthSummaryText: healthSummaryText(doctorChecks),
-                doctorChecks: doctorChecks,
                 lastRefreshText: shortTime(status.dataTime ?? snapshot.updatedAt),
                 liveAgeText: statusAgeText,
                 nextRefreshText: nextRefreshCountdownText(now: now),
@@ -2083,36 +1806,19 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
 
         let detail = lastError == nil
-            ? "After Codex is open, Codex Gauge refreshes hands-free from the menu bar."
+            ? "After ChatGPT is open, Codex Gauge refreshes hands-free from the menu bar."
             : clipped(lastError ?? "", limit: 96)
-        let fiveHourSamples = currentFiveHourWindowSamples(from: samples, resetEpoch: nil, now: now)
-        let sevenDaySamples = lastDaySamples
-        let fiveHourHistory = quotaHistoryValues(fiveHourSamples, \.fiveHourLeft)
-        let sevenDayHistory = quotaHistoryValues(sevenDaySamples, \.sevenDayLeft)
-        let inlineReport = inlineUsageReportSummary(samples: lastDaySamples, status: nil)
         return SignalConsoleModel(
-            planName: "Codex Gauge",
-            sourcePill: "Source: Menu Bar",
-            stateTitle: "Codex closed",
-            stateDetail: "Open Codex",
-            statusTitle: "Open Codex desktop once to enable live usage",
+            planName: "Live only",
+            sourcePill: "Live only",
+            stateTitle: "ChatGPT unavailable",
+            stateDetail: "Open ChatGPT",
+            statusTitle: "Open ChatGPT once to enable live usage",
             statusDetail: detail,
             fiveHourLeft: nil,
             sevenDayLeft: nil,
             fiveHourResetText: "--",
             sevenDayResetText: "--",
-            fiveHourResetProgress: nil,
-            sevenDayResetProgress: nil,
-            fiveHourHistory: fiveHourHistory,
-            sevenDayHistory: sevenDayHistory,
-            fiveHourTrendText: trendText(values: fiveHourHistory, suffix: "this window"),
-            sevenDayTrendText: trendText(values: sevenDayHistory, suffix: "in 24h"),
-            trendContextText: trendContextText(samples: lastDaySamples, latestSource: nil),
-            reportFiveHourMovement: inlineReport.fiveHourMovement,
-            reportSevenDayMovement: inlineReport.sevenDayMovement,
-            reportTodaySummary: inlineReport.todaySummary,
-            healthSummaryText: healthSummaryText(doctorChecks),
-            doctorChecks: doctorChecks,
             lastRefreshText: "none",
             liveAgeText: "unknown",
             nextRefreshText: nextRefreshCountdownText(now: now),
@@ -2124,52 +1830,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func signalStateTitle(_ status: ServiceStatus) -> (title: String, detail: String) {
         if isUnavailableStatus(status) {
-            return ("Codex closed", "Open Codex")
+            return ("ChatGPT unavailable", "Open ChatGPT")
         }
-        switch status.source {
-        case "last_live":
-            return ("Last live", "Cached")
-        case "local_snapshot":
-            return ("Snapshot", "Recent local")
-        case "live", nil:
-            return ("Live", "Current")
-        default:
-            return ("Snapshot", "Recent local")
-        }
-    }
-
-    private func trendText(values: [Int], suffix: String) -> String {
-        guard values.count >= 2, let first = values.first, let last = values.last else {
-            return "No data"
-        }
-        let delta = last - first
-        if abs(delta) < 2 {
-            return "Stable \(suffix)"
-        }
-        let sign = delta > 0 ? "+" : ""
-        return "\(sign)\(delta)% \(suffix)"
-    }
-
-    private func trendContextText(samples: [HistorySample], latestSource: String?) -> String {
-        let usable = samples.filter { sample in
-            historyDate(sample) != nil && (sample.fiveHourLeft != nil || sample.sevenDayLeft != nil)
-        }
-        guard usable.count >= 2, let first = usable.first, let latest = usable.last else {
-            return "Collecting enough samples for a useful trend"
-        }
-        if let latestSource, latestSource != "live" {
-            return "Trend uses local history; latest source is \(sourceDisplayName(latestSource))"
-        }
-        let prefix = "Based on"
-        let liveCount = usable.filter { $0.source == "live" }.count
-        let sampleKind = liveCount == usable.count ? "live samples" : "samples"
-        return "\(prefix) \(usable.count) \(sampleKind) from \(shortTime(first.time)) to \(shortTime(latest.time))"
+        return ("Live", "Current")
     }
 
     @objc private func refreshNow() {
         timer?.invalidate()
         nextRefreshAt = nil
-        refresh()
+        refresh(force: true)
     }
 
     @objc private func openCodexAnalytics() {
@@ -2766,36 +2435,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         appendLog("safe diagnostics copied")
     }
 
-    @objc private func generateUsageReport() {
-        if !persistentStorageEnabled {
-            guard let status = snapshot?.codex, status.ok else {
-                showReportAlert(title: "Live summary unavailable", detail: "Codex Gauge keeps no stored quota history. Open Codex and refresh for a current live summary.")
-                return
-            }
-            let report = liveUsageSummaryText(status)
-            NSPasteboard.general.clearContents()
-            guard NSPasteboard.general.setString(report, forType: .string) else {
-                showReportAlert(title: "Live summary not copied", detail: "The pasteboard did not accept the current summary.")
-                return
-            }
-            showReportAlert(title: "Live summary copied", detail: "Copied the current live-only summary. No history or report file was saved.")
-            appendLog("live summary copied to clipboard")
-            return
-        }
-        let samples = historySamples(since: Date().addingTimeInterval(-24 * 60 * 60), from: readHistorySamples())
-        guard let report = usageReportText(samples: samples, status: snapshot?.codex) else {
-            showReportAlert(title: "Not enough history yet", detail: "Codex Gauge needs at least two local samples before it can summarize quota movement.")
-            return
-        }
-        NSPasteboard.general.clearContents()
-        guard NSPasteboard.general.setString(report, forType: .string) else {
-            showReportAlert(title: "Usage report not copied", detail: "The pasteboard did not accept the generated report.")
-            return
-        }
-        showReportAlert(title: "Usage report copied", detail: "Copied to clipboard. No report file was saved.")
-        appendLog("usage report copied to clipboard")
-    }
-
     private func showReportAlert(title: String, detail: String) {
         let alert = NSAlert()
         alert.messageText = title
@@ -2805,94 +2444,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         alert.runModal()
     }
 
-    @objc private func clearLocalData() {
-        let alert = NSAlert()
-        alert.messageText = "Clear legacy data?"
-        alert.informativeText = "Codex Gauge keeps only its startup LaunchAgent when launch at login is enabled. This removes old history, last-live cache, report, and log files from earlier builds. It does not touch Codex, browser cookies, Keychain, auth files, or the current startup setting."
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "Clear Legacy Data")
-        alert.addButton(withTitle: "Cancel")
-        guard alert.runModal() == .alertFirstButtonReturn else {
-            return
-        }
-        performClearLocalData()
-    }
-
-    private func performClearLocalData() {
-        let manager = FileManager.default
-        var removed = 0
-        for path in localDataPathsForClearing() {
-            guard manager.fileExists(atPath: path) else {
-                continue
-            }
-            do {
-                try FileManager.default.removeItem(atPath: path)
-                removed += 1
-            } catch {
-                showReportAlert(title: "Some data was not cleared", detail: clipped(error.localizedDescription, limit: 180))
-                return
-            }
-        }
-        previousFiveHourLeft = nil
-        liveUnavailableSince = nil
-        didNotifyLiveUnavailable = false
-        resetHighlightUntil = nil
-        do {
-            if try removeLegacySupportDirectory() {
-                removed += 1
-            }
-        } catch {
-            showReportAlert(title: "Some data was not cleared", detail: clipped(error.localizedDescription, limit: 180))
-            return
-        }
-        refreshSignalPopoverIfNeeded()
-        rebuildMenu()
-        if let snapshot {
-            setStatusImage(title: statusTooltipTitle(snapshot), status: snapshot.codex)
-        } else {
-            setStatusImage(title: "Codex quota")
-        }
-        showReportAlert(title: "Legacy data cleared", detail: removed == 0 ? "No legacy history, cache, report, or log files were present." : "Cleared \(removed) legacy Codex Gauge file(s).")
-    }
-
-    private func removePersistentAppStorage() {
-        let manager = FileManager.default
-        for path in localDataPathsForClearing() {
-            guard manager.fileExists(atPath: path) else {
-                continue
-            }
-            try? manager.removeItem(atPath: path)
-        }
-        _ = try? removeLegacySupportDirectory()
-    }
-
-    private func removeLegacySupportDirectory() throws -> Bool {
-        let manager = FileManager.default
-        guard manager.fileExists(atPath: supportDir) else {
-            return false
-        }
-        try manager.removeItem(atPath: supportDir)
-        return true
-    }
-
-    private func localDataPathsForClearing() -> [String] {
-        [
-            historyPath,
-            logPath,
-            "\(logPath).1",
-            "\(supportDir)/\(lastLiveCacheFileName)",
-            "\(supportDir)/\(legacyUsageReportFileName)",
-            "\(supportDir)/launchd.out.log",
-            "\(supportDir)/launchd.err.log",
-        ]
-    }
-
     @objc private func openCodexApp() {
-        NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications/Codex.app"))
-    }
-
-    @objc private func openSupportFolder() {
-        showReportAlert(title: "Local only", detail: "Codex Gauge keeps only its startup LaunchAgent and does not keep a support folder. Clear legacy removes old app files if earlier builds created them.")
+        guard let appURL = codexHostAppURL else {
+            showReportAlert(title: "ChatGPT not found", detail: "Install ChatGPT or the Codex CLI to load live Codex usage.")
+            return
+        }
+        NSWorkspace.shared.open(appURL)
     }
 
     @objc private func quit() {
@@ -2925,6 +2482,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         sessionSignalConsoleThemeKey = key
         if let signalPopover, signalPopover.isShown {
             signalPopover.appearance = NSAppearance(named: currentSignalConsoleTheme().appearance)
+            signalConsolePanelView?.apply(theme: currentSignalConsoleTheme())
         }
         if let snapshot {
             setStatusImage(title: statusTooltipTitle(snapshot), status: snapshot.codex)
@@ -2960,10 +2518,20 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func refresh() {
-        guard !isRefreshing else {
-            return
+    private func refresh(force: Bool = false) {
+        if isRefreshing {
+            guard force else {
+                return
+            }
+            refreshGeneration += 1
+            if activeRefreshProcess?.isRunning == true {
+                activeRefreshProcess?.terminate()
+            }
+            activeRefreshProcess = nil
+            isRefreshing = false
         }
+        refreshGeneration += 1
+        let generation = refreshGeneration
         isRefreshing = true
         nextRefreshAt = nil
         if snapshot == nil {
@@ -3014,22 +2582,42 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 let output = String(data: stdoutBuffer, encoding: .utf8) ?? ""
                 let errorOutput = String(data: stderrBuffer, encoding: .utf8) ?? ""
                 DispatchQueue.main.async {
-                    self?.finishRefresh(status: proc.terminationStatus, output: output, errorOutput: errorOutput)
+                    self?.finishRefresh(
+                        status: proc.terminationStatus,
+                        output: output,
+                        errorOutput: errorOutput,
+                        generation: generation
+                    )
                 }
             }
         }
 
+        activeRefreshProcess = process
         do {
             try process.run()
         } catch {
-            finishRefresh(status: -1, output: "", errorOutput: error.localizedDescription)
+            finishRefresh(
+                status: -1,
+                output: "",
+                errorOutput: error.localizedDescription,
+                generation: generation
+            )
             return
         }
 
-        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 45) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + refreshTimeout) { [weak self] in
+            guard let self, self.refreshGeneration == generation, self.isRefreshing else {
+                return
+            }
             if process.isRunning {
                 process.terminate()
             }
+            self.finishRefresh(
+                status: -2,
+                output: "",
+                errorOutput: "Live refresh timed out.",
+                generation: generation
+            )
         }
     }
 
@@ -3137,13 +2725,13 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
         content.addSubview(utilityLabel("Codex Gauge is ready", frame: NSRect(x: 28, y: 306, width: 260, height: 26), size: 18, weight: .semibold, color: theme.textPrimary))
         content.addSubview(utilityLabel("Local first. No cookies.", frame: NSRect(x: 28, y: 280, width: 260, height: 18), size: 12, weight: .medium, color: theme.mintAccent))
-        content.addSubview(utilityLabel("Open Codex once, then Codex Gauge keeps your 5-hour and 7-day quota visible from the menu bar.", frame: NSRect(x: 28, y: 248, width: 400, height: 34), size: 12, weight: .regular, color: theme.textSecondary))
+        content.addSubview(utilityLabel("Open ChatGPT once, then Codex Gauge keeps your 5-hour and 7-day quota visible from the menu bar.", frame: NSRect(x: 28, y: 248, width: 400, height: 34), size: 12, weight: .regular, color: theme.textSecondary))
 
         addUtilityStatusRow(to: content, y: 192, title: "Live source", detail: "Uses the local Codex app-server", state: "green")
         addUtilityStatusRow(to: content, y: 148, title: "Menu bar", detail: "Refreshes hands-free after setup", state: "green")
         addUtilityStatusRow(to: content, y: 104, title: "Privacy", detail: "No browser cookies or auth-file reads", state: "green")
 
-        let openCodex = NSButton(title: "Open Codex", target: self, action: #selector(openCodexApp))
+        let openCodex = NSButton(title: "Open ChatGPT", target: self, action: #selector(openCodexApp))
         openCodex.frame = NSRect(x: 28, y: 42, width: 116, height: 32)
         styleUtilityButton(openCodex)
         content.addSubview(openCodex)
@@ -3263,16 +2851,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         styleUtilityButton(updateCheck)
         content.addSubview(updateCheck)
 
-        let storageCard = NSView(frame: NSRect(x: leftColumnX, y: 58, width: columnWidth, height: 46))
-        storageCard.wantsLayer = true
-        storageCard.layer?.cornerRadius = 8
-        storageCard.layer?.backgroundColor = theme.commandButtonBackground.cgColor
-        storageCard.layer?.borderColor = theme.panelBorder.withAlphaComponent(0.24).cgColor
-        storageCard.layer?.borderWidth = 1
-        content.addSubview(storageCard)
-        storageCard.addSubview(utilityLabel("Local only", frame: NSRect(x: 12, y: 25, width: 150, height: 14), size: 10, weight: .semibold, color: theme.textPrimary))
-        storageCard.addSubview(utilityLabel("Startup agent, no quota cache", frame: NSRect(x: 12, y: 11, width: 170, height: 12), size: 9, weight: .medium, color: theme.blueAccent))
-
         let resetDefaults = NSButton(title: "Reset to Defaults...", target: self, action: #selector(resetSessionPreferences))
         resetDefaults.frame = NSRect(x: labelX, y: 20, width: 126, height: 30)
         styleUtilityButton(resetDefaults)
@@ -3359,24 +2937,36 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             "CODEX_SHELL": "1",
             "HOME": NSHomeDirectory(),
             "LOGNAME": userName,
-            "PATH": "/Applications/Codex.app/Contents/Resources:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+            "PATH": "/Applications/ChatGPT.app/Contents/Resources:/Applications/Codex.app/Contents/Resources:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
             "PYTHONUNBUFFERED": "1",
             "SHELL": "/bin/zsh",
             "TMPDIR": NSTemporaryDirectory(),
             "USER": userName,
             "CODEX_GAUGE_PYTHON_PATH": pythonPath,
             "CODEX_GAUGE_STATUS_HELPER": usagePath,
-            "CODEX_GAUGE_SUPPORT_DIR": NSTemporaryDirectory(),
-            "CODEX_GAUGE_NO_STORAGE": "1",
-            "CODEX_GAUGE_READ_LOCAL_SNAPSHOT": "1",
         ]
-        if FileManager.default.isExecutableFile(atPath: codexCliBundlePath) {
+        if let codexCliBundlePath, FileManager.default.isExecutableFile(atPath: codexCliBundlePath) {
             helperEnv["CODEX_GAUGE_CODEX_CLI_PATH"] = codexCliBundlePath
         }
         return helperEnv
     }
 
-    private func finishRefresh(status: Int32, output: String, errorOutput: String) {
+    private func canPreserveSnapshot(_ snapshot: UsageSnapshot, now: Date = Date()) -> Bool {
+        guard !isUnavailableStatus(snapshot.codex) else {
+            return false
+        }
+        let timestamp = snapshot.codex.dataTime ?? snapshot.updatedAt
+        guard let capturedAt = isoDate(timestamp) else {
+            return false
+        }
+        return now.timeIntervalSince(capturedAt) <= maximumStaleDisplayAge
+    }
+
+    private func finishRefresh(status: Int32, output: String, errorOutput: String, generation: Int) {
+        guard refreshGeneration == generation, isRefreshing else {
+            return
+        }
+        activeRefreshProcess = nil
         isRefreshing = false
         let previousSnapshot = snapshot
         appendLog("refresh finished status=\(status) stdout=\(clipped(output, limit: 600)) stderr=\(clipped(errorOutput, limit: 600))")
@@ -3386,7 +2976,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 decoder.keyDecodingStrategy = .convertFromSnakeCase
                 let data = Data(output.utf8)
                 let decoded = try decoder.decode(UsageSnapshot.self, from: data)
-                if isLiveRefreshFailure(decoded.codex), let previousSnapshot, !isUnavailableStatus(previousSnapshot.codex) {
+                if isLiveRefreshFailure(decoded.codex), let previousSnapshot, canPreserveSnapshot(previousSnapshot) {
                     snapshot = previousSnapshot
                     lastError = decoded.codex.error ?? "Codex live usage unavailable."
                     handleNotificationTransitions(decoded.codex)
@@ -3406,12 +2996,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             } catch {
                 lastError = "Could not parse status JSON: \(error.localizedDescription)"
                 stopMoodAnimation()
-                if let previousSnapshot, !isUnavailableStatus(previousSnapshot.codex) {
+                if let previousSnapshot, canPreserveSnapshot(previousSnapshot) {
                     snapshot = previousSnapshot
                     setStatusImage(title: statusTooltipTitle(previousSnapshot), status: previousSnapshot.codex)
                 } else {
                     snapshot = nil
-                    setStatusImage(title: "Open Codex to refresh live usage")
+                    setStatusImage(title: "Open ChatGPT to refresh live usage")
                 }
                 appendLog("parse error=\(error.localizedDescription)")
             }
@@ -3419,12 +3009,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             stopMoodAnimation()
             let detail = errorOutput.isEmpty ? output : errorOutput
             lastError = detail.isEmpty ? "Status command exited with code \(status)" : clipped(detail, limit: 160)
-            if let previousSnapshot, !isUnavailableStatus(previousSnapshot.codex) {
+            if let previousSnapshot, canPreserveSnapshot(previousSnapshot) {
                 snapshot = previousSnapshot
                 setStatusImage(title: statusTooltipTitle(previousSnapshot), status: previousSnapshot.codex)
             } else {
                 snapshot = nil
-                setStatusImage(title: "Open Codex to refresh live usage")
+                setStatusImage(title: "Open ChatGPT to refresh live usage")
             }
         }
         scheduleNextRefresh(after: lastError == nil ? nextRefreshInterval(for: snapshot?.codex) : recoveryRefreshInterval)
@@ -3463,7 +3053,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 postNotification(
                     identifier: liveUnavailableNotification,
                     title: "Codex live usage is unavailable",
-                    body: "Codex Gauge is showing cached or snapshot data until live usage returns."
+                    body: "Codex Gauge is temporarily showing its last in-memory reading while live usage retries."
                 )
                 didNotifyLiveUnavailable = true
             }
@@ -3565,16 +3155,16 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func runSetupDoctorChecks() -> [DoctorCheck] {
-        let codexFound = FileManager.default.fileExists(atPath: "/Applications/Codex.app")
+        let codexFound = codexHostAppURL != nil
         let helperWorks = FileManager.default.isReadableFile(atPath: usagePath)
         let liveAvailable = snapshot?.codex.ok == true && snapshot?.codex.source == "live"
         let launchAgentRunning = isLaunchAgentConfigured()
         let notificationsAllowed = notificationsEnabled()
         return [
             DoctorCheck(
-                title: "Codex app found",
+                title: "ChatGPT app found",
                 state: codexFound ? "green" : "amber",
-                detail: codexFound ? "Installed in Applications" : "Install or open Codex"
+                detail: codexFound ? "Codex host is installed" : "Install or open ChatGPT"
             ),
             DoctorCheck(
                 title: "Helper works",
@@ -3584,10 +3174,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             DoctorCheck(
                 title: "Live data available",
                 state: liveAvailable ? "green" : "amber",
-                detail: liveAvailable ? "Live data is current" : "Open Codex, then Refresh Now"
+                detail: liveAvailable ? "Live data is current" : "Open ChatGPT, then Refresh Now"
             ),
             DoctorCheck(
-                title: "Session storage",
+                title: "Launch at login",
                 state: launchAgentRunning ? "amber" : "green",
                 detail: launchAgentRunning ? "Startup enabled" : "Startup off"
             ),
@@ -3625,16 +3215,16 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             addErrorIfNeeded(snapshot.codex)
         } else if let lastError {
             addDisabled("Status unavailable")
-            addDisabled("Open Codex to refresh live usage")
+            addDisabled("Open ChatGPT to refresh live usage")
             addDisabled(clipped(lastError, limit: 96))
         } else {
             addDisabled("Waiting for first refresh")
-            addDisabled("Open Codex to refresh live usage")
+            addDisabled("Open ChatGPT to refresh live usage")
         }
 
         menu.addItem(NSMenuItem.separator())
         addDisabled("Codex Gauge v" + appVersion)
-        addDisabled("Storage: startup only, no quota cache")
+        addDisabled("Live only · no usage history")
         if let lastUpdateSummary {
             addDisabled(lastUpdateSummary)
         }
@@ -3643,7 +3233,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         addAction("Preferences...", action: #selector(openPreferences))
         menu.addItem(NSMenuItem.separator())
         addAction("Refresh Now", action: #selector(refreshNow))
-        addAction("Open Codex", action: #selector(openCodexApp))
+        addAction("Open ChatGPT", action: #selector(openCodexApp))
         addAction("Setup Doctor", action: #selector(openSetupDoctor))
         addAction("Copy Diagnostics", action: #selector(copyDiagnostics))
         addAction("Open Codex Analytics", action: #selector(openCodexAnalytics))
@@ -3668,34 +3258,16 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func sourceStatusTitle(_ status: ServiceStatus) -> String {
         if isUnavailableStatus(status) {
-            return "Open Codex desktop once to enable live usage"
+            return "Open ChatGPT once to enable live usage"
         }
-        switch status.source {
-        case "last_live":
-            return "Non-live fallback disabled in app"
-        case "local_snapshot":
-            return "Read-only snapshot fallback"
-        case "live", nil:
-            return status.ok ? "Live data is current" : "Open Codex to refresh live usage"
-        default:
-            return "Fallback disabled in app"
-        }
+        return status.ok ? "Live data is current" : "Open ChatGPT to refresh live usage"
     }
 
     private func sourceStatusDetail(_ status: ServiceStatus) -> String {
         if isUnavailableStatus(status) {
             return "After Codex is open, Codex Gauge refreshes hands-free from the menu bar."
         }
-        switch status.source {
-        case "last_live":
-            return "Startup login only; no cached fallback in app mode"
-        case "local_snapshot":
-            return "Live data stalled; using a fresh Codex rate-limit snapshot"
-        case "live", nil:
-            return "Read from local Codex app-server"
-        default:
-            return "Fallback data is labeled so it is not mistaken for live usage"
-        }
+        return "Read from local Codex app-server"
     }
 
     private func isUnavailableStatus(_ status: ServiceStatus) -> Bool {
@@ -3715,7 +3287,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             if let resetHighlightUntil, resetHighlightUntil > Date() {
                 addDisabled("5h refreshed")
             }
-            addDisabled(trendSummary())
             addDisabled("\(refreshLabel(status)) \(shortTime(status.dataTime ?? snapshot.updatedAt))")
             return
         }
@@ -4170,19 +3741,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func resetProgressPercent(epoch: Double?, windowHours: Double) -> Int? {
-        guard let epoch else {
-            return nil
-        }
-        let secondsRemaining = Date(timeIntervalSince1970: epoch).timeIntervalSinceNow
-        if secondsRemaining <= 0 {
-            return 100
-        }
-        let windowSeconds = max(1, windowHours * 3600)
-        let progress = 100 - Int(round((secondsRemaining / windowSeconds) * 100))
-        return max(0, min(100, progress))
-    }
-
     private func fiveHourResetCountdown(_ epoch: Double?) -> String {
         compactResetCountdown(epoch, includeMinutes: true, includeDays: false)
     }
@@ -4289,316 +3847,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         RunLoop.main.add(nextTimer, forMode: .common)
     }
 
-    private func readHistorySamples() -> [HistorySample] {
-        []
-    }
-
-    private func retainedHistorySamples(_ samples: [HistorySample], now: Date = Date()) -> [HistorySample] {
-        let cutoff = now.addingTimeInterval(-historyRetentionWindow)
-        let recent = samples.filter { sample in
-            guard let date = historyDate(sample) else {
-                return false
-            }
-            return date >= cutoff
-        }
-        return Array(recent.suffix(maxHistorySamples))
-    }
-
-    private func historyDate(_ sample: HistorySample) -> Date? {
-        isoDate(sample.time)
-    }
-
-    private func historySamples(since start: Date, from samples: [HistorySample]) -> [HistorySample] {
-        samples.filter { sample in
-            guard let date = historyDate(sample) else {
-                return false
-            }
-            return date >= start
-        }
-    }
-
-    private var localCalendar: Calendar {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = .current
-        return calendar
-    }
-
-    private func todaySamples(from samples: [HistorySample], now: Date = Date()) -> [HistorySample] {
-        let start = localCalendar.startOfDay(for: now)
-        return historySamples(since: start, from: samples)
-    }
-
-    private func currentFiveHourWindowSamples(from samples: [HistorySample], resetEpoch: Double?, now: Date) -> [HistorySample] {
-        let fallbackStart = now.addingTimeInterval(-5 * 60 * 60)
-        guard let resetEpoch else {
-            return historySamples(since: fallbackStart, from: samples)
-        }
-        let resetDate = Date(timeIntervalSince1970: resetEpoch)
-        let start = resetDate.addingTimeInterval(-5 * 60 * 60)
-        guard resetDate > now, start <= now else {
-            return historySamples(since: fallbackStart, from: samples)
-        }
-        return samples.filter { sample in
-            guard let date = historyDate(sample) else {
-                return false
-            }
-            return date >= start && date <= now
-        }
-    }
-
-    private func quotaHistoryValues(_ samples: [HistorySample], _ keyPath: KeyPath<HistorySample, Int?>) -> [Int] {
-        samples.compactMap { $0[keyPath: keyPath] }
-    }
-
-    private func usageReportSummary(samples: [HistorySample], status: ServiceStatus?) -> UsageReportSummary? {
-        let usable = samples.filter { sample in
-            historyDate(sample) != nil && (sample.fiveHourLeft != nil || sample.sevenDayLeft != nil)
-        }
-        guard usable.count >= 2 else {
-            return nil
-        }
-        let liveSampleCount = usable.filter { $0.source == "live" }.count
-        return UsageReportSummary(
-            windowLabel: "24h",
-            sampleCount: usable.count,
-            liveSampleCount: liveSampleCount,
-            nonLiveSampleCount: usable.count - liveSampleCount,
-            firstFiveHourLeft: firstValue(in: usable, \.fiveHourLeft),
-            latestFiveHourLeft: latestValue(in: usable, \.fiveHourLeft),
-            firstSevenDayLeft: firstValue(in: usable, \.sevenDayLeft),
-            latestSevenDayLeft: latestValue(in: usable, \.sevenDayLeft),
-            largestFiveHourDrop: largestDrop(in: quotaHistoryValues(usable, \.fiveHourLeft)),
-            largestSevenDayDrop: largestDrop(in: quotaHistoryValues(usable, \.sevenDayLeft)),
-            sourceCounts: sourceCounts(in: usable, status: status),
-            generatedAt: Date()
-        )
-    }
-
-    private func inlineUsageReportSummary(samples: [HistorySample], status: ServiceStatus?) -> InlineUsageReportSummary {
-        guard let summary = usageReportSummary(samples: samples, status: status) else {
-            return InlineUsageReportSummary(
-                fiveHourMovement: "collecting",
-                sevenDayMovement: "collecting",
-                todaySummary: todayUsageSummary(samples: samples)
-            )
-        }
-        return InlineUsageReportSummary(
-            fiveHourMovement: inlineMovementText(first: summary.firstFiveHourLeft, latest: summary.latestFiveHourLeft),
-            sevenDayMovement: inlineMovementText(first: summary.firstSevenDayLeft, latest: summary.latestSevenDayLeft),
-            todaySummary: todayUsageSummary(samples: samples, now: summary.generatedAt)
-        )
-    }
-
-    private func todayUsageSummary(samples: [HistorySample], now: Date = Date()) -> String {
-        let usable = todaySamples(from: samples, now: now).filter { sample in
-            historyDate(sample) != nil && (sample.fiveHourLeft != nil || sample.sevenDayLeft != nil)
-        }
-        guard usable.count >= 2 else {
-            return "Today collecting · need 2 samples"
-        }
-        let five = inlineMovementText(first: firstValue(in: usable, \.fiveHourLeft), latest: latestValue(in: usable, \.fiveHourLeft))
-        let seven = inlineMovementText(first: firstValue(in: usable, \.sevenDayLeft), latest: latestValue(in: usable, \.sevenDayLeft))
-        return "Today \(usable.count) · 5h \(five) · 7d \(seven)"
-    }
-
-    private func inlineMovementText(first: Int?, latest: Int?) -> String {
-        guard let first, let latest else {
-            return "--"
-        }
-        let delta = latest - first
-        if abs(delta) < 2 {
-            return "steady"
-        }
-        return delta > 0 ? "+\(delta)%" : "\(delta)%"
-    }
-
-    private func usageReportText(samples: [HistorySample], status: ServiceStatus?) -> String? {
-        guard let summary = usageReportSummary(samples: samples, status: status) else {
-            return nil
-        }
-        return [
-            "# Codex Gauge Usage Report",
-            "",
-            "Generated: \(reportDateString(summary.generatedAt))",
-            "Window: \(summary.windowLabel)",
-            "Current source: \(sourceDisplayName(status?.source))",
-            "",
-            "## Summary",
-            reportHeadline(summary),
-            sampleCoverageLine(summary),
-            stalePeriodsLine(summary),
-            "",
-            "## Quota movement estimate",
-            movementLine(label: "5-hour", first: summary.firstFiveHourLeft, latest: summary.latestFiveHourLeft, largestDrop: summary.largestFiveHourDrop),
-            movementLine(label: "7-day", first: summary.firstSevenDayLeft, latest: summary.latestSevenDayLeft, largestDrop: summary.largestSevenDayDrop),
-            "",
-            "## Today",
-            todayUsageSummary(samples: samples, now: summary.generatedAt),
-            "",
-            "## Source mix",
-            sourceCountsText(summary.sourceCounts),
-            "",
-            "## Limitations",
-            "This report estimates quota movement from local snapshots.",
-            "It is not token accounting, billing, or spend.",
-        ].joined(separator: "\n")
-    }
-
-    private func liveUsageSummaryText(_ status: ServiceStatus) -> String {
-        [
-            "# Codex Gauge Live Summary",
-            "",
-            "Generated: \(reportDateString(Date()))",
-            "Storage mode: startup LaunchAgent only; no quota cache",
-            "Current source: \(sourceDisplayName(status.source))",
-            "",
-            "## Current quota",
-            "- 5-hour left: \(percent(status.fiveHourLeft))",
-            "- 7-day left: \(percent(status.sevenDayLeft))",
-            "- 5-hour reset: \(resetCountdown(status.fiveHourReset))",
-            "- 7-day reset: \(resetCountdown(status.sevenDayReset))",
-            "",
-            "## Limitations",
-            "This is a live-only snapshot. Codex Gauge keeps no saved quota history, report file, cache, or log.",
-            "It is not token accounting, billing, or spend.",
-        ].joined(separator: "\n")
-    }
-
-    private func reportHeadline(_ summary: UsageReportSummary) -> String {
-        let five = compactMovementText(first: summary.firstFiveHourLeft, latest: summary.latestFiveHourLeft)
-        let seven = compactMovementText(first: summary.firstSevenDayLeft, latest: summary.latestSevenDayLeft)
-        return "Quota movement over \(summary.windowLabel): 5-hour \(five), 7-day \(seven)."
-    }
-
-    private func sampleCoverageLine(_ summary: UsageReportSummary) -> String {
-        return "Observed samples: \(summary.sampleCount) total, \(summary.liveSampleCount) live, \(summary.nonLiveSampleCount) non-live."
-    }
-
-    private func stalePeriodsLine(_ summary: UsageReportSummary) -> String {
-        if summary.nonLiveSampleCount == 0 {
-            return "Stale/unavailable periods: none observed in this local window."
-        }
-        return "Stale/unavailable periods: \(summary.nonLiveSampleCount) non-live samples in this local window."
-    }
-
-    private func compactMovementText(first: Int?, latest: Int?) -> String {
-        guard let first, let latest else {
-            return "unavailable"
-        }
-        let delta = latest - first
-        if abs(delta) < 2 {
-            return "steady"
-        }
-        let sign = delta > 0 ? "+" : ""
-        return "\(sign)\(delta)%"
-    }
-
-    private func compactSourceCountsText(_ counts: [String: Int]) -> String {
-        if counts.isEmpty {
-            return "none"
-        }
-        return counts.keys.sorted().map { key in
-            "\(sourceDisplayName(key)) \(counts[key] ?? 0)"
-        }.joined(separator: " / ")
-    }
-
-    private func firstValue(in samples: [HistorySample], _ keyPath: KeyPath<HistorySample, Int?>) -> Int? {
-        samples.compactMap { $0[keyPath: keyPath] }.first
-    }
-
-    private func latestValue(in samples: [HistorySample], _ keyPath: KeyPath<HistorySample, Int?>) -> Int? {
-        samples.compactMap { $0[keyPath: keyPath] }.last
-    }
-
-    private func largestDrop(in values: [Int]) -> Int? {
-        guard values.count >= 2 else {
-            return nil
-        }
-        let drops = zip(values, values.dropFirst()).map { previous, current in
-            max(0, previous - current)
-        }
-        return drops.max()
-    }
-
-    private func movementLine(label: String, first: Int?, latest: Int?, largestDrop: Int?) -> String {
-        guard let first, let latest else {
-            return "- \(label): unavailable"
-        }
-        let delta = latest - first
-        let sign = delta > 0 ? "+" : ""
-        return "- \(label): \(first)% -> \(latest)% (\(sign)\(delta)%), largest observed drop \(largestDrop ?? 0)%"
-    }
-
-    private func sourceCounts(in samples: [HistorySample], status: ServiceStatus?) -> [String: Int] {
-        var counts = Dictionary(grouping: samples, by: \.source).mapValues { $0.count }
-        if let source = status?.source, counts[source] == nil {
-            counts[source] = 0
-        }
-        return counts
-    }
-
-    private func sourceCountsText(_ counts: [String: Int]) -> String {
-        if counts.isEmpty {
-            return "- none"
-        }
-        return counts.keys.sorted().map { key in
-            "- \(sourceDisplayName(key)): \(counts[key] ?? 0)"
-        }.joined(separator: "\n")
-    }
-
-    private func sourceDisplayName(_ source: String?) -> String {
-        switch source {
-        case "live":
-            return "Live"
-        case "last_live":
-            return "Last live"
-        case "local_snapshot":
-            return "Snapshot"
-        case .some(let value):
-            return value.replacingOccurrences(of: "_", with: " ").capitalized
-        case nil:
-            return "Unavailable"
-        }
-    }
-
-    private func reportDateString(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
-    }
-
-    private func trendSummary() -> String {
-        let samples = readHistorySamples()
-        let now = Date()
-        let fiveHourHistory = quotaHistoryValues(
-            currentFiveHourWindowSamples(from: samples, resetEpoch: snapshot?.codex.fiveHourReset, now: now),
-            \.fiveHourLeft
-        )
-        let sevenDayHistory = quotaHistoryValues(
-            historySamples(since: now.addingTimeInterval(-24 * 60 * 60), from: samples),
-            \.sevenDayLeft
-        )
-        guard fiveHourHistory.count >= 2 || sevenDayHistory.count >= 2 else {
-            return "Trend: collecting samples"
-        }
-        let five = deltaText(label: "5h", values: fiveHourHistory, suffix: "this window")
-        let seven = deltaText(label: "7d", values: sevenDayHistory, suffix: "in 24h")
-        return "Trend: \(five) - \(seven)"
-    }
-
-    private func deltaText(label: String, values: [Int], suffix: String) -> String {
-        guard values.count >= 2, let first = values.first, let latest = values.last else {
-            return "\(label) collecting"
-        }
-        let delta = latest - first
-        if abs(delta) < 2 {
-            return "\(label) stable \(suffix)"
-        }
-        let sign = delta > 0 ? "+" : ""
-        return "\(label) \(sign)\(delta)% \(suffix)"
-    }
-
     private func appendLog(_ value: String) {
         let entry = "[\(Date())] \(value)"
         runtimeLogQueue.async { [weak self] in
@@ -4611,10 +3859,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 self.runtimeLogMessages.removeFirst(overflow)
             }
         }
-    }
-
-    private func rotateLogIfNeeded(_ url: URL) {
-        _ = url
     }
 
     private func addDisabled(_ title: String, monospaced: Bool = false) {
@@ -4661,39 +3905,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func refreshLabel(_ status: ServiceStatus) -> String {
-        switch status.source {
-        case "last_live":
-            return lastLiveRefreshMenuLabel
-        case "live", nil:
-            return liveRefreshMenuLabel
-        default:
-            return snapshotRefreshMenuLabel
-        }
+        _ = status
+        return liveRefreshMenuLabel
     }
 
     private func statusTooltipTitle(_ snapshot: UsageSnapshot) -> String {
-        guard let suffix = sourceTooltipSuffix(snapshot.codex.source) else {
-            return snapshot.title
-        }
-        return "\(snapshot.title) · \(suffix)"
-    }
-
-    private func sourceTooltipSuffix(_ source: String?) -> String? {
-        switch source {
-        case "last_live":
-            return "Startup login only; no cached fallback"
-        case "live", nil:
-            return nil
-        default:
-            return "Read-only snapshot fallback while live data retries"
-        }
-    }
-
-    private func isSnapshotSource(_ source: String?) -> Bool {
-        guard let source else {
-            return false
-        }
-        return source != "live" && source != "last_live"
+        snapshot.title
     }
 
     private func isNonLiveSource(_ source: String?) -> Bool {
@@ -4787,13 +4004,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             .path
     }
 
-    private func applicationSupportDirectory() -> String {
-        let manager = FileManager.default
-        let base = manager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? manager.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support")
-        return base.appendingPathComponent("CodexGauge", isDirectory: true).path
-    }
-
     private func safeDiagnosticsText() -> String {
         let status = snapshot?.codex
         let source = status?.source ?? "unavailable"
@@ -4806,7 +4016,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             "Codex Gauge Diagnostics",
             "App version: \(appVersion)",
             "Helper path: bundled codex_status.py \(helperState)",
-            "Storage mode: startup LaunchAgent only; no quota cache",
+            "Usage storage: none; launch at login uses a LaunchAgent",
             "Current data source: \(source)",
             "Last refresh time: \(lastRefresh)",
             "Last error summary: \(error)",
@@ -4814,7 +4024,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             "Notifications permission: \(notificationState)",
             "Refresh mode: \(currentRefreshMode())",
             "Updater state: \(lastUpdateSummary ?? "manual check only")",
-            "Excludes: browser cookies, ~/.codex/auth.json, session file contents, local histories, caches, reports, runtime logs, prompts, responses",
+            "Excludes: browser cookies, ~/.codex/auth.json, session files, histories, caches, reports, disk logs, prompts, responses",
         ].joined(separator: "\n")
     }
 
