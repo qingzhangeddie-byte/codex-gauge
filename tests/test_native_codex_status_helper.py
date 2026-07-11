@@ -160,7 +160,30 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
             source.index("_read_codex_rate_limits_ws"),
         )
 
-    def test_stdio_app_server_client_sends_initialized_before_rate_limit_request(self):
+    def test_live_helper_retries_a_transient_websocket_failure(self):
+        helper = load_helper()
+        expected = {
+            "primary": {"used_percent": 10},
+            "secondary": {"used_percent": 20},
+        }
+
+        with mock.patch.object(helper, "find_codex_cli", return_value="/codex"), \
+             mock.patch.object(
+                 helper,
+                 "_read_codex_rate_limits_stdio",
+                 side_effect=helper.CodexRemoteError("stdio timed out"),
+             ), \
+             mock.patch.object(
+                 helper,
+                 "_read_codex_rate_limits_websocket",
+                 side_effect=[helper.CodexRemoteError("cold start"), expected],
+             ) as websocket:
+            result = helper.live_codex_rate_limits(timeout=10)
+
+        self.assertEqual(result, expected)
+        self.assertEqual(websocket.call_count, 2)
+
+    def test_stdio_app_server_client_does_not_wait_for_usage_prime(self):
         helper = load_helper()
         writes = []
         read_response_ids = []
@@ -180,7 +203,6 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
             def __init__(self):
                 self.lines = [
                     json.dumps({"id": 1, "result": {"ok": True}}) + "\n",
-                    json.dumps({"id": 2, "result": {"summary": {"lifetimeTokens": 123}}}) + "\n",
                     json.dumps({
                         "id": 3,
                         "result": {
@@ -258,7 +280,23 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
         self.assertEqual(writes[3]["id"], 3)
         self.assertEqual(writes[4]["id"], 4)
         self.assertEqual(writes[5]["id"], 5)
-        self.assertTrue(all(2 in ids for ids in read_ids_at_rate_limit_write))
+        self.assertEqual(read_ids_at_rate_limit_write, [[], [], []])
+
+    def test_sigterm_cleans_up_active_app_servers(self):
+        helper = load_helper()
+        processes = [mock.Mock(), mock.Mock()]
+        helper._ACTIVE_APP_SERVER_PROCESSES.extend(processes)
+
+        with mock.patch.object(helper, "_terminate_process_group") as terminate:
+            with self.assertRaises(SystemExit) as stopped:
+                helper._handle_termination(helper.signal.SIGTERM, None)
+
+        self.assertEqual(stopped.exception.code, 128 + helper.signal.SIGTERM)
+        self.assertEqual(
+            [call.args[0] for call in terminate.call_args_list],
+            processes,
+        )
+        self.assertEqual(helper._ACTIVE_APP_SERVER_PROCESSES, [])
 
     def test_verified_rate_limit_samples_accept_a_real_reset_instead_of_old_usage(self):
         helper = load_helper()

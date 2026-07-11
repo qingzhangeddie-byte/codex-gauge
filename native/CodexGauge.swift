@@ -1523,7 +1523,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let criticalRefreshInterval: TimeInterval = 2 * 60
     private let recoveryRefreshInterval: TimeInterval = 60
     private let tenMinuteRefreshInterval: TimeInterval = 10 * 60
-    private let refreshTimeout: TimeInterval = 20
+    private let refreshTimeout: TimeInterval = 35
     private let maximumStaleDisplayAge: TimeInterval = 10 * 60
     private let statusItemWidth: CGFloat = 94
     private var currentStatusImageScale: CGFloat = 2.0
@@ -1572,7 +1572,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private lazy var resourcesDir = Bundle.main.resourcePath ?? FileManager.default.currentDirectoryPath
     private lazy var pythonPath = infoString("CodexGaugePythonPath", fallback: "/usr/bin/python3")
-    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.9.5")
+    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.9.6")
     private lazy var releaseURL = infoString("CodexGaugeReleaseURL", fallback: "https://github.com/qingzhangeddie-byte/codex-gauge/releases")
     private lazy var expectedUpdateSigningTeamID = infoString("CodexGaugeUpdateTeamID", fallback: "").trimmingCharacters(in: .whitespacesAndNewlines)
     private lazy var usagePath = resolveUsagePath()

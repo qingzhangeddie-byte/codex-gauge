@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## v0.9.6 - 2026-07-11
+
+- Restored live quota reads after the ChatGPT app-server began delaying `account/usage/read`; all three rate-limit verification requests now run concurrently instead of waiting behind that response.
+- Added termination handling so forced refreshes clean up their app-server children instead of leaving orphaned local listeners.
+- Increased the native refresh watchdog margin so the helper can finish its own fallback and cleanup paths.
+
 ## v0.9.5 - 2026-07-11
 
 - Fixed the 5-hour gauge accepting a later stale sample when ChatGPT returned reset timestamps that drifted by several minutes within the same window.

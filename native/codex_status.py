@@ -25,6 +25,7 @@ SECONDARY_RESET_MAX_FUTURE_SEC = 8 * 24 * 60 * 60
 RESET_FUTURE_GRACE_SEC = 60
 ENV_CODEX_CLI_PATH = "CODEX_GAUGE_CODEX_CLI_PATH"
 CODEX_GAUGE_CLIENT = {"name": "codex-gauge", "title": "Codex Gauge", "version": "0"}
+_ACTIVE_APP_SERVER_PROCESSES: list[subprocess.Popen] = []
 
 
 class CodexRemoteError(Exception):
@@ -106,6 +107,30 @@ def _terminate_process_group(proc: subprocess.Popen):
             pass
 
 
+def _register_app_server(proc: subprocess.Popen):
+    _ACTIVE_APP_SERVER_PROCESSES.append(proc)
+
+
+def _unregister_app_server(proc: subprocess.Popen):
+    try:
+        _ACTIVE_APP_SERVER_PROCESSES.remove(proc)
+    except ValueError:
+        pass
+
+
+def _handle_termination(signum, _frame):
+    processes = list(_ACTIVE_APP_SERVER_PROCESSES)
+    _ACTIVE_APP_SERVER_PROCESSES.clear()
+    for proc in processes:
+        _terminate_process_group(proc)
+    raise SystemExit(128 + signum)
+
+
+def _install_termination_handlers():
+    signal.signal(signal.SIGTERM, _handle_termination)
+    signal.signal(signal.SIGINT, _handle_termination)
+
+
 def live_codex_rate_limits(timeout: int = REMOTE_TIMEOUT_SEC) -> dict | None:
     codex_cli = find_codex_cli()
     if not codex_cli:
@@ -116,38 +141,42 @@ def live_codex_rate_limits(timeout: int = REMOTE_TIMEOUT_SEC) -> dict | None:
     try:
         return _read_codex_rate_limits_stdio(codex_cli, timeout)
     except CodexRemoteError as stdio_error:
-        websocket_error = stdio_error
+        stdio_failure = stdio_error
     except (OSError, subprocess.SubprocessError) as stdio_error:
-        websocket_error = stdio_error
+        stdio_failure = stdio_error
 
-    try:
-        port = find_free_local_port()
-        proc = subprocess.Popen(
-            [codex_cli, "app-server", "--listen", f"ws://127.0.0.1:{port}"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            env=codex_subprocess_env(),
-            start_new_session=True,
-        )
-    except OSError as exc:
-        raise CodexRemoteError(str(exc)) from exc
+    websocket_errors = []
+    for _ in range(2):
+        try:
+            return _read_codex_rate_limits_websocket(codex_cli, timeout)
+        except (CodexRemoteError, OSError, subprocess.SubprocessError) as websocket_error:
+            websocket_errors.append(websocket_error)
+    last_websocket_error = websocket_errors[-1]
+    raise CodexRemoteError(
+        f"stdio app-server failed: {stdio_failure}; websocket app-server failed after 2 attempts: {last_websocket_error}"
+    ) from last_websocket_error
 
+
+def _read_codex_rate_limits_websocket(codex_cli: str, timeout: int) -> dict:
+    port = find_free_local_port()
+    proc = subprocess.Popen(
+        [codex_cli, "app-server", "--listen", f"ws://127.0.0.1:{port}"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        env=codex_subprocess_env(),
+        start_new_session=True,
+    )
+    _register_app_server(proc)
     try:
         _wait_codex_app_server(proc, port, timeout)
         rate_limits = _read_codex_rate_limits_ws(port, timeout)
         if not rate_limits:
             raise CodexRemoteError("Codex app-server returned no rate-limit data.")
         return rate_limits
-    except Exception as websocket_exc:
-        if websocket_error is not None:
-            raise CodexRemoteError(
-                f"stdio app-server failed: {websocket_error}; websocket app-server failed: {websocket_exc}"
-            ) from websocket_exc
-        raise
     finally:
-        if "proc" in locals():
-            _terminate_process_group(proc)
+        _terminate_process_group(proc)
+        _unregister_app_server(proc)
 
 
 def _read_codex_rate_limits_stdio(codex_cli: str, timeout: int) -> dict:
@@ -161,6 +190,7 @@ def _read_codex_rate_limits_stdio(codex_cli: str, timeout: int) -> dict:
         env=codex_subprocess_env(),
         start_new_session=True,
     )
+    _register_app_server(proc)
     try:
         if proc.stdin is None or proc.stdout is None:
             raise CodexRemoteError("Codex stdio app-server pipes unavailable.")
@@ -189,13 +219,25 @@ def _read_codex_rate_limits_stdio(codex_cli: str, timeout: int) -> dict:
                 "method": "account/usage/read",
                 "params": None,
             },
+            {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "account/rateLimits/read",
+                "params": None,
+            },
         ):
             send(message)
+        for message_id in range(4, 3 + RATE_LIMIT_SAMPLE_COUNT):
+            send({
+                "jsonrpc": "2.0",
+                "id": message_id,
+                "method": "account/rateLimits/read",
+                "params": None,
+            })
 
         deadline = time.monotonic() + timeout
         lines: list[str] = []
         rate_limit_results: list[dict] = []
-        next_rate_limit_id = 3
         while time.monotonic() < deadline:
             if proc.poll() is not None:
                 raise CodexRemoteError("Codex stdio app-server exited: " + "".join(lines[-3:]).strip())
@@ -212,31 +254,18 @@ def _read_codex_rate_limits_stdio(codex_cli: str, timeout: int) -> dict:
                 continue
             message_id = message.get("id")
             if message_id == 2:
-                send({
-                    "jsonrpc": "2.0",
-                    "id": next_rate_limit_id,
-                    "method": "account/rateLimits/read",
-                    "params": None,
-                })
                 continue
             if message_id not in range(3, 3 + RATE_LIMIT_SAMPLE_COUNT):
                 continue
             if "error" in message:
                 raise CodexRemoteError(str(message["error"]))
             rate_limit_results.append(message.get("result") or {})
-            if len(rate_limit_results) < RATE_LIMIT_SAMPLE_COUNT:
-                next_rate_limit_id += 1
-                send({
-                    "jsonrpc": "2.0",
-                    "id": next_rate_limit_id,
-                    "method": "account/rateLimits/read",
-                    "params": None,
-                })
-                continue
-            return _verified_remote_rate_limits(rate_limit_results)
+            if len(rate_limit_results) == RATE_LIMIT_SAMPLE_COUNT:
+                return _verified_remote_rate_limits(rate_limit_results)
         raise CodexRemoteError("Codex stdio rate-limit response timed out.")
     finally:
         _terminate_process_group(proc)
+        _unregister_app_server(proc)
 
 
 def _wait_codex_app_server(proc: subprocess.Popen, port: int, timeout: int):
@@ -470,36 +499,34 @@ def _read_codex_rate_limits_ws(port: int, timeout: int) -> dict:
             "method": "account/usage/read",
             "params": None,
         })
+        _ws_send_json(sock, {
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "account/rateLimits/read",
+            "params": None,
+        })
+        for message_id in range(4, 3 + RATE_LIMIT_SAMPLE_COUNT):
+            _ws_send_json(sock, {
+                "jsonrpc": "2.0",
+                "id": message_id,
+                "method": "account/rateLimits/read",
+                "params": None,
+            })
         deadline = time.monotonic() + timeout
         rate_limit_results: list[dict] = []
-        next_rate_limit_id = 3
         while time.monotonic() < deadline:
             sock.settimeout(max(0.1, deadline - time.monotonic()))
             message = _ws_recv_json(sock)
             message_id = message.get("id")
             if message_id == 2:
-                _ws_send_json(sock, {
-                    "jsonrpc": "2.0",
-                    "id": next_rate_limit_id,
-                    "method": "account/rateLimits/read",
-                    "params": None,
-                })
                 continue
             if message_id not in range(3, 3 + RATE_LIMIT_SAMPLE_COUNT):
                 continue
             if "error" in message:
                 raise CodexRemoteError(str(message["error"]))
             rate_limit_results.append(message.get("result") or {})
-            if len(rate_limit_results) < RATE_LIMIT_SAMPLE_COUNT:
-                next_rate_limit_id += 1
-                _ws_send_json(sock, {
-                    "jsonrpc": "2.0",
-                    "id": next_rate_limit_id,
-                    "method": "account/rateLimits/read",
-                    "params": None,
-                })
-                continue
-            return _verified_remote_rate_limits(rate_limit_results)
+            if len(rate_limit_results) == RATE_LIMIT_SAMPLE_COUNT:
+                return _verified_remote_rate_limits(rate_limit_results)
         raise CodexRemoteError("Codex rate-limit response timed out.")
 
 
@@ -677,6 +704,7 @@ def build_status_snapshot(now: datetime.datetime | None = None) -> dict:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _install_termination_handlers()
     parser = argparse.ArgumentParser(description="Print Codex Gauge status JSON.")
     parser.add_argument(
         "--status-json",

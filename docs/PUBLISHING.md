@@ -64,7 +64,7 @@ A Homebrew cask is a good public install path after signing and notarization. Ke
 2. Confirm live data is labeled Live and unavailable data asks the user to open Codex.
 3. Confirm startup login creates only `~/Library/LaunchAgents/app.codexgauge.menubar.plist` and no support-folder logs, caches, histories, reports, or saved refresh preferences.
 4. Run `./script/package_release.sh` and verify the zip, DMG, and checksum files.
-5. Create tag `v0.9.5` on the public clean-history commit.
+5. Create tag `v0.9.6` on the public clean-history commit.
 6. Sign and notarize with external credentials.
 7. Publish the zipped app bundle and DMG.
 8. Update the Homebrew cask checksum.
@@ -75,7 +75,7 @@ A Homebrew cask is a good public install path after signing and notarization. Ke
 - Point the clean repo remote at `git@github.com:qingzhangeddie-byte/codex-gauge.git`.
 - Push with `git push -u origin main --tags` only after the GitHub repo is a fresh non-fork repo.
 - Verify `git clone https://github.com/qingzhangeddie-byte/codex-gauge.git` works before announcing.
-- Create the GitHub Release for `v0.9.5`; the README release badge should not point at an older identity.
+- Create the GitHub Release for `v0.9.6`; the README release badge should not point at an older identity.
 - Set GitHub About description: `Calm macOS menu bar gauge for OpenAI Codex usage: 5h/7d horizontal bars, live reset countdowns, local-only diagnostics`.
 - Set GitHub topics: `macos`, `menubar`, `menu-bar-app`, `codex`, `openai`, `swift`, `rate-limit`, `usage-monitor`, `developer-tools`.
 - Upload the refreshed `docs/assets/codex-gauge-social-preview.png` as the repository social preview after confirming it uses sample values only. Use `docs/assets/codex-gauge-github-hero.png` at the top of README and release notes.

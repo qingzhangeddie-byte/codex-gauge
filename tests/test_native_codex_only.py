@@ -138,6 +138,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("activeRefreshProcess", source)
         self.assertIn("refreshGeneration", source)
         self.assertIn("refreshTimeout: TimeInterval", source)
+        self.assertIn("private let refreshTimeout: TimeInterval = 35", source)
         self.assertIn("generation: generation", refresh_body)
         self.assertIn("self.finishRefresh(", refresh_body)
         self.assertIn("status: -2", refresh_body)
