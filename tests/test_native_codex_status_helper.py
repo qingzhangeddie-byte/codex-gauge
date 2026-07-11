@@ -301,6 +301,45 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
         self.assertEqual(merged["primary"]["resets_at"], now + 5 * 60 * 60)
         self.assertEqual(merged["secondary"]["used_percent"], 42)
 
+    def test_verified_rate_limit_samples_reject_today_stale_five_hour_snapshot(self):
+        helper = load_helper()
+        now = 1_783_733_300
+        current = {
+            "limitId": "codex",
+            "primary": {
+                "usedPercent": 67,
+                "windowDurationMins": 300,
+                "resetsAt": 1_783_740_401,
+            },
+            "secondary": {
+                "usedPercent": 23,
+                "windowDurationMins": 10080,
+                "resetsAt": 1_784_309_202,
+            },
+        }
+        stale = {
+            "limitId": "codex",
+            "primary": {
+                "usedPercent": 3,
+                "windowDurationMins": 300,
+                "resetsAt": 1_783_741_935,
+            },
+            "secondary": {
+                "usedPercent": 2,
+                "windowDurationMins": 10080,
+                "resetsAt": 1_784_309_464,
+            },
+        }
+
+        merged = helper._merge_remote_rate_limit_samples(
+            [current, current, stale],
+            now=now,
+        )
+
+        self.assertEqual(merged["primary"]["used_percent"], 67)
+        self.assertEqual(merged["primary"]["resets_at"], 1_783_740_401)
+        self.assertEqual(merged["secondary"]["used_percent"], 23)
+
     def test_verified_rate_limit_samples_ignore_an_expired_pre_reset_window(self):
         helper = load_helper()
         now = 1_800_000_000

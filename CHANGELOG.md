@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## v0.9.5 - 2026-07-11
+
+- Fixed the 5-hour gauge accepting a later stale sample when ChatGPT returned reset timestamps that drifted by several minutes within the same window.
+- Made rollover detection scale with the reported quota-window duration, preserving genuine resets while rejecting intermittent stale usage snapshots.
+- Added a regression fixture from the observed `67% used` versus stale `3% used` response pair.
+
 ## v0.9.4 - 2026-07-10
 
 - Verified multiple live app-server readings before displaying quota, rejecting the intermittent stale `93% / 97%` snapshot while handling genuine reset-window rollovers correctly.

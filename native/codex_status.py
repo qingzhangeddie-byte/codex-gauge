@@ -365,7 +365,19 @@ def _merge_remote_rate_limit_samples(
             earliest_reset = min(epoch for epoch, _ in reset_windows)
             latest_reset = max(epoch for epoch, _ in reset_windows)
             candidates = [window for _, window in reset_windows]
-            if latest_reset - earliest_reset > RATE_LIMIT_RESET_JITTER_SEC:
+            rollover_threshold = RATE_LIMIT_RESET_JITTER_SEC
+            window_durations = []
+            for _, window in reset_windows:
+                try:
+                    window_minutes = float(window.get("window_minutes"))
+                except (TypeError, ValueError):
+                    continue
+                if window_minutes > 0:
+                    # A real rollover moves the reset by about one full window.
+                    window_durations.append(window_minutes * 30)
+            if window_durations:
+                rollover_threshold = max(rollover_threshold, max(window_durations))
+            if latest_reset - earliest_reset > rollover_threshold:
                 candidates = [
                     window
                     for reset_epoch, window in reset_windows
