@@ -97,7 +97,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("v0.9.1", changelog)
         self.assertIn("v0.9.2", changelog)
         self.assertIn("v0.9.3", changelog)
-        self.assertIn("v0.9.6", changelog)
+        self.assertIn("v0.9.7", changelog)
 
     def test_release_check_script_covers_public_release_gates(self):
         script_path = pathlib.Path("script/release_check.sh")
@@ -111,14 +111,16 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("ditto --norsrc --noextattr", script)
         self.assertIn("codesign --verify --deep --strict", script)
         self.assertIn("CFBundleShortVersionString", script)
+        self.assertIn("otool -l", script)
+        self.assertIn("awk '/minos/{print $2; exit}'", script)
         self.assertIn("CodexGaugeReleaseURL", script)
         self.assertNotIn('Contents/Resources/ssd_temperature', script)
         self.assertIn("git ls-files", script)
         self.assertIn("git grep -n -I -E", script)
         self.assertNotIn("grep -R -I -n -E", script)
         self.assertIn("pixelWidth: 1280", script)
-        self.assertIn("pixelWidth: 760", script)
-        self.assertIn("pixelHeight: 544", script)
+        self.assertIn("pixelWidth: 780", script)
+        self.assertIn("pixelHeight: 420", script)
         self.assertIn("swift script/generate_theme_state_previews.swift", script)
         self.assertIn("swift script/generate_logo_assets.swift", script)
         self.assertIn("swift script/generate_public_assets.swift", script)
@@ -235,6 +237,16 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("pixelWidth: 1024", logo_result.stdout)
         self.assertIn("pixelHeight: 1024", logo_result.stdout)
 
+    def test_logo_does_not_encode_retired_quota_windows(self):
+        script = pathlib.Path("script/generate_logo_assets.swift").read_text()
+        source = pathlib.Path("native/assets/CodexGauge-source.png")
+
+        self.assertTrue(source.exists())
+        self.assertLess(source.stat().st_size, 3_000_000)
+        self.assertIn('let sourcePath = "native/assets/CodexGauge-source.png"', script)
+        self.assertNotIn('"5h"', script)
+        self.assertNotIn('"7d"', script)
+
     def test_public_asset_generator_draws_menu_bar_strip(self):
         script = pathlib.Path("script/generate_public_assets.swift").read_text()
 
@@ -259,14 +271,13 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertNotIn("let innerRect = rect.insetBy(dx: 2.0, dy: 2.0)", script)
         self.assertNotIn("xRadius: rect.height / 2", script)
         self.assertNotIn("drawMenuBarVerticalQuotaMeter(value:", script)
-        self.assertIn("drawMenuBarRefreshCountdown", script)
+        self.assertIn("drawMenuBarQuotaCountdown", script)
         self.assertIn("drawMenuBarCountdownText", script)
         self.assertNotIn("NSBezierPath(roundedRect: strip", script)
         self.assertNotIn("drawMenuBarMorandiDivider", script)
         self.assertNotIn("divider quota countdown", script)
         self.assertNotIn("min(rect.maxX - 5, fillRect.maxX - 5)", script)
         self.assertIn("Codex quota where you actually look", script)
-        self.assertIn("4h59m", script)
         self.assertIn("6d23h", script)
         self.assertNotIn("appendArc(withCenter", script)
         self.assertIn("Static public screenshot with sample quota values", script)
@@ -341,8 +352,8 @@ class PublicReleaseHygieneTests(unittest.TestCase):
                 text=True,
                 stdout=subprocess.PIPE,
             )
-            self.assertIn("pixelWidth: 760", result.stdout)
-            self.assertIn("pixelHeight: 544", result.stdout)
+            self.assertIn("pixelWidth: 780", result.stdout)
+            self.assertIn("pixelHeight: 420", result.stdout)
         self.assertFalse(list(fixture_dir.glob("*battery-mode.png")))
         self.assertFalse(list(fixture_dir.glob("*plugged-in-full.png")))
         self.assertIn("blue-ceramic", pathlib.Path("native/CodexGauge.swift").read_text())
@@ -355,8 +366,8 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn('"No history"', script_text)
         self.assertIn("Menu bar first. Live detail when you click.", script_text)
         self.assertNotIn('"Live summary"', script_text)
-        self.assertIn("NSRect(x: 604, y: 104, width: 604, height: 432)", script_text)
-        self.assertIn("NSRect(x: 598, y: 100, width: 586, height: 420)", script_text)
+        self.assertIn("NSRect(x: 604, y: 156, width: 604, height: 326)", script_text)
+        self.assertIn("NSRect(x: 598, y: 152, width: 586, height: 316)", script_text)
         script_text = script.read_text()
         self.assertIn("docs/design/app-rendered-signal-console/blue-ceramic-live.png", script_text)
         self.assertIn("docs/design/app-rendered-signal-console/signal-dark-live.png", script_text)
@@ -366,17 +377,17 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("actual app-rendered Signal Console", script_text)
         self.assertIn("sample quota values", script_text)
         native_source = pathlib.Path("native/CodexGauge.swift").read_text()
-        self.assertIn('fiveHourResetText: "4h59m"', native_source)
-        self.assertIn('sevenDayResetText: "6d23h"', native_source)
-        self.assertNotIn('fiveHourResetText: "4h37m"', native_source)
-        self.assertNotIn('sevenDayResetText: "5d22h"', native_source)
+        self.assertIn('label: "7d"', native_source)
+        self.assertIn('resetText: "6d23h"', native_source)
+        self.assertNotIn("fiveHourResetText", native_source)
+        self.assertNotIn("sevenDayResetText", native_source)
 
     def test_build_script_installs_public_app_name_and_removes_legacy_app(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()
         install = pathlib.Path("install.sh").read_text()
 
         self.assertIn('APP_NAME="CodexGauge"', script)
-        self.assertIn('APP_VERSION="0.9.6"', script)
+        self.assertIn('APP_VERSION="0.9.7"', script)
         self.assertIn('CFBundleName</key>', script)
         self.assertIn("Codex Gauge", script)
         self.assertIn("CodexGaugeUsagePath", script)
@@ -392,7 +403,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         for phrase in [
             "git@github.com:qingzhangeddie-byte/codex-gauge.git",
             "git push -u origin main --tags",
-            "v0.9.6",
+            "v0.9.7",
             "repository social preview",
             "docs/assets/codex-gauge-social-preview.png",
             "private vulnerability reporting",

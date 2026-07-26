@@ -77,19 +77,63 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
         with mock.patch.object(helper, "live_codex_rate_limits", return_value={
             "plan": "pro",
             "resets_at": now + 3600,
-            "primary": {"percent_used": 27, "resets_at": now + 3600},
-            "secondary": {"percent_used": 11, "resets_at": now + 24 * 3600},
+            "primary": {
+                "percent_used": 27,
+                "window_minutes": 5 * 60,
+                "resets_at": now + 3600,
+            },
+            "secondary": {
+                "percent_used": 11,
+                "window_minutes": 7 * 24 * 60,
+                "resets_at": now + 24 * 3600,
+            },
         }), mock.patch.object(helper.time, "time", return_value=now):
             snapshot = helper.build_status_snapshot()
 
         self.assertEqual(snapshot["codex"]["service"], "Codex")
         self.assertTrue(snapshot["codex"]["ok"])
-        self.assertEqual(snapshot["codex"]["five_hour_left"], 73)
-        self.assertEqual(snapshot["codex"]["seven_day_left"], 89)
-        self.assertEqual(snapshot["codex"]["five_hour_reset"], now + 3600)
-        self.assertEqual(snapshot["codex"]["seven_day_reset"], now + 24 * 3600)
+        self.assertEqual(snapshot["codex"]["quota_windows"], [
+            {
+                "label": "5h",
+                "window_minutes": 300,
+                "percent_left": 73,
+                "resets_at": now + 3600,
+            },
+            {
+                "label": "7d",
+                "window_minutes": 10080,
+                "percent_left": 89,
+                "resets_at": now + 24 * 3600,
+            },
+        ])
+        self.assertEqual(snapshot["title"], "5h 73%  7d 89%")
         self.assertEqual(snapshot["codex"]["plan"], "pro")
         self.assertEqual(snapshot["codex"]["source"], "live")
+
+    def test_single_weekly_primary_window_is_never_mislabeled_as_five_hours(self):
+        helper = load_helper()
+        now = datetime.datetime.fromisoformat("2026-07-26T09:38:36+00:00").timestamp()
+
+        with mock.patch.object(helper, "live_codex_rate_limits", return_value={
+            "plan_type": "pro",
+            "primary": {
+                "used_percent": 1,
+                "window_minutes": 7 * 24 * 60,
+                "resets_at": now + 6 * 24 * 3600,
+            },
+            "secondary": None,
+        }), mock.patch.object(helper.time, "time", return_value=now):
+            snapshot = helper.build_status_snapshot()
+
+        self.assertTrue(snapshot["codex"]["ok"])
+        self.assertEqual(snapshot["codex"]["quota_windows"], [{
+            "label": "7d",
+            "window_minutes": 10080,
+            "percent_left": 99,
+            "resets_at": now + 6 * 24 * 3600,
+        }])
+        self.assertEqual(snapshot["title"], "7d 99%")
+        self.assertNotIn("5h", snapshot["title"])
 
     def test_live_reset_windows_are_clamped_to_known_window_lengths(self):
         helper = load_helper()
@@ -97,16 +141,28 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
 
         with mock.patch.object(helper, "live_codex_rate_limits", return_value={
             "plan": "pro",
-            "primary": {"percent_used": 27, "resets_at": now + 216 * 24 * 3600},
-            "secondary": {"percent_used": 11, "resets_at": now + 216 * 24 * 3600},
+            "primary": {
+                "percent_used": 27,
+                "window_minutes": 5 * 60,
+                "resets_at": now + 216 * 24 * 3600,
+            },
+            "secondary": {
+                "percent_used": 11,
+                "window_minutes": 7 * 24 * 60,
+                "resets_at": now + 216 * 24 * 3600,
+            },
         }), mock.patch.object(helper.time, "time", return_value=now):
             snapshot = helper.build_status_snapshot()
 
         self.assertTrue(snapshot["codex"]["ok"])
-        self.assertEqual(snapshot["codex"]["five_hour_left"], 73)
-        self.assertEqual(snapshot["codex"]["seven_day_left"], 89)
-        self.assertIsNone(snapshot["codex"]["five_hour_reset"])
-        self.assertIsNone(snapshot["codex"]["seven_day_reset"])
+        self.assertEqual(
+            [window["percent_left"] for window in snapshot["codex"]["quota_windows"]],
+            [73, 89],
+        )
+        self.assertEqual(
+            [window["resets_at"] for window in snapshot["codex"]["quota_windows"]],
+            [None, None],
+        )
 
     def test_live_only_helper_never_writes_or_scans_fallback_files(self):
         source = HELPER_PATH.read_text()
@@ -135,8 +191,7 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
 
         self.assertFalse(snapshot["codex"]["ok"])
         self.assertEqual(snapshot["codex"]["source"], "live")
-        self.assertIsNone(snapshot["codex"]["five_hour_left"])
-        self.assertIsNone(snapshot["codex"]["seven_day_left"])
+        self.assertEqual(snapshot["codex"]["quota_windows"], [])
         self.assertIn("Codex live usage unavailable", snapshot["codex"]["error"])
 
     def test_missing_live_data_returns_clear_diagnostic(self):
@@ -147,8 +202,7 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
 
         self.assertFalse(snapshot["codex"]["ok"])
         self.assertIn("Codex", snapshot["codex"]["error"])
-        self.assertIsNone(snapshot["codex"]["five_hour_left"])
-        self.assertIsNone(snapshot["codex"]["seven_day_left"])
+        self.assertEqual(snapshot["codex"]["quota_windows"], [])
 
     def test_helper_prefers_stdio_app_server_for_native_launch_context(self):
         source = HELPER_PATH.read_text()
@@ -470,7 +524,7 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
 
     def test_main_accepts_status_json_flag(self):
         helper = load_helper()
-        snapshot = {"title": "5h 90%  7d 80%", "codex": {"ok": True}}
+        snapshot = {"title": "7d 80%", "codex": {"ok": True}}
 
         with mock.patch.object(helper, "build_status_snapshot", return_value=snapshot) as build:
             out = io.StringIO()

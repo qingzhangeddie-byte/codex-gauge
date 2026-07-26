@@ -30,13 +30,13 @@ class SignalConsoleUXTests(unittest.TestCase):
         )[0]
 
         for token in [
-            "fiveHourLeft",
-            "sevenDayLeft",
-            "fiveHourResetText",
-            "sevenDayResetText",
+            "SignalQuotaWindow",
+            "quotaWindows",
             "nextRefreshText",
         ]:
             self.assertIn(token, model_block)
+        for removed in ["fiveHourLeft", "sevenDayLeft", "fiveHourResetText", "sevenDayResetText"]:
+            self.assertNotIn(removed, model_block)
         for blocked in [
             "battery",
             "Battery",
@@ -51,7 +51,7 @@ class SignalConsoleUXTests(unittest.TestCase):
     def test_menu_bar_uses_minimal_morandi_usage_and_countdown_design(self):
         source = swift_source()
         draw_status_body = swift_function_body(source, "private func drawStatusItemView(")
-        countdown_body = swift_function_body(source, "private func drawMenuBarRefreshCountdown(")
+        quota_windows_body = swift_function_body(source, "private func drawMenuBarQuotaWindows(")
         usage_row_body = swift_function_body(source, "private func drawMenuBarUsagePercentRow(")
 
         for token in [
@@ -64,11 +64,13 @@ class SignalConsoleUXTests(unittest.TestCase):
             "menuBarHorizontalRailRect = NSRect(x: 46, y: 3, width: 22, height: 16)",
             "menuBarRefreshCountdownRect = NSRect(x: 69, y: 2, width: 24, height: 18)",
             "quotaRailSize = NSSize(width: 22, height: 5)",
-            "drawMenuBarUsagePercentRow(window: \"5h\", quotaLeft: fiveHourLeft, y: 13.0",
-            "drawMenuBarUsagePercentRow(window: \"7d\", quotaLeft: sevenDayLeft, y: 4.0",
+            "QuotaWindowStatus",
+            "window: window.label",
+            "visibleWindows.count == 1",
+            "y: 10.0",
             "NSFont.monospacedDigitSystemFont(ofSize: 8.0, weight: .semibold)",
             "NSFont.monospacedDigitSystemFont(ofSize: 7.2, weight: .medium)",
-            "drawMenuBarUsagePercentBars",
+            "drawMenuBarQuotaWindows",
             "drawMenuBarHorizontalQuotaBar",
             "systemMonitorMenuBarTextColor",
             "systemMonitorMenuBarBlue",
@@ -94,8 +96,9 @@ class SignalConsoleUXTests(unittest.TestCase):
         ]:
             self.assertIn(token, source)
         self.assertIn("drawPlanBGauge(", draw_status_body)
-        self.assertIn("drawMenuBarCountdownText(text: fiveHourText", countdown_body)
-        self.assertIn("drawMenuBarCountdownText(text: sevenDayText", countdown_body)
+        self.assertIn("text: quotaResetCountdown(window)", quota_windows_body)
+        self.assertNotIn('window: "5h"', quota_windows_body)
+        self.assertNotIn('window: "7d"', quota_windows_body)
         self.assertIn("compactMenuBarPercentText(value)", usage_row_body)
         self.assertIn("percentText as NSString", usage_row_body)
         self.assertNotIn("let cornerRadius = rect.height / 2", source)
@@ -128,8 +131,9 @@ class SignalConsoleUXTests(unittest.TestCase):
         source = swift_source()
         compact_body = swift_function_body(source, "private func compactResetCountdown(")
 
-        self.assertIn("compactResetCountdown(epoch, includeMinutes: true, includeDays: false)", source)
-        self.assertIn("compactResetCountdown(epoch, includeMinutes: false, includeDays: true)", source)
+        self.assertIn("private func quotaResetCountdown(_ window: QuotaWindowStatus)", source)
+        self.assertIn("window.windowMinutes", source)
+        self.assertIn("window.resetsAt", source)
         self.assertIn('return "\\(minutes)m"', compact_body)
         self.assertIn('return "\\(hours)h\\(remainingMinutes)m"', compact_body)
         self.assertIn('return "\\(days)d\\(remainingHours)h"', compact_body)
@@ -141,7 +145,8 @@ class SignalConsoleUXTests(unittest.TestCase):
         source = swift_source()
 
         for token in [
-            "signalPopoverSize = NSSize(width: 380, height: 272)",
+            "signalConsoleSize(quotaWindowCount:",
+            "NSSize(width: 390, height: 210 + CGFloat(visibleCount - 1) * 68)",
             'setAccessibilityLabel("Codex Gauge quota")',
             'symbol: "arrow.clockwise"',
             'symbol: "gearshape"',
@@ -176,13 +181,25 @@ class SignalConsoleUXTests(unittest.TestCase):
 
         for slug in ['"live"', '"codex-closed"', '"low-quota"', '"reset-soon"']:
             self.assertIn(slug, preview_body)
-        self.assertIn('fiveHourResetText: "4h59m"', preview_body)
-        self.assertIn('sevenDayResetText: "6d23h"', preview_body)
-        self.assertIn('fiveHourResetText: "59m"', preview_body)
+        self.assertIn('resetText: "6d23h"', preview_body)
+        self.assertIn('resetText: "59m"', preview_body)
+        self.assertIn('SignalQuotaWindow(label: "7d"', source)
+        self.assertNotIn("fiveHourResetText", preview_body)
         self.assertIn('planName: unavailable ? "Live only" : "Codex Pro"', source)
         self.assertNotIn('"last-live"', preview_body)
         self.assertNotIn("battery-mode", preview_body)
         self.assertNotIn("plugged-in-full", preview_body)
+
+    def test_signal_console_quota_rail_matches_menu_bar_meter_language(self):
+        source = swift_source()
+        body = swift_function_body(source, "private func drawQuotaRail(value: Int?, rect: NSRect)")
+
+        self.assertIn("let cornerRadius = min(1.2, rect.height / 4)", body)
+        self.assertIn("NSColor(deviceWhite: 0.08, alpha: 0.95)", body)
+        self.assertIn("let innerRect = rect.insetBy(dx: 1, dy: 1)", body)
+        self.assertIn("quotaColor(value).setFill()", body)
+        self.assertNotIn("rect.height / 2", body)
+        self.assertNotIn("theme.trackFill", body)
 
     def test_native_app_can_render_real_signal_console_fixtures(self):
         script = pathlib.Path("script/render_signal_console_fixtures.sh")
@@ -208,8 +225,8 @@ class SignalConsoleUXTests(unittest.TestCase):
                 text=True,
                 stdout=subprocess.PIPE,
             )
-            self.assertIn("pixelWidth: 760", result.stdout)
-            self.assertIn("pixelHeight: 544", result.stdout)
+            self.assertIn("pixelWidth: 780", result.stdout)
+            self.assertIn("pixelHeight: 420", result.stdout)
 
 
 if __name__ == "__main__":

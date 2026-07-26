@@ -53,10 +53,12 @@ class NativeHardeningTests(unittest.TestCase):
             "private func applyTimerTolerance", 1
         )[0]
 
-        self.assertIn("signalPopoverSize = NSSize(width: 380, height: 272)", source)
+        self.assertIn("signalConsoleSize(quotaWindowCount:", source)
+        self.assertIn("NSSize(width: 390, height: 210 + CGFloat(visibleCount - 1) * 68)", source)
         self.assertIn("private weak var signalConsolePanelView: SignalConsolePanelView?", source)
-        self.assertIn("signalConsolePanelView?.update(model: signalConsoleModel())", refresh_body)
-        self.assertNotIn("contentViewController = makeSignalConsoleViewController()", refresh_body)
+        self.assertIn("signalConsolePanelView?.update(model: model)", refresh_body)
+        self.assertIn("signalPopover.contentSize != size", refresh_body)
+        self.assertIn("makeSignalConsoleViewController(model: model, size: size)", refresh_body)
 
     def test_build_script_bundles_codex_helper_as_direct_single_binary(self):
         script = pathlib.Path("script/build_and_run.sh").read_text()
@@ -65,7 +67,8 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertIn('LEGACY_APP_BINARY_NAME="${APP_NAME}-bin"', script)
         self.assertIn('APP_BINARY="$APP_MACOS/$APP_BINARY_NAME"', script)
         self.assertIn('stage_binary="$stage_macos/$APP_BINARY_NAME"', script)
-        self.assertIn('swiftc "$BUILD_MAIN" -o "$stage_binary" -framework Cocoa -framework UserNotifications', script)
+        self.assertIn('BUILD_TARGET="$(uname -m)-apple-macosx${MIN_SYSTEM_VERSION}"', script)
+        self.assertIn('swiftc -target "$BUILD_TARGET" "$BUILD_MAIN" -o "$stage_binary" -framework Cocoa -framework UserNotifications', script)
         self.assertIn('cp "$ROOT_DIR/native/codex_status.py" "$stage_resources/codex_status.py"', script)
         self.assertIn('cp "$ROOT_DIR/native/assets/CodexGauge.icns" "$stage_resources/CodexGauge.icns"', script)
         self.assertIn("CFBundleIconFile", script)
@@ -125,10 +128,9 @@ class NativeHardeningTests(unittest.TestCase):
             "criticalRefreshInterval: TimeInterval = 2 * 60",
             "tenMinuteRefreshInterval: TimeInterval = 10 * 60",
             "nextRefreshInterval(for status: ServiceStatus?)",
-            "fiveHourResetCountdown",
-            "sevenDayResetCountdown",
+            "quotaResetCountdown",
             "nextRefreshCountdownText",
-            "drawMenuBarRefreshCountdown",
+            "drawMenuBarQuotaWindows",
             "drawMenuBarCountdownText",
         ]:
             self.assertIn(token, source)

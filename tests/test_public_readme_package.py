@@ -12,7 +12,7 @@ class PublicReadmePackageTests(unittest.TestCase):
         self.assertIn("docs/assets/codex-gauge-logo.png", readme)
         self.assertIn("docs/assets/codex-gauge-github-hero.png", readme)
         self.assertIn("docs/assets/codex-gauge-menubar-live.png", readme)
-        self.assertIn("A calm, safe macOS menu bar app to check Codex usage", readme)
+        self.assertIn("A calm, safe macOS menu bar app for the quota windows Codex actually reports", readme)
         self.assertIn("Unofficial", readme)
         self.assertIn("docs/assets/codex-gauge-signal-console.png", readme)
         self.assertIn("actual app-rendered Signal Console", readme)
@@ -32,8 +32,8 @@ class PublicReadmePackageTests(unittest.TestCase):
             "git clone https://github.com/qingzhangeddie-byte/codex-gauge.git",
             "check Codex usage",
             "Codex rate limit tracker",
-            "Codex 5-hour limit",
-            "Codex 7-day quota",
+            "Codex weekly quota",
+            "Adaptive Codex quota windows",
             "OpenAI Codex usage monitor",
             "Codex quota tracker",
             "macOS Codex menu bar app",
@@ -42,7 +42,7 @@ class PublicReadmePackageTests(unittest.TestCase):
             "Codex 菜单栏工具",
             "## FAQ",
             "Does Codex Gauge read browser cookies?",
-            "Does this trigger the 5-hour window?",
+            "Can checking usage affect a quota window?",
         ]:
             self.assertIn(phrase, readme)
 
@@ -51,7 +51,7 @@ class PublicReadmePackageTests(unittest.TestCase):
 
         for phrase in [
             "Stop guessing how much Codex you have left.",
-            "Codex Gauge puts your 5-hour and 7-day usage percentages, horizontal bars, and reset countdowns directly in the macOS menu bar",
+            "Codex Gauge puts every live quota window returned by Codex directly in the macOS menu bar",
             "Open ChatGPT once, keep Codex Gauge running, and the menu bar refreshes hands-free.",
             "No browser cookies. No `~/.codex/auth.json`. No prompt or response logging.",
             "Install from source with one command:",
@@ -70,8 +70,8 @@ class PublicReadmePackageTests(unittest.TestCase):
 
         for phrase in [
             "Codex Gauge 是一个**非官方** macOS 菜单栏工具",
-            "它可以直接显示 Codex 5 小时剩余额度和 Codex 7 天剩余额度",
-            "菜单栏紧凑显示 Codex 5 小时和 7 天使用百分比、横向条",
+            "它可以直接显示 Codex 当前额度窗口的剩余百分比和重置时间",
+            "菜单栏根据 Codex 当前返回的额度窗口自适应显示百分比、横向条",
             "下拉菜单显示额度重置时间和上次刷新时间",
             "紧凑菜单栏仪表使用透明系统监控风格",
             "重置倒计时文字",
@@ -150,8 +150,8 @@ class PublicReadmePackageTests(unittest.TestCase):
             "usage percentages and slim horizontal bars on the left",
             "reset countdown text on the right",
             "no capsule, divider, source stripe, or cap dot",
-            "5-hour usage and 7-day usage",
-            "5-hour reset and 7-day reset",
+            "Current weekly-only accounts get one `7d` row",
+            "No empty or invented quota is shown",
             "adaptive text, blue fills, and quiet empty tracks",
         ]:
             self.assertIn(phrase, readme)
@@ -162,8 +162,8 @@ class PublicReadmePackageTests(unittest.TestCase):
             "使用百分比和细横向条",
             "重置倒计时文字",
             "没有胶囊背景、分割线、来源竖条或端点圆点",
-            "5 小时使用量和 7 天使用量",
-            "5 小时重置和 7 天重置",
+            "当前只有周额度的账户会看到一行 `7d`",
+            "不显示空白或虚构额度",
             "自适应文字、蓝色填充和安静的空轨道",
         ]:
             self.assertIn(phrase, zh_readme)
@@ -190,7 +190,7 @@ class PublicReadmePackageTests(unittest.TestCase):
             "### 这是 Codex rate limit tracker 吗？",
             "### Codex Gauge 会读取浏览器 Cookie 吗？",
             "### Codex Gauge 会读取 `~/.codex/auth.json` 吗？",
-            "### 这会触发 5 小时窗口吗？",
+            "### 查看使用量会影响额度窗口吗？",
         ]:
             self.assertIn(phrase, readme)
         self.assertNotIn("作者其他项目", readme)

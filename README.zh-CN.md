@@ -6,13 +6,13 @@ _公开渲染图使用静态示例数值；安装后的 App 会显示你的实�
 
 [English](README.md) | 中文说明
 
-Codex Gauge 是一个**安静、安全的 Codex 菜单栏额度仪表**，用于在 macOS 菜单栏直接查看 Codex 5 小时额度、7 天额度和实时重置倒计时。
+Codex Gauge 是一个**安静、安全的 Codex 菜单栏额度仪表**，用于在 macOS 菜单栏直接查看 Codex 当前实际返回的额度窗口和实时重置倒计时。
 
-它是非官方本地工具，重点不是做大而全的 dashboard，而是把最常看的信息放到菜单栏：现在还剩多少 Codex。它也可以理解为一个本地的 Codex rate limit tracker，关注 5 小时窗口、7 天额度和重置时间。
+它是非官方本地工具，重点不是做大而全的 dashboard，而是把最常看的信息放到菜单栏：现在还剩多少 Codex。它也可以理解为一个本地的 Codex rate limit tracker，关注实时窗口、剩余百分比和重置时间。
 
 不用再猜自己还剩多少 Codex。
 
-Codex Gauge 会把 Codex 5 小时和 7 天使用百分比、横向条和重置倒计时直接放进 macOS 菜单栏；需要更多细节时，点开 Signal Console 就能看到完整状态和数据来源。
+Codex Gauge 会把 Codex 当前返回的每个额度窗口、横向条和重置倒计时直接放进 macOS 菜单栏；只有一个窗口时保持紧凑，未来出现更多窗口时自动展开。
 
 打开一次 ChatGPT 后保持 Codex Gauge 运行，菜单栏就会自动刷新，不需要额外设置浏览器或复制登录信息。
 
@@ -38,7 +38,7 @@ _菜单栏条形渲染图。这里是静态示例数值；安装后的 App 会�
 
 ## 核心特点
 
-- 菜单栏同时显示 5 小时和 7 天使用百分比、横向条，以及刷新倒计时
+- 菜单栏根据 Codex 当前返回的额度窗口自适应显示百分比、横向条和重置倒计时
 - 系统监控风格的横向条让菜单栏里的额度健康状态更直观，同时不会变成很占位置的大组件
 - 紧凑的 Signal Console 显示实时额度、重置时间、数据新鲜度和必要操作
 - Signal Console 显示真实的下次刷新倒计时，不再只是静态刷新标签
@@ -48,7 +48,7 @@ _菜单栏条形渲染图。这里是静态示例数值；安装后的 App 会�
 - 数据只从本地 Codex app-server 实时读取，不会扫描 Codex session 文件作为 fallback
 - 自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
 - 主题和刷新频率偏好只在当前运行会话中生效；开机启动使用标准 macOS LaunchAgent 保存
-- 可选通知：5 小时额度偏低、额度恢复、长时间非实时数据都会提醒
+- 可选通知：任一实时额度窗口偏低、额度恢复、长时间非实时数据都会提醒
 - Signal Console 会在弹出面板解释 Live、ChatGPT unavailable 和不可用状态
 - Signal Console 和 tooltip 会解释 Live 和 Open ChatGPT，不会把存储值当成当前实时数据
 - Setup Doctor 和 Copy Diagnostics 可帮助排查本地设置，但不会复制 prompts、Cookie、auth 文件或日志
@@ -67,7 +67,7 @@ _菜单栏条形渲染图。这里是静态示例数值；安装后的 App 会�
 
 公开截图使用生成的示例数值，避免暴露具体账户时间；真实菜单栏倒计时会实时更新。
 
-两行分别是 5 小时使用量和 7 天使用量。倒计时区域显示 5 小时重置和 7 天重置。系统监控横向条使用自适应文字、蓝色填充和安静的空轨道，让 Codex Gauge 在浅色或深色菜单栏背景上都清晰可读。
+行数跟随服务实时返回。当前只有周额度的账户会看到一行 `7d` 和一个重置倒计时；未来 Codex 返回其他窗口时，Codex Gauge 会自动增加对应行，不显示空白或虚构额度。系统监控横向条使用自适应文字、蓝色填充和安静的空轨道，在浅色或深色菜单栏背景上都清晰可读。
 
 ## 快速安装
 
@@ -111,7 +111,7 @@ open native/dist/release
 | 打包方式 | helper 打包在 App bundle 内部 |
 | 菜单栏常驻 | 通过用户级 LaunchAgent 登录时自动启动 |
 | 更新 | 手动检查 GitHub release，确认后 Install Update，只使用临时文件 |
-| 信息密度 | 同时展示 5 小时和 7 天额度 |
+| 信息密度 | 根据实时窗口时长生成标签和行数，不假设固定限额 |
 | 刷新策略 | 根据额度余量自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后快速重试 |
 | 偏好设置 | 当前会话内的刷新频率、通知和主题控制 |
 | 通知 | 只在用户主动开启后提醒关键额度状态 |
@@ -133,7 +133,7 @@ App 会通过打包的 helper 访问本地 Codex app-server 读取实时额度�
 
 它不读取浏览器 Cookie，不读取 `~/.codex/auth.json`，也不扫描无关的项目目录、浏览器 profile 或 Keychain。
 
-注意：Codex app-server 路径可能启动或刷新 Codex 5 小时窗口，因为它和 ChatGPT App 使用同一套本地服务。
+注意：通过 Codex app-server 读取实时使用量可能启动或刷新某个额度窗口，因为它和 ChatGPT App 使用同一套本地服务。
 
 更多说明见：[Privacy Notes](docs/PRIVACY.md)、[Security Policy](SECURITY.md) 和 [Changelog](CHANGELOG.md)。
 
@@ -181,11 +181,11 @@ plist 应该只引用 `codex_status.py`，不应该包含你的源码目录路�
 
 ### 如何查看 Codex 还剩多少额度？
 
-安装 Codex Gauge 后，它会在 macOS 菜单栏直接显示 Codex 5 小时和 7 天额度。
+安装 Codex Gauge 后，它会在 macOS 菜单栏直接显示当前账户实际返回的所有 Codex 额度窗口。
 
 ### 这是 Codex rate limit tracker 吗？
 
-是。Codex Gauge 专注显示 Codex 额度：5 小时剩余额度、7 天剩余额度和重置时间。
+是。Codex Gauge 专注显示 Codex 额度：实时窗口标签、剩余百分比和重置时间。
 
 ### Codex Gauge 会读取浏览器 Cookie 吗？
 
@@ -195,9 +195,9 @@ plist 应该只引用 `codex_status.py`，不应该包含你的源码目录路�
 
 不会。App 只使用本地 Codex app-server 获取实时额度，不读取 Codex session 文件、浏览器 Cookie 或 `~/.codex/auth.json`。额度读数只存在内存中，不会缓存到硬盘。
 
-### 这会触发 5 小时窗口吗？
+### 查看使用量会影响额度窗口吗？
 
-实时 Codex app-server 路径可能启动或刷新 Codex 5 小时窗口，因为它和 ChatGPT App 使用同一套本地服务。
+有可能。实时 Codex app-server 路径和 ChatGPT App 使用同一套本地服务，因此查看使用量可能启动或刷新某个额度窗口。
 
 ## 开发验证
 

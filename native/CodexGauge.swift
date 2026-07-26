@@ -9,13 +9,17 @@ private struct UsageSnapshot: Decodable {
     let codex: ServiceStatus
 }
 
+private struct QuotaWindowStatus: Decodable {
+    let label: String
+    let windowMinutes: Double?
+    let percentLeft: Int?
+    let resetsAt: Double?
+}
+
 private struct ServiceStatus: Decodable {
     let ok: Bool
     let service: String
-    let fiveHourLeft: Int?
-    let sevenDayLeft: Int?
-    let fiveHourReset: Double?
-    let sevenDayReset: Double?
+    let quotaWindows: [QuotaWindowStatus]
     let plan: String?
     let source: String?
     let dataTime: String?
@@ -94,7 +98,13 @@ private func healthSummaryText(_ checks: [DoctorCheck]) -> String {
 
 private struct SignalConsoleLayout {
     let bounds: NSRect
+    let quotaRowCount: Int
     private let margin: CGFloat = 18
+
+    init(bounds: NSRect, quotaRowCount: Int = 1) {
+        self.bounds = bounds
+        self.quotaRowCount = max(1, quotaRowCount)
+    }
 
     var panelRect: NSRect {
         bounds
@@ -108,24 +118,37 @@ private struct SignalConsoleLayout {
         NSRect(x: bounds.width - margin - 92, y: 17, width: 92, height: 20)
     }
 
-    var fiveHourQuotaRowRect: NSRect {
-        NSRect(x: margin, y: 58, width: bounds.width - margin * 2, height: 62)
+    func quotaRowRect(at index: Int) -> NSRect {
+        NSRect(
+            x: margin,
+            y: 58 + CGFloat(index) * 68,
+            width: bounds.width - margin * 2,
+            height: 58
+        )
     }
 
-    var sevenDayQuotaRowRect: NSRect {
-        NSRect(x: margin, y: 126, width: bounds.width - margin * 2, height: 62)
+    var statusStripY: CGFloat {
+        124 + CGFloat(quotaRowCount - 1) * 68
     }
 
     var freshnessRect: NSRect {
-        NSRect(x: margin, y: 184, width: bounds.width - margin * 2 - 132, height: 20)
+        NSRect(x: margin, y: statusStripY, width: bounds.width - margin * 2 - 132, height: 20)
     }
 
     var nextRefreshRect: NSRect {
-        NSRect(x: bounds.width - margin - 124, y: 184, width: 124, height: 20)
+        NSRect(x: bounds.width - margin - 124, y: statusStripY, width: 124, height: 20)
+    }
+
+    var commandDividerY: CGFloat {
+        statusStripY + 29
+    }
+
+    var commandRowY: CGFloat {
+        statusStripY + 40
     }
 
     var openChatGPTButtonRect: NSRect {
-        NSRect(x: margin, y: 226, width: 200, height: 34)
+        NSRect(x: margin, y: commandRowY, width: 200, height: 34)
     }
 
     var iconButtonRects: [NSRect] {
@@ -133,7 +156,7 @@ private struct SignalConsoleLayout {
         let gap: CGFloat = 8
         let right = bounds.width - margin
         return (0..<3).map { index in
-            NSRect(x: right - size - CGFloat(2 - index) * (size + gap), y: 226, width: size, height: size)
+            NSRect(x: right - size - CGFloat(2 - index) * (size + gap), y: commandRowY, width: size, height: size)
         }
     }
 }
@@ -575,6 +598,12 @@ private final class ThemedUtilityPanelView: NSView {
     }
 }
 
+private struct SignalQuotaWindow {
+    let label: String
+    let percentLeft: Int?
+    let resetText: String
+}
+
 private struct SignalConsoleModel {
     let planName: String
     let sourcePill: String
@@ -582,16 +611,18 @@ private struct SignalConsoleModel {
     let stateDetail: String
     let statusTitle: String
     let statusDetail: String
-    let fiveHourLeft: Int?
-    let sevenDayLeft: Int?
-    let fiveHourResetText: String
-    let sevenDayResetText: String
+    let quotaWindows: [SignalQuotaWindow]
     let lastRefreshText: String
     let liveAgeText: String
     let nextRefreshText: String
     let source: String?
     let isUnavailable: Bool
     let isRefreshing: Bool
+}
+
+private func signalConsoleSize(quotaWindowCount: Int) -> NSSize {
+    let visibleCount = max(1, min(3, quotaWindowCount))
+    return NSSize(width: 390, height: 210 + CGFloat(visibleCount - 1) * 68)
 }
 
 private final class SignalConsolePanelView: NSView {
@@ -602,6 +633,17 @@ private final class SignalConsolePanelView: NSView {
     private let refreshAction: Selector
     private let preferencesAction: Selector
     private let quitAction: Selector
+
+    private var displayedQuotaWindows: [SignalQuotaWindow] {
+        if model.quotaWindows.isEmpty {
+            return [SignalQuotaWindow(label: "--", percentLeft: nil, resetText: "--")]
+        }
+        return Array(model.quotaWindows.prefix(3))
+    }
+
+    private var consoleLayout: SignalConsoleLayout {
+        SignalConsoleLayout(bounds: bounds, quotaRowCount: displayedQuotaWindows.count)
+    }
 
     override var isFlipped: Bool {
         true
@@ -666,15 +708,16 @@ private final class SignalConsolePanelView: NSView {
         setAccessibilityElement(true)
         setAccessibilityRole(.group)
         setAccessibilityLabel("Codex Gauge quota")
+        let quotaSummary = displayedQuotaWindows.map {
+            "\($0.label) \(percentText($0.percentLeft)) left, resets \($0.resetText)"
+        }.joined(separator: ". ")
         setAccessibilityValue(
-            "5-hour \(percentText(model.fiveHourLeft)) left, resets \(model.fiveHourResetText). "
-                + "7-day \(percentText(model.sevenDayLeft)) left, resets \(model.sevenDayResetText). "
-                + "Next refresh \(model.nextRefreshText)."
+            "\(quotaSummary). Next refresh \(model.nextRefreshText)."
         )
     }
 
     private func addSignalConsoleButtons() {
-        let layout = SignalConsoleLayout(bounds: bounds)
+        let layout = consoleLayout
         let iconRects = layout.iconButtonRects
         addButton(title: "Open ChatGPT", frame: layout.openChatGPTButtonRect, action: openCodexAction, style: .primary)
         addIconButton(symbol: "arrow.clockwise", label: "Refresh now", frame: iconRects[0], action: refreshAction)
@@ -752,16 +795,14 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawPanelBackground() {
-        let layout = SignalConsoleLayout(bounds: bounds)
+        let layout = consoleLayout
         let rect = layout.panelRect
         panelBackground.setFill()
         rect.fill()
-        let wash = NSBezierPath(rect: NSRect(x: rect.minX, y: rect.minY, width: rect.width, height: 48))
-        NSGradient(colors: [panelStrongBackground, panelBackground])?.draw(in: wash, angle: 90)
     }
 
     private func drawPanelAccentRail() {
-        let layout = SignalConsoleLayout(bounds: bounds)
+        let layout = consoleLayout
         let rect = layout.panelRect
         let rail = NSRect(x: rect.minX + 38, y: rect.minY + 8, width: rect.width - 76, height: 2.4)
         drawRoundedGradient(
@@ -777,7 +818,7 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawHeader() {
-        let layout = SignalConsoleLayout(bounds: bounds)
+        let layout = consoleLayout
         let title = layout.headerTitleRect
         let status = layout.headerStatusRect
         drawText("Codex Gauge", x: title.minX, y: title.minY, width: 118, height: title.height, size: 16, weight: .semibold, color: textPrimary)
@@ -789,13 +830,13 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawStatusStrip() {
-        let layout = SignalConsoleLayout(bounds: bounds)
+        let layout = consoleLayout
         let stateColor = sourceColor(source: model.source, unavailable: model.isUnavailable)
         let freshness = model.isUnavailable ? model.stateDetail : "Updated \(model.liveAgeText)"
         drawCircle(center: NSPoint(x: layout.freshnessRect.minX + 4, y: layout.freshnessRect.midY), radius: 2.8, color: stateColor, stroke: nil)
         drawText(freshness, x: layout.freshnessRect.minX + 12, y: layout.freshnessRect.minY + 2, width: layout.freshnessRect.width - 12, height: 16, size: 10.5, weight: .medium, color: textSecondary)
         drawText("Next \(model.nextRefreshText)", x: layout.nextRefreshRect.minX, y: layout.nextRefreshRect.minY + 2, width: layout.nextRefreshRect.width, height: 16, size: 10.5, weight: .medium, color: textMuted, mono: true, alignment: .right)
-        drawInstrumentDivider(y: 214, xInset: 18)
+        drawInstrumentDivider(y: layout.commandDividerY, xInset: 18)
     }
 
     private func drawClosedSignalState(in rect: NSRect) {
@@ -805,28 +846,25 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawSignalHeroCard() {
-        let layout = SignalConsoleLayout(bounds: bounds)
-        drawQuotaWindowRow(
-            window: "5h",
-            label: "5-hour quota",
-            value: model.fiveHourLeft,
-            resetText: model.fiveHourResetText,
-            rect: layout.fiveHourQuotaRowRect
-        )
-        drawInstrumentDivider(y: 123, xInset: 18)
-        drawQuotaWindowRow(
-            window: "7d",
-            label: "7-day quota",
-            value: model.sevenDayLeft,
-            resetText: model.sevenDayResetText,
-            rect: layout.sevenDayQuotaRowRect
-        )
+        let layout = consoleLayout
+        for (index, window) in displayedQuotaWindows.enumerated() {
+            let rect = layout.quotaRowRect(at: index)
+            if index > 0 {
+                drawInstrumentDivider(y: rect.minY - 4, xInset: 18)
+            }
+            drawQuotaWindowRow(
+                window: window.label,
+                value: window.percentLeft,
+                resetText: window.resetText,
+                rect: rect
+            )
+        }
     }
 
-    private func drawQuotaWindowRow(window: String, label: String, value: Int?, resetText: String, rect: NSRect) {
+    private func drawQuotaWindowRow(window: String, value: Int?, resetText: String, rect: NSRect) {
         drawText(window, x: rect.minX, y: rect.minY + 3, width: 30, height: 20, size: 15, weight: .bold, color: textPrimary, mono: true)
         drawText(percentText(value), x: rect.minX + 38, y: rect.minY, width: 62, height: 24, size: 18, weight: .bold, color: value == nil ? textMuted : quotaColor(value), mono: true)
-        drawText(label, x: rect.minX + 102, y: rect.minY + 5, width: 92, height: 16, size: 10.5, weight: .medium, color: textSecondary)
+        drawText("remaining", x: rect.minX + 102, y: rect.minY + 5, width: 92, height: 16, size: 10.5, weight: .medium, color: textSecondary)
         drawText("resets \(resetText)", x: rect.maxX - 116, y: rect.minY + 5, width: 116, height: 16, size: 10.5, weight: .medium, color: resetTextColor(resetText), mono: true, alignment: .right)
         drawQuotaRail(value: value, rect: NSRect(x: rect.minX, y: rect.minY + 34, width: rect.width, height: 8))
     }
@@ -987,24 +1025,28 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func drawQuotaRail(value: Int?, rect: NSRect) {
-        drawRoundedRect(rect, radius: rect.height / 2, fill: theme.trackFill, stroke: nil)
+        let cornerRadius = min(1.2, rect.height / 4)
+        let trackPath = NSBezierPath(roundedRect: rect, xRadius: cornerRadius, yRadius: cornerRadius)
+        NSColor(deviceWhite: 0.08, alpha: 0.95).setFill()
+        trackPath.fill()
+
         guard let value else {
             return
         }
-        let fillWidth = max(rect.height, rect.width * clamped(value))
-        let fillRect = NSRect(x: rect.minX, y: rect.minY, width: min(rect.width, fillWidth), height: rect.height)
-        let gradient = quotaFillGradient(value: value)
-        drawRoundedGradient(fillRect, radius: rect.height / 2, gradient: gradient, stroke: nil)
-    }
 
-    private func quotaFillGradient(value: Int) -> NSGradient? {
-        if value < 10 {
-            return NSGradient(colors: [coralAccent, theme.quotaLowEnd])
-        }
-        if value < 25 {
-            return NSGradient(colors: [amberAccent, amberAccent])
-        }
-        return NSGradient(colors: [morandiQuotaBlue, morandiQuotaBlue])
+        let innerRect = rect.insetBy(dx: 1, dy: 1)
+        let fillWidth = min(innerRect.width, max(2.4, innerRect.width * clamped(value)))
+        let fillRect = NSRect(
+            x: innerRect.minX,
+            y: innerRect.minY,
+            width: fillWidth,
+            height: innerRect.height
+        )
+        NSGraphicsContext.saveGraphicsState()
+        trackPath.addClip()
+        quotaColor(value).setFill()
+        fillRect.fill()
+        NSGraphicsContext.restoreGraphicsState()
     }
 
     private func drawWrappedText(_ text: String, rect: NSRect, size: CGFloat, weight: NSFont.Weight, color: NSColor) {
@@ -1360,8 +1402,9 @@ private func renderSignalConsoleFixtures(outputDirectory: String? = nil) throws 
 
 private func renderSignalConsolePanel(model: SignalConsoleModel, theme: SignalConsoleTheme) throws -> NSImage {
     let target = SignalConsolePreviewTarget()
+    let size = signalConsoleSize(quotaWindowCount: model.quotaWindows.count)
     let panel = SignalConsolePanelView(
-        frame: NSRect(origin: .zero, size: NSSize(width: 380, height: 272)),
+        frame: NSRect(origin: .zero, size: size),
         model: model,
         theme: theme,
         target: target,
@@ -1393,10 +1436,8 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             detail: "Current",
             statusTitle: "Live data is current",
             statusDetail: "Read from local Codex app-server",
-            fiveHourLeft: 82,
-            sevenDayLeft: 76,
-            fiveHourResetText: "4h59m",
-            sevenDayResetText: "6d23h",
+            quotaLeft: 82,
+            resetText: "6d23h",
             source: "live",
             unavailable: false
         )),
@@ -1405,10 +1446,8 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             detail: "Open ChatGPT",
             statusTitle: "Open ChatGPT once to enable live usage",
             statusDetail: "After ChatGPT is open, Codex Gauge refreshes hands-free from the menu bar.",
-            fiveHourLeft: nil,
-            sevenDayLeft: nil,
-            fiveHourResetText: "--",
-            sevenDayResetText: "--",
+            quotaLeft: nil,
+            resetText: "--",
             source: nil,
             unavailable: true
         )),
@@ -1417,10 +1456,8 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             detail: "Current",
             statusTitle: "Live data is current",
             statusDetail: "Read from local Codex app-server",
-            fiveHourLeft: 9,
-            sevenDayLeft: 44,
-            fiveHourResetText: "38m",
-            sevenDayResetText: "2d4h",
+            quotaLeft: 9,
+            resetText: "2d4h",
             source: "live",
             unavailable: false
         )),
@@ -1428,11 +1465,9 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             title: "Live",
             detail: "Reset soon",
             statusTitle: "Reset countdown visible",
-            statusDetail: "Minute-level 5-hour countdown stays readable in the menu bar.",
-            fiveHourLeft: 80,
-            sevenDayLeft: 79,
-            fiveHourResetText: "59m",
-            sevenDayResetText: "6d20h",
+            statusDetail: "The live weekly reset countdown stays readable in the menu bar.",
+            quotaLeft: 79,
+            resetText: "59m",
             source: "live",
             unavailable: false
         )),
@@ -1450,10 +1485,8 @@ private func signalConsolePreviewModel(
     detail: String,
     statusTitle: String,
     statusDetail: String,
-    fiveHourLeft: Int?,
-    sevenDayLeft: Int?,
-    fiveHourResetText: String,
-    sevenDayResetText: String,
+    quotaLeft: Int?,
+    resetText: String,
     source: String?,
     unavailable: Bool
 ) -> SignalConsoleModel {
@@ -1464,10 +1497,9 @@ private func signalConsolePreviewModel(
         stateDetail: detail,
         statusTitle: statusTitle,
         statusDetail: statusDetail,
-        fiveHourLeft: fiveHourLeft,
-        sevenDayLeft: sevenDayLeft,
-        fiveHourResetText: fiveHourResetText,
-        sevenDayResetText: sevenDayResetText,
+        quotaWindows: unavailable
+            ? []
+            : [SignalQuotaWindow(label: "7d", percentLeft: quotaLeft, resetText: resetText)],
         lastRefreshText: unavailable ? "none" : "21:12",
         liveAgeText: unavailable ? "unknown" : "2m ago",
         nextRefreshText: unavailable ? "1:00" : "4:58",
@@ -1502,7 +1534,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var allowTermination = false
     private var activity: NSObjectProtocol?
     private var moodPulseStep = 0
-    private var previousFiveHourLeft: Int?
+    private var previousQuotaLeftByWindow: [String: Int] = [:]
     private var nextRefreshAt: Date?
     private var liveUnavailableSince: Date?
     private var didNotifyLiveUnavailable = false
@@ -1534,7 +1566,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let menuBarUsagePercentRect = NSRect(x: 2, y: 3, width: 54, height: 16)
     private let menuBarHorizontalRailRect = NSRect(x: 46, y: 3, width: 22, height: 16)
     private let menuBarRefreshCountdownRect = NSRect(x: 69, y: 2, width: 24, height: 18)
-    private let signalPopoverSize = NSSize(width: 380, height: 272)
     private let quotaRailSize = NSSize(width: 22, height: 5)
     private let signalRailSegments = 10
     private let codexHostBundleIdentifier = "com.openai.codex"
@@ -1548,11 +1579,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let normalQuotaColor = NSColor(calibratedRed: 0.58, green: 1.00, blue: 0.89, alpha: 0.95)
     private let warningQuotaColor = NSColor(calibratedRed: 1.00, green: 0.74, blue: 0.34, alpha: 0.96)
     private let criticalQuotaColor = NSColor(calibratedRed: 1.00, green: 0.34, blue: 0.40, alpha: 0.96)
-    private let fiveHourMenuLabel = "5-hour left"
-    private let sevenDayMenuLabel = "7-day left"
     private let liveRefreshMenuLabel = "Live · refreshed"
-    private let fiveHourResetMenuLabel = "5h resets"
-    private let sevenDayResetMenuLabel = "7d resets"
     private let launchAgentLabel = "app.codexgauge.menubar"
     private let launchAgentPlistName = "app.codexgauge.menubar.plist"
     private let latestReleaseAPIURL = "https://api.github.com/repos/qingzhangeddie-byte/codex-gauge/releases/latest"
@@ -1563,8 +1590,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let adaptiveRefreshMode = "adaptive"
     private let fiveMinuteRefreshMode = "5m"
     private let tenMinuteRefreshMode = "10m"
-    private let fiveHourLowNotification = "fiveHourLowNotification"
-    private let fiveHourRestoredNotification = "fiveHourRestoredNotification"
+    private let quotaLowNotificationPrefix = "quotaLowNotification"
+    private let quotaRestoredNotificationPrefix = "quotaRestoredNotification"
     private let liveUnavailableNotification = "liveUnavailableNotification"
     private let liveUnavailableNotificationDelay: TimeInterval = 900
     private let automaticUpdateCheckDelay: TimeInterval = 2 * 60
@@ -1572,7 +1599,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private lazy var resourcesDir = Bundle.main.resourcePath ?? FileManager.default.currentDirectoryPath
     private lazy var pythonPath = infoString("CodexGaugePythonPath", fallback: "/usr/bin/python3")
-    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.9.6")
+    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.9.7")
     private lazy var releaseURL = infoString("CodexGaugeReleaseURL", fallback: "https://github.com/qingzhangeddie-byte/codex-gauge/releases")
     private lazy var expectedUpdateSigningTeamID = infoString("CodexGaugeUpdateTeamID", fallback: "").trimmingCharacters(in: .whitespacesAndNewlines)
     private lazy var usagePath = resolveUsagePath()
@@ -1701,11 +1728,13 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         refresh()
         let anchorView = statusItem.button ?? statusItemView
         let popover = signalPopover ?? NSPopover()
+        let model = signalConsoleModel()
+        let size = signalConsoleSize(quotaWindowCount: model.quotaWindows.count)
         popover.behavior = .transient
         popover.animates = true
         popover.appearance = NSAppearance(named: currentSignalConsoleTheme().appearance)
-        popover.contentSize = signalPopoverSize
-        popover.contentViewController = makeSignalConsoleViewController()
+        popover.contentSize = size
+        popover.contentViewController = makeSignalConsoleViewController(model: model, size: size)
         signalPopover = popover
         popover.show(relativeTo: anchorView.bounds, of: anchorView, preferredEdge: .minY)
         startPopoverCountdownTimer()
@@ -1713,10 +1742,17 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func refreshSignalPopoverIfNeeded() {
-        guard signalPopover?.isShown == true else {
+        guard let signalPopover, signalPopover.isShown else {
             return
         }
-        signalConsolePanelView?.update(model: signalConsoleModel())
+        let model = signalConsoleModel()
+        let size = signalConsoleSize(quotaWindowCount: model.quotaWindows.count)
+        if signalPopover.contentSize != size {
+            signalPopover.contentSize = size
+            signalPopover.contentViewController = makeSignalConsoleViewController(model: model, size: size)
+            return
+        }
+        signalConsolePanelView?.update(model: model)
     }
 
     private func applyTimerTolerance(_ timer: Timer, interval: TimeInterval) {
@@ -1747,21 +1783,21 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         popoverCountdownTimer = nil
     }
 
-    private func makeSignalConsoleViewController() -> NSViewController {
+    private func makeSignalConsoleViewController(model: SignalConsoleModel, size: NSSize) -> NSViewController {
         let controller = NSViewController()
         let theme = currentSignalConsoleTheme()
-        let visual = NSVisualEffectView(frame: NSRect(origin: .zero, size: signalPopoverSize))
+        let visual = NSVisualEffectView(frame: NSRect(origin: .zero, size: size))
         visual.material = theme.material
         visual.blendingMode = .withinWindow
         visual.state = .active
         visual.appearance = NSAppearance(named: theme.appearance)
         visual.wantsLayer = true
-        visual.layer?.cornerRadius = 18
+        visual.layer?.cornerRadius = 7
         visual.layer?.masksToBounds = true
 
         let panel = SignalConsolePanelView(
             frame: visual.bounds,
-            model: signalConsoleModel(),
+            model: model,
             theme: theme,
             target: self,
             openCodexAction: #selector(openCodexApp),
@@ -1773,7 +1809,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         visual.addSubview(panel)
         signalConsolePanelView = panel
         controller.view = visual
-        controller.preferredContentSize = signalPopoverSize
+        controller.preferredContentSize = size
         return controller
     }
 
@@ -1792,10 +1828,13 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 stateDetail: title.detail,
                 statusTitle: sourceStatusTitle(status),
                 statusDetail: sourceStatusDetail(status),
-                fiveHourLeft: unavailable ? nil : status.fiveHourLeft,
-                sevenDayLeft: unavailable ? nil : status.sevenDayLeft,
-                fiveHourResetText: unavailable ? "--" : fiveHourResetCountdown(status.fiveHourReset),
-                sevenDayResetText: unavailable ? "--" : sevenDayResetCountdown(status.sevenDayReset),
+                quotaWindows: unavailable ? [] : availableQuotaWindows(status).map {
+                    SignalQuotaWindow(
+                        label: $0.label,
+                        percentLeft: $0.percentLeft,
+                        resetText: quotaResetCountdown($0)
+                    )
+                },
                 lastRefreshText: shortTime(status.dataTime ?? snapshot.updatedAt),
                 liveAgeText: statusAgeText,
                 nextRefreshText: nextRefreshCountdownText(now: now),
@@ -1815,10 +1854,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             stateDetail: "Open ChatGPT",
             statusTitle: "Open ChatGPT once to enable live usage",
             statusDetail: detail,
-            fiveHourLeft: nil,
-            sevenDayLeft: nil,
-            fiveHourResetText: "--",
-            sevenDayResetText: "--",
+            quotaWindows: [],
             lastRefreshText: "none",
             liveAgeText: "unknown",
             nextRefreshText: nextRefreshCountdownText(now: now),
@@ -2725,7 +2761,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
         content.addSubview(utilityLabel("Codex Gauge is ready", frame: NSRect(x: 28, y: 306, width: 260, height: 26), size: 18, weight: .semibold, color: theme.textPrimary))
         content.addSubview(utilityLabel("Local first. No cookies.", frame: NSRect(x: 28, y: 280, width: 260, height: 18), size: 12, weight: .medium, color: theme.mintAccent))
-        content.addSubview(utilityLabel("Open ChatGPT once, then Codex Gauge keeps your 5-hour and 7-day quota visible from the menu bar.", frame: NSRect(x: 28, y: 248, width: 400, height: 34), size: 12, weight: .regular, color: theme.textSecondary))
+        content.addSubview(utilityLabel("Open ChatGPT once, then Codex Gauge keeps every live quota window visible from the menu bar.", frame: NSRect(x: 28, y: 248, width: 400, height: 34), size: 12, weight: .regular, color: theme.textSecondary))
 
         addUtilityStatusRow(to: content, y: 192, title: "Live source", detail: "Uses the local Codex app-server", state: "green")
         addUtilityStatusRow(to: content, y: 148, title: "Menu bar", detail: "Refreshes hands-free after setup", state: "green")
@@ -3059,38 +3095,46 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             }
         }
 
+        let currentWindows = availableQuotaWindows(status)
+        let currentValues = Dictionary(uniqueKeysWithValues: currentWindows.compactMap { window in
+            window.percentLeft.map { (quotaWindowKey(window), $0) }
+        })
         guard notificationsEnabled() else {
-            previousFiveHourLeft = status.fiveHourLeft
+            previousQuotaLeftByWindow = currentValues
             return
         }
 
-        guard let current = status.fiveHourLeft else {
-            return
+        for window in currentWindows {
+            guard let current = window.percentLeft else {
+                continue
+            }
+            let key = quotaWindowKey(window)
+            let previous = previousQuotaLeftByWindow[key]
+            let windowName = window.label == "--" ? "Codex" : "Codex \(window.label)"
+            if previous == nil, current < 10 {
+                postNotification(
+                    identifier: "\(quotaLowNotificationPrefix).\(key)",
+                    title: "\(windowName) quota is low",
+                    body: "Your \(windowName) quota is below 10%."
+                )
+            } else if let previous, previous >= 10, current < 10 {
+                postNotification(
+                    identifier: "\(quotaLowNotificationPrefix).\(key)",
+                    title: "\(windowName) quota is low",
+                    body: "Your \(windowName) quota just dropped below 10%."
+                )
+            } else if let previous, previous < 10, current >= 90 {
+                resetHighlightUntil = Date().addingTimeInterval(180)
+                postNotification(
+                    identifier: "\(quotaRestoredNotificationPrefix).\(key)",
+                    title: "\(windowName) quota is back",
+                    body: "Your \(windowName) quota has refreshed."
+                )
+            } else if let previous, current - previous >= 50 {
+                resetHighlightUntil = Date().addingTimeInterval(180)
+            }
         }
-
-        if previousFiveHourLeft == nil, current < 10 {
-            postNotification(
-                identifier: fiveHourLowNotification,
-                title: "Codex 5-hour quota is low",
-                body: "Your 5-hour Codex quota is below 10%."
-            )
-        } else if let previous = previousFiveHourLeft, previous >= 10, current < 10 {
-            postNotification(
-                identifier: fiveHourLowNotification,
-                title: "Codex 5-hour quota is low",
-                body: "Your 5-hour Codex quota just dropped below 10%."
-            )
-        } else if let previous = previousFiveHourLeft, previous < 10, current >= 90 {
-            resetHighlightUntil = Date().addingTimeInterval(180)
-            postNotification(
-                identifier: fiveHourRestoredNotification,
-                title: "Codex 5-hour quota is back",
-                body: "Your 5-hour Codex quota has refreshed."
-            )
-        } else if let previous = previousFiveHourLeft, current - previous >= 50 {
-            resetHighlightUntil = Date().addingTimeInterval(180)
-        }
-        previousFiveHourLeft = current
+        previousQuotaLeftByWindow = currentValues
     }
 
     private func postNotification(identifier: String, title: String, body: String) {
@@ -3244,7 +3288,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func serviceLine(_ status: ServiceStatus) -> String {
         if status.ok {
-            var line = "\(status.service): 5h \(percent(status.fiveHourLeft))  7d \(percent(status.sevenDayLeft))"
+            let quotaText = availableQuotaWindows(status)
+                .map { "\($0.label) \(percent($0.percentLeft))" }
+                .joined(separator: "  ")
+            var line = "\(status.service): \(quotaText)"
             if let plan = status.plan, !plan.isEmpty, plan != "?" {
                 line += "  \(plan)"
             }
@@ -3271,7 +3318,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func isUnavailableStatus(_ status: ServiceStatus) -> Bool {
-        !status.ok || (status.fiveHourLeft == nil && status.sevenDayLeft == nil)
+        !status.ok || availableQuotaWindows(status).isEmpty
     }
 
     private func addCodexDetail(_ snapshot: UsageSnapshot) {
@@ -3280,12 +3327,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             addDisabled(planTitle(status), monospaced: false)
             addDisabled(sourceStatusTitle(status))
             addDisabled(sourceStatusDetail(status))
-            addDisabled("\(fiveHourMenuLabel)    \(percent(status.fiveHourLeft))  \(barString(status.fiveHourLeft))", monospaced: true)
-            addDisabled("\(sevenDayMenuLabel)     \(percent(status.sevenDayLeft))  \(barString(status.sevenDayLeft))", monospaced: true)
-            addDisabled("\(fiveHourResetMenuLabel) \(resetCountdown(status.fiveHourReset))")
-            addDisabled("\(sevenDayResetMenuLabel) \(resetCountdown(status.sevenDayReset))")
+            for window in availableQuotaWindows(status) {
+                addDisabled(
+                    "\(window.label) left    \(percent(window.percentLeft))  \(barString(window.percentLeft))",
+                    monospaced: true
+                )
+                addDisabled("\(window.label) resets \(resetCountdown(window.resetsAt))")
+            }
             if let resetHighlightUntil, resetHighlightUntil > Date() {
-                addDisabled("5h refreshed")
+                addDisabled("Quota refreshed")
             }
             addDisabled("\(refreshLabel(status)) \(shortTime(status.dataTime ?? snapshot.updatedAt))")
             return
@@ -3333,8 +3383,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func menuBarTooltipTitle(title: String, status: ServiceStatus?) -> String {
         var parts = [title]
         if let status, status.ok, !isUnavailableStatus(status) {
-            parts.append("5h resets \(fiveHourResetCountdown(status.fiveHourReset))")
-            parts.append("7d resets \(sevenDayResetCountdown(status.sevenDayReset))")
+            parts.append(contentsOf: availableQuotaWindows(status).map {
+                "\($0.label) resets \(quotaResetCountdown($0))"
+            })
         }
         return parts.joined(separator: " · ")
     }
@@ -3343,9 +3394,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         guard let status, status.ok, !isUnavailableStatus(status) else {
             return "unavailable"
         }
-        let fiveHour = status.fiveHourLeft.map { "\($0)%" } ?? "--"
-        let sevenDay = status.sevenDayLeft.map { "\($0)%" } ?? "--"
-        return "5h \(fiveHour), 7d \(sevenDay)"
+        return availableQuotaWindows(status).map {
+            "\($0.label) \($0.percentLeft.map { "\($0)%" } ?? "--")"
+        }.joined(separator: ", ")
     }
 
     private func statusPixelAligned(_ value: CGFloat) -> CGFloat {
@@ -3379,22 +3430,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let palette = gaugePalette()
         let status = statusItemStatus
         let liveWarning = isLiveWarningStatus(status)
+        let windows = status.map(availableQuotaWindows) ?? []
         if liveWarning {
-            drawLiveWarningGauge(
-                fiveHourLeft: status?.fiveHourLeft,
-                sevenDayLeft: status?.sevenDayLeft,
-                fiveHourReset: status?.fiveHourReset,
-                sevenDayReset: status?.sevenDayReset,
-                palette: palette
-            )
+            drawLiveWarningGauge(windows: windows, palette: palette)
         } else if let status, status.ok, !isUnavailableStatus(status) {
-            drawPlanBGauge(
-                fiveHourLeft: status.fiveHourLeft,
-                sevenDayLeft: status.sevenDayLeft,
-                fiveHourReset: status.fiveHourReset,
-                sevenDayReset: status.sevenDayReset,
-                palette: palette
-            )
+            drawPlanBGauge(windows: windows, palette: palette)
         } else if status?.ok == true {
             drawUnavailableGauge(palette: palette)
         } else {
@@ -3427,19 +3467,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             : NSColor(calibratedRed: 0.52, green: 0.48, blue: 0.42, alpha: 0.96)
     }
 
-    private func isUnavailableStatus(fiveHourLeft: Int?, sevenDayLeft: Int?, source: String?) -> Bool {
-        fiveHourLeft == nil && sevenDayLeft == nil && source == nil
-    }
-
     private func drawUnavailableGauge(palette: GaugePalette) {
-        drawMenuBarUsagePercentBars(fiveHourLeft: nil, sevenDayLeft: nil, palette: palette)
-        drawMenuBarRefreshCountdown(fiveHourReset: nil, sevenDayReset: nil, palette: palette)
+        drawMenuBarQuotaWindows([], palette: palette)
     }
 
-    private func drawLiveWarningGauge(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, palette: GaugePalette) {
-        drawMenuBarUsagePercentBars(fiveHourLeft: fiveHourLeft, sevenDayLeft: sevenDayLeft, palette: palette)
-        if fiveHourReset != nil || sevenDayReset != nil {
-            drawMenuBarRefreshCountdown(fiveHourReset: fiveHourReset, sevenDayReset: sevenDayReset, palette: palette)
+    private func drawLiveWarningGauge(windows: [QuotaWindowStatus], palette: GaugePalette) {
+        drawMenuBarQuotaWindows(windows, palette: palette)
+        if windows.contains(where: { $0.resetsAt != nil }) {
+            return
         } else {
             drawMenuBarLiveUnavailableHint(palette: palette)
         }
@@ -3449,40 +3484,86 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let mutedColor = systemMonitorMenuBarMutedTextColor()
         drawMenuBarCountdownText(
             text: "--",
-            rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 10.0, width: menuBarRefreshCountdownRect.width, height: 9.0),
-            palette: palette,
-            color: mutedColor
-        )
-        drawMenuBarCountdownText(
-            text: "--",
-            rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 1.0, width: menuBarRefreshCountdownRect.width, height: 9.0),
+            rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 6.5, width: menuBarRefreshCountdownRect.width, height: 10.0),
             palette: palette,
             color: mutedColor
         )
     }
 
-    private func drawPlanBGauge(fiveHourLeft: Int?, sevenDayLeft: Int?, fiveHourReset: Double?, sevenDayReset: Double?, palette: GaugePalette) {
-        drawMenuBarUsagePercentBars(fiveHourLeft: fiveHourLeft, sevenDayLeft: sevenDayLeft, palette: palette)
-        drawMenuBarRefreshCountdown(fiveHourReset: fiveHourReset, sevenDayReset: sevenDayReset, palette: palette)
+    private func drawPlanBGauge(windows: [QuotaWindowStatus], palette: GaugePalette) {
+        drawMenuBarQuotaWindows(windows, palette: palette)
     }
 
-    private func drawMenuBarUsagePercentBars(fiveHourLeft: Int?, sevenDayLeft: Int?, palette: GaugePalette) {
-        drawMenuBarUsagePercentRow(window: "5h", quotaLeft: fiveHourLeft, y: 13.0, palette: palette)
-        drawMenuBarUsagePercentRow(window: "7d", quotaLeft: sevenDayLeft, y: 4.0, palette: palette)
-        let fiveHourRailRect = statusPixelAlignedRect(NSRect(
-            x: menuBarHorizontalRailRect.minX,
-            y: menuBarHorizontalRailRect.maxY - quotaRailSize.height - 1.0,
-            width: quotaRailSize.width,
-            height: quotaRailSize.height
-        ))
-        let sevenDayRailRect = statusPixelAlignedRect(NSRect(
-            x: menuBarHorizontalRailRect.minX,
-            y: menuBarHorizontalRailRect.minY + 1.0,
-            width: quotaRailSize.width,
-            height: quotaRailSize.height
-        ))
-        drawMenuBarHorizontalQuotaBar(value: fiveHourLeft, rect: fiveHourRailRect, palette: palette, fillColor: systemMonitorMenuBarBlue())
-        drawMenuBarHorizontalQuotaBar(value: sevenDayLeft, rect: sevenDayRailRect, palette: palette, fillColor: systemMonitorMenuBarBlue())
+    private func drawMenuBarQuotaWindows(_ windows: [QuotaWindowStatus], palette: GaugePalette) {
+        let visibleWindows = windows.isEmpty
+            ? [QuotaWindowStatus(label: "--", windowMinutes: nil, percentLeft: nil, resetsAt: nil)]
+            : Array(windows.prefix(2))
+        if visibleWindows.count == 1, let window = visibleWindows.first {
+            drawMenuBarUsagePercentRow(
+                window: window.label,
+                quotaLeft: window.percentLeft,
+                y: 10.0,
+                palette: palette
+            )
+            drawMenuBarHorizontalQuotaBar(
+                value: window.percentLeft,
+                rect: statusPixelAlignedRect(NSRect(
+                    x: menuBarHorizontalRailRect.minX,
+                    y: 8.5,
+                    width: quotaRailSize.width,
+                    height: quotaRailSize.height
+                )),
+                palette: palette,
+                fillColor: systemMonitorMenuBarBlue()
+            )
+            drawMenuBarCountdownText(
+                text: quotaResetCountdown(window),
+                rect: NSRect(
+                    x: menuBarRefreshCountdownRect.minX,
+                    y: 6.5,
+                    width: menuBarRefreshCountdownRect.width,
+                    height: 10.0
+                ),
+                palette: palette
+            )
+            return
+        }
+
+        for (index, window) in visibleWindows.enumerated() {
+            let topRow = index == 0
+            let anchorY: CGFloat = topRow ? 13.0 : 4.0
+            let railY = topRow
+                ? menuBarHorizontalRailRect.maxY - quotaRailSize.height - 1.0
+                : menuBarHorizontalRailRect.minY + 1.0
+            let countdownY: CGFloat = topRow ? 10.0 : 1.0
+            drawMenuBarUsagePercentRow(
+                window: window.label,
+                quotaLeft: window.percentLeft,
+                y: anchorY,
+                palette: palette
+            )
+            drawMenuBarHorizontalQuotaBar(
+                value: window.percentLeft,
+                rect: statusPixelAlignedRect(NSRect(
+                    x: menuBarHorizontalRailRect.minX,
+                    y: railY,
+                    width: quotaRailSize.width,
+                    height: quotaRailSize.height
+                )),
+                palette: palette,
+                fillColor: systemMonitorMenuBarBlue()
+            )
+            drawMenuBarCountdownText(
+                text: quotaResetCountdown(window),
+                rect: NSRect(
+                    x: menuBarRefreshCountdownRect.minX,
+                    y: countdownY,
+                    width: menuBarRefreshCountdownRect.width,
+                    height: 9.0
+                ),
+                palette: palette
+            )
+        }
     }
 
     private func drawMenuBarUsagePercentRow(window: String, quotaLeft: Int?, y: CGFloat, palette: GaugePalette) {
@@ -3549,13 +3630,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         fillColor.setFill()
         fillRect.fill()
         NSGraphicsContext.restoreGraphicsState()
-    }
-
-    private func drawMenuBarRefreshCountdown(fiveHourReset: Double?, sevenDayReset: Double?, palette: GaugePalette) {
-        let fiveHourText = fiveHourResetCountdown(fiveHourReset)
-        let sevenDayText = sevenDayResetCountdown(sevenDayReset)
-        drawMenuBarCountdownText(text: fiveHourText, rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 10.0, width: menuBarRefreshCountdownRect.width, height: 9.0), palette: palette)
-        drawMenuBarCountdownText(text: sevenDayText, rect: NSRect(x: menuBarRefreshCountdownRect.minX, y: 1.0, width: menuBarRefreshCountdownRect.width, height: 9.0), palette: palette)
     }
 
     private func drawMenuBarCountdownText(text resetText: String, rect: NSRect, palette: GaugePalette, color: NSColor? = nil) {
@@ -3741,12 +3815,22 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func fiveHourResetCountdown(_ epoch: Double?) -> String {
-        compactResetCountdown(epoch, includeMinutes: true, includeDays: false)
+    private func availableQuotaWindows(_ status: ServiceStatus) -> [QuotaWindowStatus] {
+        Array(status.quotaWindows.filter { $0.percentLeft != nil }.prefix(3))
     }
 
-    private func sevenDayResetCountdown(_ epoch: Double?) -> String {
-        compactResetCountdown(epoch, includeMinutes: false, includeDays: true)
+    private func quotaWindowKey(_ window: QuotaWindowStatus) -> String {
+        let duration = window.windowMinutes.map { String(Int($0.rounded())) } ?? "unknown"
+        return "\(window.label).\(duration)"
+    }
+
+    private func quotaResetCountdown(_ window: QuotaWindowStatus) -> String {
+        let isLongWindow = (window.windowMinutes ?? 0) >= 24 * 60
+        return compactResetCountdown(
+            window.resetsAt,
+            includeMinutes: !isLongWindow,
+            includeDays: isLongWindow
+        )
     }
 
     private func compactResetCountdown(_ epoch: Double?, includeMinutes: Bool, includeDays: Bool) -> String {
@@ -3758,7 +3842,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             return "now"
         }
         let minutes = max(1, Int(ceil(remaining / 60)))
-        if includeMinutes && minutes < 60 {
+        if minutes < 60 {
             return "\(minutes)m"
         }
         let hours = minutes / 60
@@ -3804,7 +3888,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         if let fixed = fixedRefreshInterval() {
             return fixed
         }
-        let lowestQuota = [status.fiveHourLeft, status.sevenDayLeft].compactMap { $0 }.min() ?? 100
+        let lowestQuota = availableQuotaWindows(status).compactMap(\.percentLeft).min() ?? 100
         if lowestQuota < 10 {
             return criticalRefreshInterval
         }

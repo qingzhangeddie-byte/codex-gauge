@@ -16,7 +16,7 @@ The native menu bar app:
 - does not read `~/.codex/auth.json`;
 - does not scan your source code, Documents folder, browser profile, or Keychain.
 
-The Codex app-server path can start or refresh the 5-hour Codex window because it talks to the same local Codex service that the ChatGPT app uses.
+Reading live usage through the Codex app-server can start or refresh a quota window because Codex Gauge talks to the same local service that the ChatGPT app uses.
 
 The updater is confirmation-based. The automatic check is session-only and does not write prompt decisions to app storage.
 

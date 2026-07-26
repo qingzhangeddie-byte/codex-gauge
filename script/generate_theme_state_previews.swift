@@ -21,8 +21,7 @@ struct PreviewState {
     let name: String
     let detail: String
     let source: String
-    let fiveHour: Int?
-    let sevenDay: Int?
+    let quota: Int?
     let reset: String
     let status: NSColor
 }
@@ -76,11 +75,11 @@ let themes = [
 ]
 
 let states = [
-    PreviewState(name: "Live", detail: "Current local app-server signal", source: "Source: Menu Bar", fiveHour: 82, sevenDay: 76, reset: "4h", status: NSColor.systemGreen),
-    PreviewState(name: "ChatGPT unavailable", detail: "Open ChatGPT once to enable live usage", source: "No live quota yet", fiveHour: nil, sevenDay: nil, reset: "--", status: NSColor.systemOrange),
-    PreviewState(name: "Live only", detail: "No quota cache or snapshot", source: "Storage: startup only", fiveHour: 58, sevenDay: 63, reset: "2h", status: NSColor.systemBlue),
-    PreviewState(name: "Low quota", detail: "Adaptive refresh speeds up", source: "Source: Menu Bar", fiveHour: 9, sevenDay: 44, reset: "38m", status: NSColor.systemRed),
-    PreviewState(name: "Reset soon", detail: "Countdown stays visible", source: "Source: Menu Bar", fiveHour: 80, sevenDay: 79, reset: "60m", status: NSColor.systemBlue),
+    PreviewState(name: "Live", detail: "Current local app-server signal", source: "Source: Menu Bar", quota: 82, reset: "6d23h", status: NSColor.systemGreen),
+    PreviewState(name: "ChatGPT unavailable", detail: "Open ChatGPT once to enable live usage", source: "No live quota yet", quota: nil, reset: "--", status: NSColor.systemOrange),
+    PreviewState(name: "Live only", detail: "No quota cache or snapshot", source: "Storage: startup only", quota: 58, reset: "4d2h", status: NSColor.systemBlue),
+    PreviewState(name: "Low quota", detail: "Adaptive refresh speeds up", source: "Source: Menu Bar", quota: 9, reset: "2d4h", status: NSColor.systemRed),
+    PreviewState(name: "Reset soon", detail: "Countdown stays visible", source: "Source: Menu Bar", quota: 79, reset: "59m", status: NSColor.systemBlue),
 ]
 
 func canvasRect(_ rect: NSRect) -> NSRect {
@@ -155,13 +154,10 @@ func drawMiniConsole(theme: PreviewTheme, state: PreviewState, rect: NSRect) {
     roundedRect(strip, radius: 12, fill: state.status.withAlphaComponent(0.10), stroke: theme.border.withAlphaComponent(0.42))
     text(state.detail, NSRect(x: strip.minX + 14, y: strip.minY + 10, width: strip.width - 28, height: 16), size: 12, weight: .medium, color: theme.secondary)
 
-    let row5 = NSRect(x: rect.minX + 22, y: rect.minY + 104, width: rect.width - 44, height: 30)
-    let row7 = NSRect(x: rect.minX + 22, y: rect.minY + 138, width: rect.width - 44, height: 30)
-    for (label, value, row) in [("5h", state.fiveHour, row5), ("7d", state.sevenDay, row7)] {
-        text(label, NSRect(x: row.minX, y: row.minY + 4, width: 32, height: 22), size: 17, weight: .bold, color: theme.text, mono: true)
-        text(value.map { "\($0)%" } ?? "--", NSRect(x: row.maxX - 48, y: row.minY + 6, width: 46, height: 18), size: 13, weight: .bold, color: quotaColor(value, theme: theme), mono: true)
-        drawRail(value: value, rect: NSRect(x: row.minX + 42, y: row.minY + 13, width: row.width - 98, height: 9), theme: theme)
-    }
+    let row = NSRect(x: rect.minX + 22, y: rect.minY + 120, width: rect.width - 44, height: 30)
+    text("7d", NSRect(x: row.minX, y: row.minY + 4, width: 32, height: 22), size: 17, weight: .bold, color: theme.text, mono: true)
+    text(state.quota.map { "\($0)%" } ?? "--", NSRect(x: row.maxX - 48, y: row.minY + 6, width: 46, height: 18), size: 13, weight: .bold, color: quotaColor(state.quota, theme: theme), mono: true)
+    drawRail(value: state.quota, rect: NSRect(x: row.minX + 42, y: row.minY + 13, width: row.width - 98, height: 9), theme: theme)
 
     let footer = NSRect(x: rect.minX + 22, y: rect.maxY - 24, width: rect.width - 44, height: 18)
     text(state.source, NSRect(x: footer.minX, y: footer.minY + 4, width: 160, height: 14), size: 10, weight: .medium, color: theme.muted)

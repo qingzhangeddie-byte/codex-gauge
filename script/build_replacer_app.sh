@@ -2,6 +2,8 @@
 set -euo pipefail
 
 APP_NAME="ReplaceCodexGauge"
+MIN_SYSTEM_VERSION="13.0"
+BUILD_TARGET="$(uname -m)-apple-macosx${MIN_SYSTEM_VERSION}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_FILE="$ROOT_DIR/native/ReplaceCodexGauge.swift"
 BUILD_DIR="$ROOT_DIR/native/build"
@@ -18,7 +20,7 @@ mkdir -p "$APP_MACOS" "$SWIFT_MODULE_CACHE" "$CLANG_MODULE_CACHE"
 
 SWIFT_MODULE_CACHE_PATH="$SWIFT_MODULE_CACHE" \
 CLANG_MODULE_CACHE_PATH="$CLANG_MODULE_CACHE" \
-  swiftc "$SOURCE_FILE" -o "$APP_BINARY" -framework Cocoa
+  swiftc -target "$BUILD_TARGET" "$SOURCE_FILE" -o "$APP_BINARY" -framework Cocoa
 chmod +x "$APP_BINARY"
 
 cat >"$INFO_PLIST" <<PLIST
@@ -35,7 +37,7 @@ cat >"$INFO_PLIST" <<PLIST
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>LSMinimumSystemVersion</key>
-  <string>13.0</string>
+  <string>$MIN_SYSTEM_VERSION</string>
   <key>ReplaceRootDir</key>
   <string>$ROOT_DIR</string>
 </dict>

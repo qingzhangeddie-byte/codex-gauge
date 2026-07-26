@@ -11,6 +11,9 @@ let consoleOutputPath = "docs/assets/codex-gauge-signal-console.png"
 let socialOutputPath = "docs/assets/codex-gauge-social-preview.png"
 let provenanceText = "actual app-rendered Signal Console"
 let menuBarSize = NSSize(width: 430, height: 96)
+let systemMonitorBlue = NSColor(deviceRed: 134.0 / 255.0, green: 150.0 / 255.0, blue: 185.0 / 255.0, alpha: 1.0)
+let meterTrack = NSColor(deviceWhite: 0.08, alpha: 0.95)
+let meterStroke = NSColor.clear
 
 func canvasRect(_ rect: NSRect) -> NSRect {
     NSRect(x: rect.minX, y: canvasSize.height - rect.maxY, width: rect.width, height: rect.height)
@@ -161,9 +164,8 @@ func drawMenuBarCountdownText(_ value: String, rect: NSRect, fill: NSColor, stro
     menuBarText(value, at: NSPoint(x: rect.minX + 2, y: rect.minY + 5), size: value.count > 3 ? 14 : 16, weight: .bold, color: text, mono: true)
 }
 
-func drawMenuBarRefreshCountdown(in rect: NSRect, ink: NSColor, fill: NSColor, stroke: NSColor) {
-    drawMenuBarCountdownText("4h59m", rect: NSRect(x: rect.minX + 6, y: rect.midY + 4, width: 80, height: 22), fill: fill, stroke: stroke, text: ink)
-    drawMenuBarCountdownText("6d23h", rect: NSRect(x: rect.minX + 6, y: rect.midY - 26, width: 80, height: 22), fill: fill, stroke: stroke, text: ink)
+func drawMenuBarQuotaCountdown(in rect: NSRect, ink: NSColor, fill: NSColor, stroke: NSColor) {
+    drawMenuBarCountdownText("6d23h", rect: rect, fill: fill, stroke: stroke, text: ink)
 }
 
 func writeMenuBarPNG(_ path: String) throws {
@@ -184,9 +186,6 @@ func writeMenuBarPNG(_ path: String) throws {
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
 
     let ink = NSColor(calibratedRed: 0.22, green: 0.26, blue: 0.25, alpha: 0.98)
-    let line = NSColor.clear
-    let systemMonitorBlue = NSColor(deviceRed: 134.0 / 255.0, green: 150.0 / 255.0, blue: 185.0 / 255.0, alpha: 1.0)
-    let meterTrack = NSColor(deviceWhite: 0.08, alpha: 0.95)
     let taupe = NSColor(calibratedRed: 0.52, green: 0.48, blue: 0.42, alpha: 0.96)
 
     NSGradient(colors: [
@@ -196,15 +195,12 @@ func writeMenuBarPNG(_ path: String) throws {
 
     let strip = NSRect(x: 64, y: 20, width: 252, height: 56)
 
-    menuBarText("5h", at: NSPoint(x: strip.minX + 12, y: 48), size: 24, weight: .bold, color: ink, mono: true)
-    menuBarText("7d", at: NSPoint(x: strip.minX + 12, y: 24), size: 24, weight: .bold, color: ink, mono: true)
-    menuBarText("90%", at: NSPoint(x: strip.minX + 48, y: 49), size: 17, weight: .bold, color: ink, mono: true)
-    menuBarText("80%", at: NSPoint(x: strip.minX + 48, y: 25), size: 17, weight: .bold, color: ink, mono: true)
-    drawMenuBarHorizontalQuotaBar(value: 0.90, rect: NSRect(x: strip.minX + 112, y: 56, width: 46, height: 8), fill: systemMonitorBlue, track: meterTrack, stroke: line)
-    drawMenuBarHorizontalQuotaBar(value: 0.80, rect: NSRect(x: strip.minX + 112, y: 32, width: 46, height: 8), fill: systemMonitorBlue, track: meterTrack, stroke: line)
+    menuBarText("7d", at: NSPoint(x: strip.minX + 12, y: 36), size: 24, weight: .bold, color: ink, mono: true)
+    menuBarText("80%", at: NSPoint(x: strip.minX + 48, y: 37), size: 17, weight: .bold, color: ink, mono: true)
+    drawMenuBarHorizontalQuotaBar(value: 0.80, rect: NSRect(x: strip.minX + 112, y: 44, width: 46, height: 8), fill: systemMonitorBlue, track: meterTrack, stroke: meterStroke)
 
-    drawMenuBarRefreshCountdown(
-        in: NSRect(x: strip.minX + 172, y: 23, width: 82, height: 50),
+    drawMenuBarQuotaCountdown(
+        in: NSRect(x: strip.minX + 172, y: 29, width: 82, height: 28),
         ink: ink,
         fill: taupe.withAlphaComponent(0),
         stroke: taupe.withAlphaComponent(0)
@@ -236,7 +232,7 @@ try writePNG(heroOutputPath) {
     drawRoundedRect(NSRect(x: 0, y: 0, width: 1280, height: 74), radius: 0, fill: NSColor.white.withAlphaComponent(0.46))
     drawText("Codex Gauge", in: NSRect(x: 80, y: 108, width: 480, height: 58), size: 48, weight: .bold, color: NSColor(calibratedRed: 0.10, green: 0.15, blue: 0.15, alpha: 1.0))
     drawText("Codex quota where you actually look: the macOS menu bar.", in: NSRect(x: 82, y: 176, width: 500, height: 72), size: 25, weight: .semibold, color: NSColor(calibratedRed: 0.22, green: 0.30, blue: 0.30, alpha: 0.96))
-    drawText("Rendered sample values. The installed app shows your live 5-hour and 7-day usage, with reset countdowns that keep moving.", in: NSRect(x: 84, y: 258, width: 500, height: 86), size: 18, weight: .regular, color: NSColor(calibratedRed: 0.33, green: 0.39, blue: 0.38, alpha: 0.94))
+    drawText("Rendered sample values. The installed app follows the live quota windows Codex actually returns, with reset countdowns that keep moving.", in: NSRect(x: 84, y: 258, width: 500, height: 86), size: 18, weight: .regular, color: NSColor(calibratedRed: 0.33, green: 0.39, blue: 0.38, alpha: 0.94))
 
     drawPill("No cookies", rect: NSRect(x: 84, y: 382, width: 122, height: 38), fill: NSColor.white.withAlphaComponent(0.42), stroke: NSColor(calibratedRed: 0.34, green: 0.43, blue: 0.41, alpha: 0.22), text: NSColor(calibratedRed: 0.16, green: 0.22, blue: 0.21, alpha: 1.0))
     drawPill("No auth-file reads", rect: NSRect(x: 222, y: 382, width: 172, height: 38), fill: NSColor.white.withAlphaComponent(0.42), stroke: NSColor(calibratedRed: 0.34, green: 0.43, blue: 0.41, alpha: 0.22), text: NSColor(calibratedRed: 0.16, green: 0.22, blue: 0.21, alpha: 1.0))
@@ -254,17 +250,10 @@ try writePNG(heroOutputPath) {
     drawRoundedRect(NSRect(x: 642, y: 116, width: 548, height: 340), radius: 30, fill: NSColor.white.withAlphaComponent(0.52), stroke: NSColor(calibratedRed: 0.26, green: 0.36, blue: 0.36, alpha: 0.20))
     drawText("menu bar signal", in: NSRect(x: 686, y: 154, width: 220, height: 22), size: 14, weight: .semibold, color: NSColor(calibratedRed: 0.35, green: 0.43, blue: 0.40, alpha: 0.92))
     drawImage(menuBar, in: NSRect(x: 732, y: 178, width: 360, height: 80))
-    drawRoundedRect(NSRect(x: 686, y: 294, width: 194, height: 96), radius: 18, fill: NSColor.white.withAlphaComponent(0.46), stroke: NSColor(calibratedRed: 0.26, green: 0.36, blue: 0.36, alpha: 0.15))
-    drawText("5h", in: NSRect(x: 710, y: 318, width: 42, height: 24), size: 22, weight: .bold, color: NSColor(calibratedRed: 0.13, green: 0.18, blue: 0.18, alpha: 1.0), mono: true)
-    drawText("usage", in: NSRect(x: 710, y: 348, width: 78, height: 18), size: 12, weight: .medium, color: NSColor(calibratedRed: 0.36, green: 0.44, blue: 0.42, alpha: 0.86))
-    drawText("90%", in: NSRect(x: 788, y: 318, width: 72, height: 28), size: 24, weight: .bold, color: NSColor(calibratedRed: 0.23, green: 0.32, blue: 0.28, alpha: 1.0), mono: true)
-    drawText("4h59m", in: NSRect(x: 788, y: 350, width: 72, height: 18), size: 12, weight: .semibold, color: NSColor(calibratedRed: 0.45, green: 0.41, blue: 0.35, alpha: 0.92), mono: true)
-
-    drawRoundedRect(NSRect(x: 910, y: 294, width: 194, height: 96), radius: 18, fill: NSColor.white.withAlphaComponent(0.46), stroke: NSColor(calibratedRed: 0.26, green: 0.36, blue: 0.36, alpha: 0.15))
-    drawText("7d", in: NSRect(x: 934, y: 318, width: 42, height: 24), size: 22, weight: .bold, color: NSColor(calibratedRed: 0.13, green: 0.18, blue: 0.18, alpha: 1.0), mono: true)
-    drawText("quota", in: NSRect(x: 934, y: 348, width: 78, height: 18), size: 12, weight: .medium, color: NSColor(calibratedRed: 0.36, green: 0.44, blue: 0.42, alpha: 0.86))
-    drawText("80%", in: NSRect(x: 1012, y: 318, width: 72, height: 28), size: 24, weight: .bold, color: NSColor(calibratedRed: 0.24, green: 0.34, blue: 0.38, alpha: 1.0), mono: true)
-    drawText("6d23h", in: NSRect(x: 1012, y: 350, width: 72, height: 18), size: 12, weight: .semibold, color: NSColor(calibratedRed: 0.45, green: 0.41, blue: 0.35, alpha: 0.92), mono: true)
+    drawText("7d", in: NSRect(x: 720, y: 310, width: 42, height: 28), size: 24, weight: .bold, color: NSColor(calibratedRed: 0.13, green: 0.18, blue: 0.18, alpha: 1.0), mono: true)
+    drawText("80%", in: NSRect(x: 790, y: 308, width: 72, height: 30), size: 26, weight: .bold, color: NSColor(calibratedRed: 0.24, green: 0.34, blue: 0.38, alpha: 1.0), mono: true)
+    drawMenuBarHorizontalQuotaBar(value: 0.80, rect: NSRect(x: 884, y: 321, width: 92, height: 10), fill: systemMonitorBlue, track: meterTrack, stroke: meterStroke)
+    drawText("6d23h", in: NSRect(x: 1000, y: 315, width: 86, height: 22), size: 15, weight: .semibold, color: NSColor(calibratedRed: 0.45, green: 0.41, blue: 0.35, alpha: 0.92), mono: true)
 
     drawText("The menu bar shows Codex quota and reset countdowns; the popover expands those same signals into a focused console.", in: NSRect(x: 686, y: 412, width: 420, height: 58), size: 16, weight: .regular, color: NSColor(calibratedRed: 0.35, green: 0.42, blue: 0.41, alpha: 0.92))
 }
@@ -280,8 +269,8 @@ try writePNG(consoleOutputPath) {
     drawText("Static public screenshot with sample quota values and illustrative reset countdowns. The installed app renders your live Codex values.", in: NSRect(x: 74, y: 176, width: 430, height: 86), size: 18, weight: .regular, color: NSColor(calibratedRed: 0.19, green: 0.28, blue: 0.31, alpha: 0.92))
 
     drawPill("Live source", rect: NSRect(x: 74, y: 280, width: 132, height: 38), fill: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 0.13), stroke: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 0.30), text: NSColor(calibratedRed: 0.06, green: 0.22, blue: 0.21, alpha: 1.0), dot: NSColor(calibratedRed: 0.05, green: 0.72, blue: 0.64, alpha: 1.0))
-    drawPill("5h + 7d", rect: NSRect(x: 220, y: 280, width: 118, height: 38), fill: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.15), stroke: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.34), text: NSColor(calibratedRed: 0.28, green: 0.20, blue: 0.08, alpha: 1.0))
-    drawPill("No history", rect: NSRect(x: 352, y: 280, width: 144, height: 38), fill: NSColor(calibratedRed: 0.216, green: 0.424, blue: 0.561, alpha: 0.09), stroke: NSColor(calibratedRed: 0.216, green: 0.424, blue: 0.561, alpha: 0.20), text: NSColor(calibratedRed: 0.063, green: 0.137, blue: 0.227, alpha: 1.0))
+    drawPill("Adaptive windows", rect: NSRect(x: 220, y: 280, width: 132, height: 38), fill: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.15), stroke: NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.25, alpha: 0.34), text: NSColor(calibratedRed: 0.28, green: 0.20, blue: 0.08, alpha: 1.0))
+    drawPill("No history", rect: NSRect(x: 366, y: 280, width: 130, height: 38), fill: NSColor(calibratedRed: 0.216, green: 0.424, blue: 0.561, alpha: 0.09), stroke: NSColor(calibratedRed: 0.216, green: 0.424, blue: 0.561, alpha: 0.20), text: NSColor(calibratedRed: 0.063, green: 0.137, blue: 0.227, alpha: 1.0))
 
     drawRoundedRect(NSRect(x: 72, y: 382, width: 468, height: 84), radius: 26, fill: NSColor.white.withAlphaComponent(0.48), stroke: NSColor(calibratedRed: 0.10, green: 0.19, blue: 0.23, alpha: 0.16))
     drawImage(menuBar, in: NSRect(x: 160, y: 398, width: 260, height: 58))
@@ -293,9 +282,9 @@ try writePNG(consoleOutputPath) {
     shadow.shadowOffset = NSSize(width: 0, height: -8)
     NSGraphicsContext.saveGraphicsState()
     shadow.set()
-    drawRoundedRect(NSRect(x: 604, y: 104, width: 604, height: 432), radius: 24, fill: NSColor.black.withAlphaComponent(0.08))
+    drawRoundedRect(NSRect(x: 604, y: 156, width: 604, height: 326), radius: 16, fill: NSColor.black.withAlphaComponent(0.08))
     NSGraphicsContext.restoreGraphicsState()
-    drawImage(blueCeramicPanel, in: NSRect(x: 604, y: 104, width: 604, height: 432))
+    drawImage(blueCeramicPanel, in: NSRect(x: 604, y: 156, width: 604, height: 326))
 }
 
 try writePNG(socialOutputPath) {
@@ -307,7 +296,7 @@ try writePNG(socialOutputPath) {
 
     drawText("Codex Gauge", in: NSRect(x: 74, y: 74, width: 430, height: 58), size: 48, weight: .bold, color: NSColor.white.withAlphaComponent(0.96))
     drawText("Quota visibility for the menu bar", in: NSRect(x: 78, y: 142, width: 460, height: 36), size: 24, weight: .semibold, color: NSColor(calibratedRed: 0.74, green: 0.88, blue: 0.86, alpha: 0.95))
-    drawText("5-hour and 7-day usage percentages, live reset countdowns, safe diagnostics, and no browser-cookie reads.", in: NSRect(x: 78, y: 202, width: 450, height: 116), size: 19, weight: .regular, color: NSColor.white.withAlphaComponent(0.72))
+    drawText("Adaptive live quota windows, reset countdowns, safe diagnostics, and no browser-cookie reads.", in: NSRect(x: 78, y: 202, width: 450, height: 116), size: 19, weight: .regular, color: NSColor.white.withAlphaComponent(0.72))
 
     drawPill("No browser cookies", rect: NSRect(x: 78, y: 328, width: 174, height: 40), fill: NSColor.white.withAlphaComponent(0.08), stroke: NSColor.white.withAlphaComponent(0.17), text: NSColor.white.withAlphaComponent(0.88))
     drawPill("No auth-file reads", rect: NSRect(x: 266, y: 328, width: 174, height: 40), fill: NSColor.white.withAlphaComponent(0.08), stroke: NSColor.white.withAlphaComponent(0.17), text: NSColor.white.withAlphaComponent(0.88))
@@ -322,7 +311,7 @@ try writePNG(socialOutputPath) {
     shadow.shadowOffset = NSSize(width: 0, height: -8)
     NSGraphicsContext.saveGraphicsState()
     shadow.set()
-    drawRoundedRect(NSRect(x: 598, y: 100, width: 586, height: 420), radius: 24, fill: NSColor.black.withAlphaComponent(0.22))
+    drawRoundedRect(NSRect(x: 598, y: 152, width: 586, height: 316), radius: 16, fill: NSColor.black.withAlphaComponent(0.22))
     NSGraphicsContext.restoreGraphicsState()
-    drawImage(darkPanel, in: NSRect(x: 598, y: 100, width: 586, height: 420))
+    drawImage(darkPanel, in: NSRect(x: 598, y: 152, width: 586, height: 316))
 }

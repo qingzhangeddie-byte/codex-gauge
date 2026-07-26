@@ -36,7 +36,7 @@ verify_app_bundle() {
   [[ -x "$app_path/Contents/MacOS/$APP_NAME" ]] || return 1
   [[ -f "$app_path/Contents/Resources/codex_status.py" ]] || return 1
   [[ "$(plutil -extract CodexGaugeUsagePath raw -o - "$app_path/Contents/Info.plist" 2>/dev/null)" == "codex_status.py" ]] || return 1
-  [[ "$(plutil -extract CFBundleShortVersionString raw -o - "$app_path/Contents/Info.plist" 2>/dev/null)" == "0.9.6" ]] || return 1
+  [[ "$(plutil -extract CFBundleShortVersionString raw -o - "$app_path/Contents/Info.plist" 2>/dev/null)" == "0.9.7" ]] || return 1
   [[ "$(plutil -extract CodexGaugeReleaseURL raw -o - "$app_path/Contents/Info.plist" 2>/dev/null)" == "https://github.com/qingzhangeddie-byte/codex-gauge/releases" ]] || return 1
   codesign --verify --deep --strict "$app_path" >/dev/null 2>&1 || return 1
 }

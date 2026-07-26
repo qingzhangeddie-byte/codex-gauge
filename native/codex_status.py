@@ -615,6 +615,47 @@ def _left_from_window(window: dict | None):
     return _round_left_from_used(used)
 
 
+def _normalized_window_minutes(window: dict | None):
+    if not isinstance(window, dict):
+        return None
+    raw_minutes = window.get("window_minutes", window.get("windowDurationMins"))
+    try:
+        minutes = float(raw_minutes)
+    except (TypeError, ValueError):
+        return None
+    if minutes <= 0:
+        return None
+    rounded = round(minutes)
+    return int(rounded) if abs(minutes - rounded) < 0.001 else minutes
+
+
+def _window_label(window_minutes) -> str:
+    try:
+        minutes = int(round(float(window_minutes)))
+    except (TypeError, ValueError):
+        return "--"
+    if minutes <= 0:
+        return "--"
+    if minutes % (24 * 60) == 0:
+        return f"{minutes // (24 * 60)}d"
+    if minutes % 60 == 0:
+        return f"{minutes // 60}h"
+    return f"{minutes}m"
+
+
+def _quota_window_snapshot(window: dict | None):
+    percent_left = _left_from_window(window)
+    if percent_left is None:
+        return None
+    window_minutes = _normalized_window_minutes(window)
+    return {
+        "label": _window_label(window_minutes),
+        "window_minutes": window_minutes,
+        "percent_left": percent_left,
+        "resets_at": window.get("resets_at") if isinstance(window, dict) else None,
+    }
+
+
 def _codex_status() -> dict:
     timestamp = datetime.datetime.now(datetime.timezone.utc)
     data_time = timestamp.isoformat()
@@ -624,10 +665,7 @@ def _codex_status() -> dict:
         return {
             "ok": False,
             "service": "Codex",
-            "five_hour_left": None,
-            "seven_day_left": None,
-            "five_hour_reset": None,
-            "seven_day_reset": None,
+            "quota_windows": [],
             "plan": None,
             "source": "live",
             "data_time": data_time,
@@ -638,10 +676,7 @@ def _codex_status() -> dict:
         return {
             "ok": False,
             "service": "Codex",
-            "five_hour_left": None,
-            "seven_day_left": None,
-            "five_hour_reset": None,
-            "seven_day_reset": None,
+            "quota_windows": [],
             "plan": None,
             "source": "live",
             "data_time": data_time,
@@ -650,18 +685,25 @@ def _codex_status() -> dict:
 
     rate_limits = _rate_limits_with_plausible_resets(rate_limits)
 
-    primary = rate_limits.get("primary") or {}
-    secondary = rate_limits.get("secondary") or {}
-    five_hour_left = _left_from_window(primary)
-    seven_day_left = _left_from_window(secondary)
-    if five_hour_left is None and seven_day_left is None:
+    quota_windows = [
+        snapshot
+        for snapshot in (
+            _quota_window_snapshot(rate_limits.get("primary")),
+            _quota_window_snapshot(rate_limits.get("secondary")),
+        )
+        if snapshot is not None
+    ]
+    quota_windows.sort(
+        key=lambda window: (
+            window["window_minutes"] is None,
+            window["window_minutes"] or 0,
+        )
+    )
+    if not quota_windows:
         return {
             "ok": False,
             "service": "Codex",
-            "five_hour_left": None,
-            "seven_day_left": None,
-            "five_hour_reset": primary.get("resets_at"),
-            "seven_day_reset": secondary.get("resets_at"),
+            "quota_windows": [],
             "plan": rate_limits.get("plan_type") or rate_limits.get("plan") or "?",
             "source": "live",
             "data_time": data_time,
@@ -671,10 +713,7 @@ def _codex_status() -> dict:
     return {
         "ok": True,
         "service": "Codex",
-        "five_hour_left": five_hour_left,
-        "seven_day_left": seven_day_left,
-        "five_hour_reset": primary.get("resets_at"),
-        "seven_day_reset": secondary.get("resets_at"),
+        "quota_windows": quota_windows,
         "plan": rate_limits.get("plan_type") or rate_limits.get("plan") or "?",
         "source": "live",
         "data_time": data_time,
@@ -689,8 +728,14 @@ def _title(codex: dict) -> str:
         return f"{max(0, min(100, int(value)))}%"
 
     if not codex.get("ok"):
-        return "5h --  7d --"
-    return f"5h {pct(codex.get('five_hour_left'))}  7d {pct(codex.get('seven_day_left'))}"
+        return "Codex --"
+    windows = codex.get("quota_windows") or []
+    if not windows:
+        return "Codex --"
+    return "  ".join(
+        f"{window.get('label') or '--'} {pct(window.get('percent_left'))}"
+        for window in windows
+    )
 
 
 def build_status_snapshot(now: datetime.datetime | None = None) -> dict:

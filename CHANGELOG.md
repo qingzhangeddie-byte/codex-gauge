@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## v0.9.7 - 2026-07-26
+
+- Fixed a weekly-only Codex response being mislabeled as a 5-hour window, which could show the wrong percentage and a nonsensical multi-day 5-hour countdown.
+- Derived every quota label, percentage, and reset countdown from the live window duration returned by Codex instead of assuming fixed 5-hour and 7-day slots.
+- Redesigned the menu bar and Signal Console around the windows that actually exist: one compact weekly row today, with automatic expansion if Codex returns additional windows later.
+- Generalized low-quota and restored-quota notifications to the live window set.
+- Refreshed the public screenshots, release wording, and regression coverage for the adaptive layout.
+
 ## v0.9.6 - 2026-07-11
 
 - Restored live quota reads after the ChatGPT app-server began delaying `account/usage/read`; all three rate-limit verification requests now run concurrently instead of waiting behind that response.
