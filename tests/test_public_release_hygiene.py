@@ -98,6 +98,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         self.assertIn("v0.9.2", changelog)
         self.assertIn("v0.9.3", changelog)
         self.assertIn("v0.9.7", changelog)
+        self.assertIn("v0.9.8", changelog)
 
     def test_release_check_script_covers_public_release_gates(self):
         script_path = pathlib.Path("script/release_check.sh")
@@ -387,7 +388,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         install = pathlib.Path("install.sh").read_text()
 
         self.assertIn('APP_NAME="CodexGauge"', script)
-        self.assertIn('APP_VERSION="0.9.7"', script)
+        self.assertIn('APP_VERSION="0.9.8"', script)
         self.assertIn('CFBundleName</key>', script)
         self.assertIn("Codex Gauge", script)
         self.assertIn("CodexGaugeUsagePath", script)
@@ -403,7 +404,7 @@ class PublicReleaseHygieneTests(unittest.TestCase):
         for phrase in [
             "git@github.com:qingzhangeddie-byte/codex-gauge.git",
             "git push -u origin main --tags",
-            "v0.9.7",
+            "v0.9.8",
             "repository social preview",
             "docs/assets/codex-gauge-social-preview.png",
             "private vulnerability reporting",

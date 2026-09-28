@@ -68,7 +68,7 @@ class NativeHardeningTests(unittest.TestCase):
         self.assertIn('APP_BINARY="$APP_MACOS/$APP_BINARY_NAME"', script)
         self.assertIn('stage_binary="$stage_macos/$APP_BINARY_NAME"', script)
         self.assertIn('BUILD_TARGET="$(uname -m)-apple-macosx${MIN_SYSTEM_VERSION}"', script)
-        self.assertIn('swiftc -target "$BUILD_TARGET" "$BUILD_MAIN" -o "$stage_binary" -framework Cocoa -framework UserNotifications', script)
+        self.assertIn('swiftc -target "$BUILD_TARGET" "$RUNTIME_SOURCE_FILE" "$BUILD_MAIN" -o "$stage_binary" -framework Cocoa -framework UserNotifications', script)
         self.assertIn('cp "$ROOT_DIR/native/codex_status.py" "$stage_resources/codex_status.py"', script)
         self.assertIn('cp "$ROOT_DIR/native/assets/CodexGauge.icns" "$stage_resources/CodexGauge.icns"', script)
         self.assertIn("CFBundleIconFile", script)

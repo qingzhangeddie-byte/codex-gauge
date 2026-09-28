@@ -25,11 +25,65 @@ SECONDARY_RESET_MAX_FUTURE_SEC = 8 * 24 * 60 * 60
 RESET_FUTURE_GRACE_SEC = 60
 ENV_CODEX_CLI_PATH = "CODEX_GAUGE_CODEX_CLI_PATH"
 CODEX_GAUGE_CLIENT = {"name": "codex-gauge", "title": "Codex Gauge", "version": "0"}
+BUNDLED_CODEX_CLI_SUFFIXES = (
+    "Contents/Resources/codex-cli/bin/codex",
+    "Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+    "Contents/Resources/codex",
+)
 _ACTIVE_APP_SERVER_PROCESSES: list[subprocess.Popen] = []
 
 
 class CodexRemoteError(Exception):
-    pass
+    def __init__(self, message: str, kind: str | None = None):
+        super().__init__(message)
+        self.kind = kind
+
+
+def failure_kind(error: Exception) -> str:
+    if isinstance(error, CodexRemoteError) and error.kind:
+        return error.kind
+    message = str(error).lower()
+    if any(text in message for text in ("unauthorized", "not authenticated", "not logged in", "sign in", "sign-in", "refresh token", "token expired", "401")):
+        return "sign_in"
+    if any(text in message for text in ("method not found", "unknown method", "invalid params", "unsupported", "no rate-limit data")):
+        return "compatibility"
+    if isinstance(error, TimeoutError) or "timed out" in message or "timeout" in message:
+        return "timeout"
+    if any(text in message for text in ("connection", "network", "dns", "resolve host", "error sending request", "failed to connect")):
+        return "connection"
+    return "unknown"
+
+
+def rpc_error(error) -> CodexRemoteError:
+    if isinstance(error, dict):
+        code = error.get("code")
+        kind = "compatibility" if code in (-32601, -32602) else None
+        if code == 401:
+            kind = "sign_in"
+        return CodexRemoteError(str(error.get("message") or error), kind=kind)
+    return CodexRemoteError(str(error))
+
+
+def find_bundled_codex_cli(app: pathlib.Path) -> str | None:
+    package_root = app / "Contents/Resources/codex-cli"
+    try:
+        manifest = json.loads((package_root / "codex-package.json").read_text(encoding="utf-8"))
+        entrypoint = manifest.get("entrypoint") if isinstance(manifest, dict) else None
+        if isinstance(entrypoint, str) and entrypoint:
+            relative = pathlib.PurePosixPath(entrypoint)
+            if not relative.is_absolute() and ".." not in relative.parts:
+                candidate = (package_root / relative).resolve()
+                candidate.relative_to(package_root.resolve())
+                if candidate.is_file() and os.access(candidate, os.X_OK):
+                    return str(candidate)
+    except (OSError, ValueError, UnicodeError):
+        pass
+
+    for suffix in BUNDLED_CODEX_CLI_SUFFIXES:
+        candidate = app / suffix
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return str(candidate)
+    return None
 
 
 def find_free_local_port() -> int:
@@ -49,14 +103,15 @@ def find_codex_cli() -> str | None:
     if found:
         return found
 
-    for candidate in (
-        pathlib.Path("/Applications/ChatGPT.app/Contents/Resources/codex"),
-        pathlib.Path.home() / "Applications/ChatGPT.app/Contents/Resources/codex",
-        pathlib.Path("/Applications/Codex.app/Contents/Resources/codex"),
-        pathlib.Path.home() / "Applications/Codex.app/Contents/Resources/codex",
+    for app in (
+        pathlib.Path("/Applications/ChatGPT.app"),
+        pathlib.Path.home() / "Applications/ChatGPT.app",
+        pathlib.Path("/Applications/Codex.app"),
+        pathlib.Path.home() / "Applications/Codex.app",
     ):
-        if candidate.is_file() and os.access(candidate, os.X_OK):
-            return str(candidate)
+        candidate = find_bundled_codex_cli(app)
+        if candidate:
+            return candidate
 
     return None
 
@@ -135,12 +190,14 @@ def live_codex_rate_limits(timeout: int = REMOTE_TIMEOUT_SEC) -> dict | None:
     codex_cli = find_codex_cli()
     if not codex_cli:
         raise CodexRemoteError(
-            "Codex CLI not found. Open ChatGPT or install the Codex CLI."
+            "Codex CLI not found. Open ChatGPT or install the Codex CLI.", kind="cli_missing"
         )
 
     try:
         return _read_codex_rate_limits_stdio(codex_cli, timeout)
     except CodexRemoteError as stdio_error:
+        if failure_kind(stdio_error) in ("sign_in", "compatibility"):
+            raise
         stdio_failure = stdio_error
     except (OSError, subprocess.SubprocessError) as stdio_error:
         stdio_failure = stdio_error
@@ -150,10 +207,13 @@ def live_codex_rate_limits(timeout: int = REMOTE_TIMEOUT_SEC) -> dict | None:
         try:
             return _read_codex_rate_limits_websocket(codex_cli, timeout)
         except (CodexRemoteError, OSError, subprocess.SubprocessError) as websocket_error:
+            if failure_kind(websocket_error) in ("sign_in", "compatibility"):
+                raise
             websocket_errors.append(websocket_error)
     last_websocket_error = websocket_errors[-1]
     raise CodexRemoteError(
-        f"stdio app-server failed: {stdio_failure}; websocket app-server failed after 2 attempts: {last_websocket_error}"
+        f"stdio app-server failed: {stdio_failure}; websocket app-server failed after 2 attempts: {last_websocket_error}",
+        kind=failure_kind(last_websocket_error),
     ) from last_websocket_error
 
 
@@ -253,12 +313,14 @@ def _read_codex_rate_limits_stdio(codex_cli: str, timeout: int) -> dict:
             except json.JSONDecodeError:
                 continue
             message_id = message.get("id")
+            if message_id == 1 and "error" in message:
+                raise rpc_error(message["error"])
             if message_id == 2:
                 continue
             if message_id not in range(3, 3 + RATE_LIMIT_SAMPLE_COUNT):
                 continue
             if "error" in message:
-                raise CodexRemoteError(str(message["error"]))
+                raise rpc_error(message["error"])
             rate_limit_results.append(message.get("result") or {})
             if len(rate_limit_results) == RATE_LIMIT_SAMPLE_COUNT:
                 return _verified_remote_rate_limits(rate_limit_results)
@@ -518,12 +580,14 @@ def _read_codex_rate_limits_ws(port: int, timeout: int) -> dict:
             sock.settimeout(max(0.1, deadline - time.monotonic()))
             message = _ws_recv_json(sock)
             message_id = message.get("id")
+            if message_id == 1 and "error" in message:
+                raise rpc_error(message["error"])
             if message_id == 2:
                 continue
             if message_id not in range(3, 3 + RATE_LIMIT_SAMPLE_COUNT):
                 continue
             if "error" in message:
-                raise CodexRemoteError(str(message["error"]))
+                raise rpc_error(message["error"])
             rate_limit_results.append(message.get("result") or {})
             if len(rate_limit_results) == RATE_LIMIT_SAMPLE_COUNT:
                 return _verified_remote_rate_limits(rate_limit_results)
@@ -670,6 +734,7 @@ def _codex_status() -> dict:
             "source": "live",
             "data_time": data_time,
             "error": f"Codex live usage unavailable: {exc}",
+            "error_kind": failure_kind(exc),
         }
 
     if not rate_limits:
@@ -681,6 +746,7 @@ def _codex_status() -> dict:
             "source": "live",
             "data_time": data_time,
             "error": "Codex live usage unavailable: no rate-limit data.",
+            "error_kind": "compatibility",
         }
 
     rate_limits = _rate_limits_with_plausible_resets(rate_limits)
@@ -708,6 +774,7 @@ def _codex_status() -> dict:
             "source": "live",
             "data_time": data_time,
             "error": "Codex live usage unavailable: missing usage percentages.",
+            "error_kind": "compatibility",
         }
 
     return {

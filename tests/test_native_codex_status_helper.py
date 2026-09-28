@@ -4,6 +4,7 @@ import importlib.util
 import io
 import json
 import pathlib
+import tempfile
 import unittest
 from unittest import mock
 
@@ -69,6 +70,148 @@ class NativeCodexStatusHelperTests(unittest.TestCase):
             env = helper.codex_subprocess_env()
 
         self.assertTrue(env["PATH"].startswith("/Applications/ChatGPT.app/Contents/Resources:"))
+
+    def test_finds_packaged_and_legacy_cli_without_a_shell_path(self):
+        helper = load_helper()
+        home = pathlib.Path("/test-home")
+        for app in (
+            pathlib.Path("/Applications/ChatGPT.app"),
+            home / "Applications/ChatGPT.app",
+            pathlib.Path("/Applications/Codex.app"),
+            home / "Applications/Codex.app",
+        ):
+            for suffix in (
+                "Contents/Resources/codex-cli/bin/codex",
+                "Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+                "Contents/Resources/codex",
+            ):
+                cli = app / suffix
+                with self.subTest(cli=str(cli)), \
+                     mock.patch.dict(helper.os.environ, {}, clear=True), \
+                     mock.patch.object(helper.shutil, "which", return_value=None), \
+                     mock.patch.object(helper.pathlib.Path, "home", return_value=home), \
+                     mock.patch.object(helper.pathlib.Path, "is_file", autospec=True,
+                                       side_effect=lambda path: path == cli), \
+                     mock.patch.object(helper.os, "access",
+                                       side_effect=lambda path, _mode: path == cli):
+                    self.assertEqual(helper.find_codex_cli(), str(cli))
+
+    def test_prefers_packaged_entrypoint_over_old_cli_in_same_app(self):
+        helper = load_helper()
+        entrypoint = pathlib.Path("/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex")
+        old_cli = pathlib.Path("/Applications/ChatGPT.app/Contents/Resources/codex")
+        available = {entrypoint, old_cli}
+
+        with mock.patch.dict(helper.os.environ, {}, clear=True), \
+             mock.patch.object(helper.shutil, "which", return_value=None), \
+             mock.patch.object(helper.pathlib.Path, "is_file", autospec=True,
+                               side_effect=lambda path: path in available), \
+             mock.patch.object(helper.os, "access",
+                               side_effect=lambda path, _mode: path in available):
+            self.assertEqual(helper.find_codex_cli(), str(entrypoint))
+
+    def test_skips_nonexecutable_packaged_entrypoint(self):
+        helper = load_helper()
+        entrypoint = pathlib.Path("/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex")
+        binary = pathlib.Path("/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex")
+
+        with mock.patch.dict(helper.os.environ, {}, clear=True), \
+             mock.patch.object(helper.shutil, "which", return_value=None), \
+             mock.patch.object(helper.pathlib.Path, "is_file", autospec=True,
+                               side_effect=lambda path: path in {entrypoint, binary}), \
+             mock.patch.object(helper.os, "access",
+                               side_effect=lambda path, _mode: path == binary):
+            self.assertEqual(helper.find_codex_cli(), str(binary))
+
+    def test_explicit_cli_override_takes_priority_over_discovery(self):
+        helper = load_helper()
+        override = "/custom/ChatGPT.app/Contents/Resources/codex-cli/bin/codex"
+
+        with mock.patch.dict(helper.os.environ, {helper.ENV_CODEX_CLI_PATH: override}, clear=True), \
+             mock.patch.object(helper.pathlib.Path, "is_file", return_value=True), \
+             mock.patch.object(helper.os, "access", return_value=True), \
+             mock.patch.object(helper.shutil, "which") as which:
+            self.assertEqual(helper.find_codex_cli(), override)
+            which.assert_not_called()
+
+    def test_package_metadata_discovers_a_changed_entrypoint(self):
+        helper = load_helper()
+        with tempfile.TemporaryDirectory() as directory:
+            app = pathlib.Path(directory) / "Renamed Host.app"
+            root = app / "Contents/Resources/codex-cli"
+            cli = root / "next-version/bin/usage-cli"
+            cli.parent.mkdir(parents=True)
+            cli.write_text("#!/bin/sh\nexit 0\n")
+            cli.chmod(0o755)
+            manifest = root / "codex-package.json"
+            manifest.write_text(json.dumps({"entrypoint": "next-version/bin/usage-cli"}))
+            self.assertEqual(helper.find_bundled_codex_cli(app), str(cli.resolve()))
+
+    def test_bad_metadata_and_nonexecutable_entrypoints_use_legacy_fallback(self):
+        helper = load_helper()
+        with tempfile.TemporaryDirectory() as directory:
+            app = pathlib.Path(directory) / "Host.app"
+            root = app / "Contents/Resources/codex-cli"
+            root.mkdir(parents=True)
+            legacy = root.parent / "codex"
+            legacy.write_text("#!/bin/sh\nexit 0\n")
+            legacy.chmod(0o755)
+            blocked = root / "blocked"
+            blocked.write_text("not executable")
+            for metadata in [
+                "not json", "[]", "{}",
+                json.dumps({"entrypoint": "../codex"}),
+                json.dumps({"entrypoint": str(legacy)}),
+                json.dumps({"entrypoint": "blocked"}),
+                json.dumps({"entrypoint": 42}),
+                json.dumps({"entrypoint": ""}),
+            ]:
+                with self.subTest(metadata=metadata):
+                    (root / "codex-package.json").write_text(metadata)
+                    self.assertEqual(helper.find_bundled_codex_cli(app), str(legacy))
+
+    def test_metadata_does_not_follow_an_entrypoint_outside_its_package(self):
+        helper = load_helper()
+        with tempfile.TemporaryDirectory() as directory:
+            app = pathlib.Path(directory) / "Host.app"
+            root = app / "Contents/Resources/codex-cli"
+            root.mkdir(parents=True)
+            outside = pathlib.Path(directory) / "outside"
+            outside.write_text("#!/bin/sh\nexit 0\n")
+            outside.chmod(0o755)
+            (root / "entrypoint").symlink_to(outside)
+            (root / "codex-package.json").write_text(json.dumps({"entrypoint": "entrypoint"}))
+            self.assertIsNone(helper.find_bundled_codex_cli(app))
+
+    def test_failure_snapshot_distinguishes_auth_network_and_protocol_errors(self):
+        helper = load_helper()
+        errors = [
+            (helper.rpc_error({"code": 401, "message": "Session expired"}), "sign_in"),
+            (helper.rpc_error({"code": -32601, "message": "Method not found"}), "compatibility"),
+            (helper.rpc_error({"code": -32602, "message": "Invalid params"}), "compatibility"),
+            (ConnectionError("Network connection unavailable"), "connection"),
+            (TimeoutError("Timed out"), "timeout"),
+            (helper.CodexRemoteError("Not installed", kind="cli_missing"), "cli_missing"),
+            (RuntimeError("Unexpected response"), "unknown"),
+        ]
+        for error, kind in errors:
+            with self.subTest(kind=kind), mock.patch.object(helper, "live_codex_rate_limits", side_effect=error):
+                status = helper.build_status_snapshot()["codex"]
+                self.assertFalse(status["ok"])
+                self.assertEqual(status["error_kind"], kind)
+                self.assertEqual(status["quota_windows"], [])
+
+    def test_authentication_and_protocol_errors_do_not_launch_redundant_servers(self):
+        helper = load_helper()
+        for kind in ("sign_in", "compatibility"):
+            error = helper.CodexRemoteError("Unavailable", kind=kind)
+            with self.subTest(kind=kind), \
+                 mock.patch.object(helper, "find_codex_cli", return_value="/codex"), \
+                 mock.patch.object(helper, "_read_codex_rate_limits_stdio", side_effect=error), \
+                 mock.patch.object(helper, "_read_codex_rate_limits_websocket") as websocket:
+                with self.assertRaises(helper.CodexRemoteError):
+                    helper.live_codex_rate_limits()
+                websocket.assert_not_called()
 
     def test_builds_codex_json_snapshot_from_live_rate_limits(self):
         helper = load_helper()

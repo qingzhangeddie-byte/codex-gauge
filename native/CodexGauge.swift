@@ -1,4 +1,5 @@
 import Cocoa
+import CoreGraphics
 import Darwin
 import Foundation
 import UserNotifications
@@ -24,6 +25,7 @@ private struct ServiceStatus: Decodable {
     let source: String?
     let dataTime: String?
     let error: String?
+    var errorKind: String? = nil
 }
 
 private struct GitHubRelease: Decodable {
@@ -618,6 +620,7 @@ private struct SignalConsoleModel {
     let source: String?
     let isUnavailable: Bool
     let isRefreshing: Bool
+    var isStale: Bool = false
 }
 
 private func signalConsoleSize(quotaWindowCount: Int) -> NSSize {
@@ -832,7 +835,8 @@ private final class SignalConsolePanelView: NSView {
     private func drawStatusStrip() {
         let layout = consoleLayout
         let stateColor = sourceColor(source: model.source, unavailable: model.isUnavailable)
-        let freshness = model.isUnavailable ? model.stateDetail : "Updated \(model.liveAgeText)"
+        let freshness = model.isUnavailable ? model.stateDetail
+            : "\(model.isStale ? "Checked" : "Updated") \(model.liveAgeText)"
         drawCircle(center: NSPoint(x: layout.freshnessRect.minX + 4, y: layout.freshnessRect.midY), radius: 2.8, color: stateColor, stroke: nil)
         drawText(freshness, x: layout.freshnessRect.minX + 12, y: layout.freshnessRect.minY + 2, width: layout.freshnessRect.width - 12, height: 16, size: 10.5, weight: .medium, color: textSecondary)
         drawText("Next \(model.nextRefreshText)", x: layout.nextRefreshRect.minX, y: layout.nextRefreshRect.minY + 2, width: layout.nextRefreshRect.width, height: 16, size: 10.5, weight: .medium, color: textMuted, mono: true, alignment: .right)
@@ -847,6 +851,9 @@ private final class SignalConsolePanelView: NSView {
 
     private func drawSignalHeroCard() {
         let layout = consoleLayout
+        NSGraphicsContext.saveGraphicsState()
+        defer { NSGraphicsContext.restoreGraphicsState() }
+        if model.isStale { NSGraphicsContext.current?.cgContext.setAlpha(0.55) }
         for (index, window) in displayedQuotaWindows.enumerated() {
             let rect = layout.quotaRowRect(at: index)
             if index > 0 {
@@ -1074,7 +1081,7 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func headerSignalText() -> String {
-        model.isUnavailable ? "Unavailable" : (model.isRefreshing ? "Refreshing" : "Live")
+        model.stateTitle
     }
 
     private func headerSignalColor() -> NSColor {
@@ -1244,8 +1251,7 @@ private final class SignalConsolePanelView: NSView {
     }
 
     private func sourceColor(source: String?, unavailable: Bool) -> NSColor {
-        _ = source
-        if unavailable {
+        if unavailable || source == "stale" {
             return amberAccent
         }
         return mintAccent
@@ -1442,10 +1448,40 @@ private func signalConsolePreviewCases() -> [SignalConsolePreviewCase] {
             unavailable: false
         )),
         ("codex-closed", signalConsolePreviewModel(
-            title: "ChatGPT unavailable",
+            title: "Unavailable",
             detail: "Open ChatGPT",
             statusTitle: "Open ChatGPT once to enable live usage",
             statusDetail: "After ChatGPT is open, Codex Gauge refreshes hands-free from the menu bar.",
+            quotaLeft: nil,
+            resetText: "--",
+            source: nil,
+            unavailable: true
+        )),
+        ("stale", signalConsolePreviewModel(
+            title: "Retrying",
+            detail: "Reconnecting to ChatGPT",
+            statusTitle: "Last checked 2m ago",
+            statusDetail: "Reconnecting to ChatGPT",
+            quotaLeft: 57,
+            resetText: "5d13h",
+            source: "stale",
+            unavailable: false
+        )),
+        ("sign-in", signalConsolePreviewModel(
+            title: "Sign in",
+            detail: "Sign in to ChatGPT",
+            statusTitle: "Sign in to ChatGPT",
+            statusDetail: "Your ChatGPT session needs attention",
+            quotaLeft: nil,
+            resetText: "--",
+            source: nil,
+            unavailable: true
+        )),
+        ("app-changed", signalConsolePreviewModel(
+            title: "App changed",
+            detail: "Check for a Gauge update",
+            statusTitle: "ChatGPT connection changed",
+            statusDetail: "Check for a Codex Gauge update",
             quotaLeft: nil,
             resetText: "--",
             source: nil,
@@ -1502,10 +1538,11 @@ private func signalConsolePreviewModel(
             : [SignalQuotaWindow(label: "7d", percentLeft: quotaLeft, resetText: resetText)],
         lastRefreshText: unavailable ? "none" : "21:12",
         liveAgeText: unavailable ? "unknown" : "2m ago",
-        nextRefreshText: unavailable ? "1:00" : "4:58",
+        nextRefreshText: unavailable || source == "stale" ? "1:00" : "4:58",
         source: source,
         isUnavailable: unavailable,
-        isRefreshing: false
+        isRefreshing: false,
+        isStale: source == "stale"
     )
 }
 
@@ -1518,6 +1555,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var timer: Timer?
     private var animationTimer: Timer?
     private var popoverCountdownTimer: Timer?
+    private var readingExpiryTimer: Timer?
     private var preferencesWindow: NSWindow?
     private var setupDoctorWindow: NSWindow?
     private var firstRunSetupWindow: NSWindow?
@@ -1528,6 +1566,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private var launchAtLoginCheckbox: NSButton?
     private var snapshot: UsageSnapshot?
     private var lastError: String?
+    private var lastFailureKind: UsageFailureKind?
+    private var refreshPolicy = GaugeRefreshPolicy()
+    private var lastInstallationFingerprint: String?
     private var isRefreshing = false
     private var activeRefreshProcess: Process?
     private var refreshGeneration = 0
@@ -1569,7 +1610,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private let quotaRailSize = NSSize(width: 22, height: 5)
     private let signalRailSegments = 10
     private let codexHostBundleIdentifier = "com.openai.codex"
-    private let bundledCodexCliSuffix = "Contents/Resources/codex"
     private let codexHostFallbackPaths = [
         "/Applications/ChatGPT.app",
         NSHomeDirectory() + "/Applications/ChatGPT.app",
@@ -1599,7 +1639,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private lazy var resourcesDir = Bundle.main.resourcePath ?? FileManager.default.currentDirectoryPath
     private lazy var pythonPath = infoString("CodexGaugePythonPath", fallback: "/usr/bin/python3")
-    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.9.7")
+    private lazy var appVersion = infoString("CFBundleShortVersionString", fallback: "0.9.8")
     private lazy var releaseURL = infoString("CodexGaugeReleaseURL", fallback: "https://github.com/qingzhangeddie-byte/codex-gauge/releases")
     private lazy var expectedUpdateSigningTeamID = infoString("CodexGaugeUpdateTeamID", fallback: "").trimmingCharacters(in: .whitespacesAndNewlines)
     private lazy var usagePath = resolveUsagePath()
@@ -1613,16 +1653,18 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             .first { FileManager.default.fileExists(atPath: $0.path) }
     }
 
-    private var codexCliBundlePath: String? {
-        var candidates = codexHostFallbackPaths.map {
+    private var codexHostAppURLs: [URL] {
+        var appURLs = codexHostFallbackPaths.map {
             URL(fileURLWithPath: $0, isDirectory: true)
-                .appendingPathComponent(bundledCodexCliSuffix)
-                .path
         }
         if let appURL = codexHostAppURL {
-            candidates.insert(appURL.appendingPathComponent(bundledCodexCliSuffix).path, at: 0)
+            appURLs.insert(appURL, at: 0)
         }
-        return candidates.first { FileManager.default.isExecutableFile(atPath: $0) }
+        return appURLs
+    }
+
+    private var codexCliBundlePath: String? {
+        CodexCLIResolver.find(in: codexHostAppURLs)
     }
     private lazy var launchAgentPlistPath = NSHomeDirectory() + "/Library/LaunchAgents/" + launchAgentPlistName
 
@@ -1651,6 +1693,12 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             name: NSWorkspace.didActivateApplicationNotification,
             object: nil
         )
+        workspaceNotifications.addObserver(
+            self,
+            selector: #selector(workspaceApplicationDidActivate(_:)),
+            name: NSWorkspace.didLaunchApplicationNotification,
+            object: nil
+        )
         refresh()
         scheduleAutomaticUpdateCheck()
     }
@@ -1662,6 +1710,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         automaticUpdateTimer?.invalidate()
         animationTimer?.invalidate()
         popoverCountdownTimer?.invalidate()
+        readingExpiryTimer?.invalidate()
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -1815,17 +1864,17 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func signalConsoleModel() -> SignalConsoleModel {
         let now = Date()
+        let presentation = readingPresentation(snapshot?.codex, now: now)
 
         if let snapshot {
             let status = snapshot.codex
-            let unavailable = isUnavailableStatus(status)
-            let title = signalStateTitle(status)
+            let unavailable = !presentation.showsQuota
             let statusAgeText = relativeAgeText(status.dataTime ?? snapshot.updatedAt, now: now)
             return SignalConsoleModel(
                 planName: status.ok ? planTitle(status) : "Codex Gauge",
                 sourcePill: "Live only",
-                stateTitle: title.title,
-                stateDetail: title.detail,
+                stateTitle: presentation.title,
+                stateDetail: presentation.detail,
                 statusTitle: sourceStatusTitle(status),
                 statusDetail: sourceStatusDetail(status),
                 quotaWindows: unavailable ? [] : availableQuotaWindows(status).map {
@@ -1838,22 +1887,20 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 lastRefreshText: shortTime(status.dataTime ?? snapshot.updatedAt),
                 liveAgeText: statusAgeText,
                 nextRefreshText: nextRefreshCountdownText(now: now),
-                source: status.source,
+                source: presentation.isStale ? "stale" : status.source,
                 isUnavailable: unavailable,
-                isRefreshing: isRefreshing
+                isRefreshing: isRefreshing,
+                isStale: presentation.isStale
             )
         }
 
-        let detail = lastError == nil
-            ? "After ChatGPT is open, Codex Gauge refreshes hands-free from the menu bar."
-            : clipped(lastError ?? "", limit: 96)
         return SignalConsoleModel(
             planName: "Live only",
             sourcePill: "Live only",
-            stateTitle: "ChatGPT unavailable",
-            stateDetail: "Open ChatGPT",
-            statusTitle: "Open ChatGPT once to enable live usage",
-            statusDetail: detail,
+            stateTitle: presentation.title,
+            stateDetail: presentation.detail,
+            statusTitle: presentation.title,
+            statusDetail: lastError.map { clipped($0, limit: 160) } ?? presentation.detail,
             quotaWindows: [],
             lastRefreshText: "none",
             liveAgeText: "unknown",
@@ -1865,10 +1912,52 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func signalStateTitle(_ status: ServiceStatus) -> (title: String, detail: String) {
-        if isUnavailableStatus(status) {
-            return ("ChatGPT unavailable", "Open ChatGPT")
+        let presentation = readingPresentation(status)
+        return (presentation.title, presentation.detail)
+    }
+
+    private func readingPresentation(_ status: ServiceStatus?, now: Date = Date()) -> GaugeReadingPresentation {
+        let capturedAt = isoDate(status?.dataTime ?? snapshot?.updatedAt ?? "")
+        let age = capturedAt.map { now.timeIntervalSince($0) }
+        let resetPassed = status?.quotaWindows.contains {
+            $0.resetsAt.map { Date(timeIntervalSince1970: $0) <= now } ?? false
+        } ?? false
+        let failure = lastFailureKind
+            ?? status?.errorKind.flatMap(UsageFailureKind.init(rawValue:))
+            ?? ((lastError != nil || status?.ok == false) ? UsageFailureKind.unknown : nil)
+        return GaugeReadingPresentation(
+            hasReading: status?.ok == true && status?.source == "live"
+                && !(status?.quotaWindows.isEmpty ?? true) && !resetPassed,
+            age: age,
+            maximumAge: maximumStaleDisplayAge,
+            failure: failure,
+            isRefreshing: isRefreshing
+        )
+    }
+
+    private func scheduleReadingExpiry() {
+        readingExpiryTimer?.invalidate()
+        readingExpiryTimer = nil
+        guard let snapshot, snapshot.codex.ok,
+              let capturedAt = isoDate(snapshot.codex.dataTime ?? snapshot.updatedAt) else { return }
+        let resets = snapshot.codex.quotaWindows.compactMap(\.resetsAt).map(Date.init(timeIntervalSince1970:))
+        let expiry = ([capturedAt.addingTimeInterval(maximumStaleDisplayAge)] + resets).min()!
+        let delay = expiry.timeIntervalSinceNow
+        guard delay > 0 else { return }
+        let expiryTimer = Timer(timeInterval: delay + 0.1, repeats: false) { [weak self] _ in
+            guard let self else { return }
+            self.readingExpiryTimer = nil
+            if let snapshot = self.snapshot {
+                self.setStatusImage(title: self.statusTooltipTitle(snapshot), status: snapshot.codex)
+            }
+            self.rebuildMenu()
+            self.refreshSignalPopoverIfNeeded()
+            if self.lastError == nil && !self.isRefreshing {
+                self.refresh(force: true)
+            }
         }
-        return ("Live", "Current")
+        readingExpiryTimer = expiryTimer
+        RunLoop.main.add(expiryTimer, forMode: .common)
     }
 
     @objc private func refreshNow() {
@@ -2566,6 +2655,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             activeRefreshProcess = nil
             isRefreshing = false
         }
+        let now = Date()
+        let fingerprint = CodexCLIResolver.fingerprint(appURLs: codexHostAppURLs, executable: codexCliBundlePath)
+        let installationChanged = lastInstallationFingerprint != nil && lastInstallationFingerprint != fingerprint
+        guard refreshPolicy.canStart(at: now, force: force, installationChanged: installationChanged) else {
+            return
+        }
+        refreshPolicy.started(at: now)
+        lastInstallationFingerprint = fingerprint
+        timer?.invalidate()
         refreshGeneration += 1
         let generation = refreshGeneration
         isRefreshing = true
@@ -2988,14 +3086,18 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func canPreserveSnapshot(_ snapshot: UsageSnapshot, now: Date = Date()) -> Bool {
-        guard !isUnavailableStatus(snapshot.codex) else {
+        guard !isUnavailableStatus(snapshot.codex), snapshot.codex.source == "live" else {
             return false
         }
         let timestamp = snapshot.codex.dataTime ?? snapshot.updatedAt
         guard let capturedAt = isoDate(timestamp) else {
             return false
         }
-        return now.timeIntervalSince(capturedAt) <= maximumStaleDisplayAge
+        let age = now.timeIntervalSince(capturedAt)
+        return age >= 0 && age < maximumStaleDisplayAge
+            && !snapshot.codex.quotaWindows.contains {
+                $0.resetsAt.map { Date(timeIntervalSince1970: $0) <= now } ?? false
+            }
     }
 
     private func finishRefresh(status: Int32, output: String, errorOutput: String, generation: Int) {
@@ -3005,6 +3107,17 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         activeRefreshProcess = nil
         isRefreshing = false
         let previousSnapshot = snapshot
+        defer {
+            if lastError == nil {
+                refreshPolicy.succeeded()
+            } else {
+                refreshPolicy.failed(at: Date(), initialDelay: recoveryRefreshInterval)
+            }
+            scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))
+            scheduleReadingExpiry()
+            rebuildMenu()
+            refreshSignalPopoverIfNeeded()
+        }
         appendLog("refresh finished status=\(status) stdout=\(clipped(output, limit: 600)) stderr=\(clipped(errorOutput, limit: 600))")
         if status == 0 {
             do {
@@ -3012,6 +3125,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 decoder.keyDecodingStrategy = .convertFromSnakeCase
                 let data = Data(output.utf8)
                 let decoded = try decoder.decode(UsageSnapshot.self, from: data)
+                lastFailureKind = isLiveRefreshFailure(decoded.codex)
+                    ? (decoded.codex.errorKind.flatMap(UsageFailureKind.init(rawValue:)) ?? .unknown) : nil
                 if isLiveRefreshFailure(decoded.codex), let previousSnapshot, canPreserveSnapshot(previousSnapshot) {
                     snapshot = previousSnapshot
                     lastError = decoded.codex.error ?? "Codex live usage unavailable."
@@ -3019,8 +3134,6 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                     stopMoodAnimation()
                     setStatusImage(title: statusTooltipTitle(previousSnapshot), status: previousSnapshot.codex)
                     appendLog("preserved last visible quota after refresh failure error=\(lastError ?? "")")
-                    scheduleNextRefresh(after: lastError == nil ? nextRefreshInterval(for: snapshot?.codex) : recoveryRefreshInterval)
-                    rebuildMenu()
                     return
                 }
                 snapshot = decoded
@@ -3031,13 +3144,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 appendLog("title=\(decoded.title) ok=\(decoded.codex.ok) source=\(decoded.codex.source ?? "") error=\(decoded.codex.error ?? "")")
             } catch {
                 lastError = "Could not parse status JSON: \(error.localizedDescription)"
+                lastFailureKind = .compatibility
                 stopMoodAnimation()
                 if let previousSnapshot, canPreserveSnapshot(previousSnapshot) {
                     snapshot = previousSnapshot
                     setStatusImage(title: statusTooltipTitle(previousSnapshot), status: previousSnapshot.codex)
                 } else {
                     snapshot = nil
-                    setStatusImage(title: "Open ChatGPT to refresh live usage")
+                    setStatusImage(title: "ChatGPT connection changed")
                 }
                 appendLog("parse error=\(error.localizedDescription)")
             }
@@ -3045,16 +3159,15 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             stopMoodAnimation()
             let detail = errorOutput.isEmpty ? output : errorOutput
             lastError = detail.isEmpty ? "Status command exited with code \(status)" : clipped(detail, limit: 160)
+            lastFailureKind = status == -2 ? .timeout : .unknown
             if let previousSnapshot, canPreserveSnapshot(previousSnapshot) {
                 snapshot = previousSnapshot
                 setStatusImage(title: statusTooltipTitle(previousSnapshot), status: previousSnapshot.codex)
             } else {
                 snapshot = nil
-                setStatusImage(title: "Open ChatGPT to refresh live usage")
+                setStatusImage(title: "Live usage unavailable")
             }
         }
-        scheduleNextRefresh(after: lastError == nil ? nextRefreshInterval(for: snapshot?.codex) : recoveryRefreshInterval)
-        rebuildMenu()
     }
 
     private func notificationsEnabled() -> Bool {
@@ -3076,7 +3189,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func handleNotificationTransitions(_ status: ServiceStatus) {
-        let isLive = status.ok && !isNonLiveSource(status.source)
+        let isLive = !isLiveRefreshFailure(status)
         if isLive {
             liveUnavailableSince = nil
             didNotifyLiveUnavailable = false
@@ -3089,12 +3202,13 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
                 postNotification(
                     identifier: liveUnavailableNotification,
                     title: "Codex live usage is unavailable",
-                    body: "Codex Gauge is temporarily showing its last in-memory reading while live usage retries."
+                    body: "Codex Gauge cannot refresh live usage. Open the menu bar panel for connection status."
                 )
                 didNotifyLiveUnavailable = true
             }
         }
 
+        guard isLive else { return }
         let currentWindows = availableQuotaWindows(status)
         let currentValues = Dictionary(uniqueKeysWithValues: currentWindows.compactMap { window in
             window.percentLeft.map { (quotaWindowKey(window), $0) }
@@ -3201,7 +3315,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     private func runSetupDoctorChecks() -> [DoctorCheck] {
         let codexFound = codexHostAppURL != nil
         let helperWorks = FileManager.default.isReadableFile(atPath: usagePath)
-        let liveAvailable = snapshot?.codex.ok == true && snapshot?.codex.source == "live"
+        let presentation = readingPresentation(snapshot?.codex)
+        let liveAvailable = presentation.showsQuota && !presentation.isStale
         let launchAgentRunning = isLaunchAgentConfigured()
         let notificationsAllowed = notificationsEnabled()
         return [
@@ -3218,7 +3333,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             DoctorCheck(
                 title: "Live data available",
                 state: liveAvailable ? "green" : "amber",
-                detail: liveAvailable ? "Live data is current" : "Open ChatGPT, then Refresh Now"
+                detail: liveAvailable ? "Live data is current" : presentation.detail
             ),
             DoctorCheck(
                 title: "Launch at login",
@@ -3258,8 +3373,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             addCodexDetail(snapshot)
             addErrorIfNeeded(snapshot.codex)
         } else if let lastError {
-            addDisabled("Status unavailable")
-            addDisabled("Open ChatGPT to refresh live usage")
+            let presentation = readingPresentation(nil)
+            addDisabled(presentation.title)
+            addDisabled(presentation.detail)
             addDisabled(clipped(lastError, limit: 96))
         } else {
             addDisabled("Waiting for first refresh")
@@ -3287,7 +3403,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func serviceLine(_ status: ServiceStatus) -> String {
-        if status.ok {
+        if readingPresentation(status).showsQuota {
             let quotaText = availableQuotaWindows(status)
                 .map { "\($0.label) \(percent($0.percentLeft))" }
                 .joined(separator: "  ")
@@ -3304,17 +3420,19 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func sourceStatusTitle(_ status: ServiceStatus) -> String {
-        if isUnavailableStatus(status) {
-            return "Open ChatGPT once to enable live usage"
+        let presentation = readingPresentation(status)
+        if presentation.isStale {
+            return "Last checked \(relativeAgeText(status.dataTime ?? snapshot?.updatedAt))"
         }
-        return status.ok ? "Live data is current" : "Open ChatGPT to refresh live usage"
+        return presentation.showsQuota ? "Live data is current" : presentation.title
     }
 
     private func sourceStatusDetail(_ status: ServiceStatus) -> String {
-        if isUnavailableStatus(status) {
-            return "After Codex is open, Codex Gauge refreshes hands-free from the menu bar."
+        if let lastError {
+            return "\(readingPresentation(status).detail). \(clipped(lastError, limit: 160))"
         }
-        return "Read from local Codex app-server"
+        let presentation = readingPresentation(status)
+        return presentation.showsQuota ? "Read from local Codex app-server" : presentation.detail
     }
 
     private func isUnavailableStatus(_ status: ServiceStatus) -> Bool {
@@ -3323,7 +3441,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func addCodexDetail(_ snapshot: UsageSnapshot) {
         let status = snapshot.codex
-        if status.ok {
+        if readingPresentation(status).showsQuota {
             addDisabled(planTitle(status), monospaced: false)
             addDisabled(sourceStatusTitle(status))
             addDisabled(sourceStatusDetail(status))
@@ -3377,12 +3495,19 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func isLiveRefreshFailure(_ status: ServiceStatus) -> Bool {
-        !status.ok || isUnavailableStatus(status) || isNonLiveSource(status.source)
+        !status.ok || isUnavailableStatus(status) || status.source != "live"
     }
 
     private func menuBarTooltipTitle(title: String, status: ServiceStatus?) -> String {
-        var parts = [title]
-        if let status, status.ok, !isUnavailableStatus(status) {
+        let presentation = readingPresentation(status)
+        var parts = [presentation.showsQuota ? title : presentation.title]
+        if presentation.isStale {
+            parts.append("Last checked \(relativeAgeText(status?.dataTime ?? snapshot?.updatedAt))")
+            parts.append(presentation.detail)
+        } else if !presentation.showsQuota {
+            parts.append(presentation.detail)
+        }
+        if let status, presentation.showsQuota {
             parts.append(contentsOf: availableQuotaWindows(status).map {
                 "\($0.label) resets \(quotaResetCountdown($0))"
             })
@@ -3391,12 +3516,14 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func menuBarAccessibilitySummary(_ status: ServiceStatus?) -> String {
-        guard let status, status.ok, !isUnavailableStatus(status) else {
-            return "unavailable"
+        let presentation = readingPresentation(status)
+        guard let status, presentation.showsQuota else {
+            return "\(presentation.title). \(presentation.detail)"
         }
-        return availableQuotaWindows(status).map {
+        let summary = availableQuotaWindows(status).map {
             "\($0.label) \($0.percentLeft.map { "\($0)%" } ?? "--")"
         }.joined(separator: ", ")
+        return presentation.isStale ? "\(summary). Last checked \(relativeAgeText(status.dataTime)). \(presentation.detail)" : summary
     }
 
     private func statusPixelAligned(_ value: CGFloat) -> CGFloat {
@@ -3430,7 +3557,11 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         let palette = gaugePalette()
         let status = statusItemStatus
         let liveWarning = isLiveWarningStatus(status)
-        let windows = status.map(availableQuotaWindows) ?? []
+        let presentation = readingPresentation(status)
+        let windows = presentation.showsQuota ? (status.map(availableQuotaWindows) ?? []) : []
+        NSGraphicsContext.saveGraphicsState()
+        defer { NSGraphicsContext.restoreGraphicsState() }
+        if presentation.isStale { NSGraphicsContext.current?.cgContext.setAlpha(0.55) }
         if liveWarning {
             drawLiveWarningGauge(windows: windows, palette: palette)
         } else if let status, status.ok, !isUnavailableStatus(status) {
@@ -3876,6 +4007,9 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func nextRefreshInterval(for status: ServiceStatus?) -> TimeInterval {
+        if lastError != nil, let retryDelay = refreshPolicy.retryDelay(at: Date()) {
+            return retryDelay
+        }
         guard let status else {
             return normalRefreshInterval
         }
@@ -3895,7 +4029,10 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
         if lowestQuota < 25 {
             return watchRefreshInterval
         }
-        return normalRefreshInterval
+        let idleSeconds = CGEventSource.secondsSinceLastEventType(
+            .combinedSessionState, eventType: CGEventType(rawValue: UInt32.max)!
+        )
+        return refreshPolicy.pollingInterval(base: normalRefreshInterval, idleSeconds: idleSeconds)
     }
 
     private func nextRefreshCountdownText(now: Date) -> String {
@@ -3989,8 +4126,8 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
     }
 
     private func refreshLabel(_ status: ServiceStatus) -> String {
-        _ = status
-        return liveRefreshMenuLabel
+        let presentation = readingPresentation(status)
+        return presentation.showsQuota && !presentation.isStale ? liveRefreshMenuLabel : "Last checked"
     }
 
     private func statusTooltipTitle(_ snapshot: UsageSnapshot) -> String {
@@ -4090,6 +4227,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
 
     private func safeDiagnosticsText() -> String {
         let status = snapshot?.codex
+        let presentation = readingPresentation(status)
         let source = status?.source ?? "unavailable"
         let helperState = FileManager.default.isReadableFile(atPath: usagePath) ? "exists" : "missing"
         let launchState = isLaunchAgentConfigured() ? "configured" : "missing"
@@ -4102,6 +4240,7 @@ private final class CodexGaugeApp: NSObject, NSApplicationDelegate {
             "Helper path: bundled codex_status.py \(helperState)",
             "Usage storage: none; launch at login uses a LaunchAgent",
             "Current data source: \(source)",
+            "Reading state: \(presentation.title)\(presentation.isStale ? " (stale)" : "")",
             "Last refresh time: \(lastRefresh)",
             "Last error summary: \(error)",
             "LaunchAgent state: \(launchState)",

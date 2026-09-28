@@ -29,7 +29,7 @@ bash install.sh
 - 只做一件事：让 Codex 额度一眼可见。
 - 菜单栏优先，只有点开时才显示更完整的 Signal Console。
 - 使用克制的系统监控风格横向条，不把状态栏做成吵闹的小 dashboard。
-- 紧凑的 Signal Console 清楚标注 Live 和 ChatGPT unavailable 状态。
+- 紧凑的 Signal Console 区分实时、离线、需要登录和应用兼容性变化状态。
 - 不读取 Codex session 文件，也不保存额度历史、report 或日志。
 
 ![Codex Gauge 静态示例菜单栏：横向额度条和重置倒计时](docs/assets/codex-gauge-menubar-live.png)
@@ -46,11 +46,12 @@ _菜单栏条形渲染图。这里是静态示例数值；安装后的 App 会�
 - 首次运行设置页会解释本地优先模式，并引导新用户打开 Codex、运行 Setup Doctor、开始使用菜单栏
 - Preferences 和 Setup Doctor 会跟随当前选择的 Signal Console 主题
 - 数据只从本地 Codex app-server 实时读取，不会扫描 Codex session 文件作为 fallback
-- 自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
+- 自适应刷新：正常 5 分钟，长时间无操作后 10 分钟，偏低 3 分钟，严重偏低 2 分钟；失败后从 1 分钟开始重试，逐步延长至最多 15 分钟
+- 打开面板或切回 ChatGPT 时会复用最近一分钟内的请求；手动 Refresh Now 不受冷却时间限制
 - 主题和刷新频率偏好只在当前运行会话中生效；开机启动使用标准 macOS LaunchAgent 保存
 - 可选通知：任一实时额度窗口偏低、额度恢复、长时间非实时数据都会提醒
-- Signal Console 会在弹出面板解释 Live、ChatGPT unavailable 和不可用状态
-- Signal Console 和 tooltip 会解释 Live 和 Open ChatGPT，不会把存储值当成当前实时数据
+- Signal Console 区分 Live、Offline、Sign in、App changed 和 Retrying；刷新失败时，最近的内存读数变淡，并标明上次检查时间
+- 读数在十分钟后或到达服务返回的重置时间时隐藏，即使下一次重试尚未开始
 - Setup Doctor 和 Copy Diagnostics 可帮助排查本地设置，但不会复制 prompts、Cookie、auth 文件或日志
 - 原生 App 自带 helper，安装后不依赖源码目录
 - 不保存额度历史、缓存、report 或运行日志文件；开机启动只使用标准 LaunchAgent
@@ -91,6 +92,8 @@ bash install.sh
 
 从下载好的 release package 安装时，打开 `Install Codex Gauge.command`。
 
+v0.9.8 下载包适用于 macOS 13 或更新版本的 Apple silicon Mac；Intel Mac 可以从源码构建。这是 ad-hoc 签名、尚未 notarization 的便捷安装包，macOS 可能要求在系统设置中批准打开。本版本请使用随附安装器；App 内安装仅接受配置了发布者身份的 Developer ID 签名、已公证版本。
+
 安装后，菜单里的 **Check for Updates...** 会查询 GitHub Releases 的 latest 版本，并展示当前版本、最新版本、release 信息和更新说明。更新提示提供三个选择：**Install Update**、**Skip this version**、**Remind me later**。跳过只在当前 App 会话中生效，避免同一 release 反复提示。发现新版本 zip 时，**Install Update** 会把更新包下载到临时目录，验证 release checksum、固定的发布者 Team ID 和 notarization，再替换 `CodexGauge.app` 并重新启动。Codex Gauge 不保存更新历史、skipped-version records 或 updater cache。
 
 维护者生成 package 时使用：
@@ -112,10 +115,10 @@ open native/dist/release
 | 菜单栏常驻 | 通过用户级 LaunchAgent 登录时自动启动 |
 | 更新 | 手动检查 GitHub release，确认后 Install Update，只使用临时文件 |
 | 信息密度 | 根据实时窗口时长生成标签和行数，不假设固定限额 |
-| 刷新策略 | 根据额度余量自适应刷新：正常 5 分钟，偏低 3 分钟，严重偏低 2 分钟，临时错误后快速重试 |
+| 刷新策略 | 自适应 2-10 分钟刷新，自动请求间隔至少一分钟，失败后以 1-15 分钟间隔重试 |
 | 偏好设置 | 当前会话内的刷新频率、通知和主题控制 |
 | 通知 | 只在用户主动开启后提醒关键额度状态 |
-| Signal Console | 直接说明数据是实时还是不可用 |
+| Signal Console | 区分实时、过期、需要登录、网络连接和兼容性状态 |
 | Setup Doctor | 检查 Codex App、helper、实时数据、开机启动状态和通知权限 |
 | Diagnostics | 安全复制诊断信息，不包含 prompts、Cookie、auth 文件、session 内容、历史、缓存、report 或日志 |
 | 重置时间 | 下拉菜单直接显示重置时间 |
@@ -130,6 +133,12 @@ CodexGauge.app/Contents/Resources/codex_status.py
 ```
 
 App 会通过打包的 helper 访问本地 Codex app-server 读取实时额度。整个数据路径只使用实时数据：不会缓存额度，不会创建使用历史文件，也不会扫描 Codex session 文件寻找 fallback。短暂读取失败时，正在运行的 App 最多保留 10 分钟内存中的上一次读数，同时明确显示错误并重试；该读数不会写入硬盘。
+
+保留的读数会变淡并标明上次检查时间，不会标为 Live。读数达到十分钟或服务返回的重置时间后即隐藏。连续失败会逐步延长重试间隔；检测到 ChatGPT 安装内容变化或手动刷新时可立即重试。App 优先使用已安装软件包声明的可执行文件入口，同时兼容旧目录布局。
+
+<img src="docs/design/app-rendered-signal-console/blue-ceramic-stale.png" alt="原生重试状态预览：示例额度变淡并标明上次检查时间" width="390">
+
+_原生失败状态预览，使用静态示例数值，不是账户实时读数。_
 
 它不读取浏览器 Cookie，不读取 `~/.codex/auth.json`，也不扫描无关的项目目录、浏览器 profile 或 Keychain。
 
@@ -207,6 +216,14 @@ python3 -m unittest discover -s tests -v
 ./script/release_check.sh
 ./script/soak_check.sh --iterations 3 --interval 0
 ```
+
+安装后可单独验证真实 app-server 连接：
+
+```bash
+env -i HOME="$HOME" PATH=/usr/bin:/bin:/usr/sbin:/sbin /usr/bin/python3 script/check_live_connection.py
+```
+
+此检查读取实时额度并输出 CLI 版本与返回的窗口，不保存使用数据，也不包含在离线回归测试中。
 
 ## License
 

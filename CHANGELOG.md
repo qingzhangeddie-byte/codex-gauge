@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## v0.9.8 - 2026-09-28
+
+- Restored live usage after the September ChatGPT update moved Codex into the `codex-cli` package. Both the menu bar app and standalone helper now discover the packaged launcher and nested executable, with older ChatGPT/Codex layouts still supported.
+- Resolve the bundled executable from package metadata and detect changed installations so ChatGPT updates can recover without waiting through retry backoff.
+- Mark retained readings as stale after a failed refresh, distinguish sign-in, connection, and compatibility errors, and hide readings after ten minutes or their quota reset.
+- Combine automatic refresh requests within one minute, reduce normal polling while idle, and back off prolonged outages to a maximum of fifteen minutes. Manual refresh remains immediate.
+- Add compiled runtime regression tests and an opt-in installed-app integration check.
 
 ## v0.9.7 - 2026-07-26
 

@@ -6,7 +6,7 @@ APP_NAME="CodexGauge"
 LEGACY_APP_NAME="AiLimitStatus"
 BUNDLE_ID="app.codexgauge.menubar"
 MIN_SYSTEM_VERSION="13.0"
-APP_VERSION="0.9.7"
+APP_VERSION="0.9.8"
 APP_BUILD="1"
 RELEASE_URL="https://github.com/qingzhangeddie-byte/codex-gauge/releases"
 UPDATE_TEAM_ID="${CODEX_GAUGE_UPDATE_TEAM_ID:-}"
@@ -14,6 +14,7 @@ BUILD_TARGET="$(uname -m)-apple-macosx${MIN_SYSTEM_VERSION}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_FILE="$ROOT_DIR/native/CodexGauge.swift"
+RUNTIME_SOURCE_FILE="$ROOT_DIR/native/CodexGaugeRuntime.swift"
 DIST_DIR="$ROOT_DIR/native/dist"
 BUILD_DIR="$ROOT_DIR/native/build"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
@@ -110,7 +111,7 @@ build_bundle() {
 
   SWIFT_MODULE_CACHE_PATH="$SWIFT_MODULE_CACHE" \
   CLANG_MODULE_CACHE_PATH="$CLANG_MODULE_CACHE" \
-    swiftc -target "$BUILD_TARGET" "$BUILD_MAIN" -o "$stage_binary" -framework Cocoa -framework UserNotifications
+    swiftc -target "$BUILD_TARGET" "$RUNTIME_SOURCE_FILE" "$BUILD_MAIN" -o "$stage_binary" -framework Cocoa -framework UserNotifications
   chmod +x "$stage_binary"
   cp "$ROOT_DIR/native/codex_status.py" "$stage_resources/codex_status.py"
   if [[ -f "$ROOT_DIR/native/assets/CodexGauge.icns" ]]; then

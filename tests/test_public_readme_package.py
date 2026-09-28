@@ -95,7 +95,7 @@ class PublicReadmePackageTests(unittest.TestCase):
             "No Codex session-file scanning",
             "No quota history, cache, report, or runtime log files",
             "actual next-refresh countdown",
-            "ChatGPT unavailable",
+            "Offline, Sign in, App changed, and Retrying",
             "Reset timing",
             "registers `~/Library/LaunchAgents/app.codexgauge.menubar.plist`",
         ]:

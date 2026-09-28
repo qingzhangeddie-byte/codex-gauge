@@ -130,7 +130,7 @@ class ReplaceInstalledAppScriptTests(unittest.TestCase):
         self.assertIn("<key>RunAtLoad</key>", script)
         self.assertIn("enabled startup launch", script)
         self.assertIn("temporary non-persistent app", script)
-        self.assertLess(script.index('swiftc -target "$BUILD_TARGET" "$BUILD_MAIN" -o "$stage_binary"'), script.index('sign_app_bundle "$stage_bundle"'))
+        self.assertLess(script.index('swiftc -target "$BUILD_TARGET" "$RUNTIME_SOURCE_FILE" "$BUILD_MAIN" -o "$stage_binary"'), script.index('sign_app_bundle "$stage_bundle"'))
         self.assertLess(script.index('sign_app_bundle "$stage_bundle"'), script.index('ditto --norsrc --noextattr "$stage_bundle" "$APP_BUNDLE"'))
         self.assertLess(script.index('ditto --norsrc --noextattr "$stage_bundle" "$APP_BUNDLE"'), script.index('strip_macos_metadata "$APP_BUNDLE"'))
         self.assertLess(script.index('strip_macos_metadata "$APP_BUNDLE"'), script.index('verify_signed_bundle "$APP_BUNDLE"'))

@@ -22,7 +22,7 @@ codesign --verify --deep --strict "$TMP_PARENT/CodexGauge.app"
 
 INFO_PLIST="$TMP_PARENT/CodexGauge.app/Contents/Info.plist"
 APP_BIN="$TMP_PARENT/CodexGauge.app/Contents/MacOS/CodexGauge"
-[[ "$(plutil -extract CFBundleShortVersionString raw -o - "$INFO_PLIST")" == "0.9.7" ]]
+[[ "$(plutil -extract CFBundleShortVersionString raw -o - "$INFO_PLIST")" == "0.9.8" ]]
 [[ "$(plutil -extract CFBundleVersion raw -o - "$INFO_PLIST")" == "1" ]]
 [[ "$(plutil -extract CFBundleIconFile raw -o - "$INFO_PLIST")" == "CodexGauge" ]]
 [[ "$(plutil -extract LSMinimumSystemVersion raw -o - "$INFO_PLIST")" == "13.0" ]]

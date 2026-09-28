@@ -103,7 +103,9 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("snapshot = previousSnapshot", finish_refresh)
         self.assertIn("lastError = decoded.codex.error ??", finish_refresh)
         self.assertIn("setStatusImage(title: statusTooltipTitle(previousSnapshot), status: previousSnapshot.codex)", finish_refresh)
-        self.assertIn("scheduleNextRefresh(after: lastError == nil ? nextRefreshInterval(for: snapshot?.codex) : recoveryRefreshInterval)", finish_refresh)
+        self.assertIn("refreshPolicy.failed(at: Date(), initialDelay: recoveryRefreshInterval)", finish_refresh)
+        self.assertIn("scheduleNextRefresh(after: nextRefreshInterval(for: snapshot?.codex))", finish_refresh)
+        self.assertIn("scheduleReadingExpiry()", finish_refresh)
 
     def test_native_app_expires_old_quota_instead_of_presenting_it_as_live(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()
@@ -276,7 +278,7 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertIn("if liveWarning", draw_status_body)
         self.assertIn("drawMenuBarLiveUnavailableHint", source)
         self.assertIn("drawLiveWarningGauge(windows:", source)
-        self.assertIn("let windows = status.map(availableQuotaWindows)", draw_status_body)
+        self.assertIn("let windows = presentation.showsQuota ? (status.map(availableQuotaWindows)", draw_status_body)
         live_hint_body = source.split("private func drawMenuBarLiveUnavailableHint", 1)[1].split(
             "private func drawPlanBGauge", 1
         )[0]
@@ -304,12 +306,43 @@ class NativeCodexOnlyTests(unittest.TestCase):
         self.assertNotIn('"Last live ·"', source)
         self.assertNotIn('case "last_live"', source)
         self.assertNotIn('case "local_snapshot"', source)
-        self.assertIn("last in-memory reading", source)
+        self.assertIn("maximumStaleDisplayAge", source)
         self.assertIn("menuBarTooltipTitle(title: title, status: status)", source)
         self.assertNotIn("drawSourceIndicator", source)
         self.assertNotIn("drawStatusStateBadge", source)
         self.assertNotIn("statusImageStateLabel", source)
         self.assertNotIn("sourceIndicatorColor", source)
+
+    def test_all_native_surfaces_use_reading_freshness(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+        for name in ["signalConsoleModel", "runSetupDoctorChecks", "sourceStatusTitle",
+                     "addCodexDetail", "menuBarTooltipTitle", "menuBarAccessibilitySummary",
+                     "drawStatusItemView", "refreshLabel", "safeDiagnosticsText"]:
+            with self.subTest(surface=name):
+                body = source.split(f"private func {name}", 1)[1].split("\n    private func ", 1)[0]
+                self.assertIn("readingPresentation(", body)
+        self.assertIn('model.isStale ? "Checked" : "Updated"', source)
+        self.assertIn("if presentation.isStale", source)
+        self.assertIn("if model.isStale", source)
+
+    def test_expiry_updates_closed_menu_bar_without_bypassing_outage_backoff(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+        body = source.split("private func scheduleReadingExpiry()", 1)[1].split("@objc", 1)[0]
+        self.assertIn("capturedAt.addingTimeInterval(maximumStaleDisplayAge)", body)
+        self.assertIn("compactMap(\\.resetsAt)", body)
+        self.assertIn("self.setStatusImage", body)
+        self.assertIn("self.rebuildMenu()", body)
+        self.assertIn("if self.lastError == nil && !self.isRefreshing", body)
+        self.assertIn("readingExpiryTimer?.invalidate()", body)
+
+    def test_failed_readings_do_not_clear_notification_threshold_history(self):
+        source = pathlib.Path("native/CodexGauge.swift").read_text()
+        body = source.split("private func handleNotificationTransitions", 1)[1].split(
+            "private func postNotification", 1
+        )[0]
+        self.assertIn("let isLive = !isLiveRefreshFailure(status)", body)
+        self.assertLess(body.index("guard isLive else { return }"),
+                        body.index("previousQuotaLeftByWindow = currentValues"))
 
     def test_native_app_surfaces_version_and_release_link(self):
         source = pathlib.Path("native/CodexGauge.swift").read_text()

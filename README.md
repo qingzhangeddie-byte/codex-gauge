@@ -38,7 +38,7 @@ What makes it different:
 - Built for one job: Codex quota at a glance.
 - Native menu bar first, detailed Signal Console only when you click.
 - Transparent system-monitor bars instead of a noisy dashboard wedged into the status bar.
-- Compact live-only Signal Console with clear Live and ChatGPT unavailable states.
+- Compact live-only Signal Console with distinct connection, sign-in, and compatibility states.
 - No Codex session-file scanning and no saved usage history.
 
 Codex Gauge is an **Unofficial** macOS menu bar app for people who use Codex heavily and want a Codex rate limit tracker that stays local.
@@ -75,16 +75,18 @@ _Menu bar strip render. Static sample values; live values update in the installe
   Preferences 和 Setup Doctor 会跟随当前选择的 Signal Console 主题
 - Live-only data comes directly from the local Codex app-server; no fallback scans Codex session files
   数据只从本地 Codex app-server 实时读取，不会扫描 Codex session 文件作为 fallback
-- Adaptive refresh: 5 minutes normally, 3 minutes when low, 2 minutes when critical, 1 minute after transient errors  
-  自适应刷新：正常 5 分钟，额度偏低 3 分钟，严重偏低 2 分钟，临时错误后 1 分钟重试
+- Adaptive refresh: 5 minutes normally, 10 minutes after extended inactivity, 3 minutes when low, and 2 minutes when critical; failed refreshes retry after 1 minute and back off to at most 15 minutes
+  自适应刷新：正常 5 分钟，长时间无操作后 10 分钟，额度偏低 3 分钟，严重偏低 2 分钟；失败后从 1 分钟开始重试，逐步延长至最多 15 分钟
+- Opening the panel or activating ChatGPT reuses a reading requested within the last minute; manual Refresh Now bypasses the cooldown
+  打开面板或切回 ChatGPT 时，会复用最近一分钟内的请求结果；手动 Refresh Now 不受冷却时间限制
 - Session-only preferences for theme, Adaptive, 5-minute, or 10-minute refresh; launch-at-login is stored as a standard macOS LaunchAgent
   主题和刷新频率偏好只在当前运行会话中生效；开机启动使用标准 macOS LaunchAgent 保存
 - Opt-in notifications for any low live quota window, restored quota, and prolonged non-live data
   可选通知：任一实时额度窗口偏低、额度恢复、长时间非实时数据都会提醒
-- Signal Console states explain Live, ChatGPT unavailable, and unavailable data directly in the popover
-  Signal Console 会在弹出面板解释 Live、ChatGPT unavailable 和不可用状态
-- Signal Console and tooltip states explain Live and Open ChatGPT without presenting stored values as current
-  Signal Console 和 tooltip 会解释 Live 和 Open ChatGPT，不会把存储值当成当前实时数据
+- Signal Console distinguishes Live, Offline, Sign in, App changed, and Retrying; a failed refresh dims recent in-memory readings and labels when they were last checked
+  Signal Console 区分实时、离线、需要登录、应用兼容性变化和重试状态；刷新失败时，最近的内存读数会变淡，并标明上次检查时间
+- Readings disappear after ten minutes or their reported reset, including during a prolonged retry delay
+  读数在十分钟后或到达服务返回的重置时间时隐藏，即使下一次重试尚未开始
 - Setup Doctor and Copy Diagnostics help debug local setup without copying prompts, cookies, auth files, or logs
   Setup Doctor 和 Copy Diagnostics 可帮助排查本地设置，但不会复制 prompts、Cookie、auth 文件或日志
 - Self-contained app bundle with its helper inside `Contents/Resources`
@@ -137,6 +139,8 @@ Codex Gauge should appear in your menu bar with live Codex usage. The installer 
 
 From a downloaded release package, open `Install Codex Gauge.command`.
 
+The v0.9.8 downloads target Apple silicon Macs running macOS 13 or newer. Intel Macs can build from source. These convenience packages are ad-hoc signed, not notarized; macOS may require approval in System Settings. Use the bundled installer for this release: in-app installation remains restricted to Developer ID-signed, notarized releases with a configured publisher identity.
+
 After install, Codex Gauge can perform one session-only update check per app run, and **Check for Updates...** always queries the latest GitHub Releases entry on demand. Both paths show the current version, latest version, release info, and notes. Update prompts include release notes and three choices: **Install Update**, **Skip this version**, or **Remind me later**. Skipping is session-only and prevents repeat prompts for that release while the app is running. When a newer release zip is available, **Install Update** downloads it to a temporary directory, verifies the release checksum plus the pinned publisher Team ID/notarization, replaces `CodexGauge.app`, and relaunches. Codex Gauge does not keep update history, skipped-version records, or an updater cache.
 
 For maintainers creating that package:
@@ -159,10 +163,10 @@ The generated release output includes a zip, a DMG, `CodexGauge.app`, `Install C
 | Updates | Session-only GitHub release check plus manual Check for Updates, with confirmed Install Update and temporary files only |
 | Signal quality | Derives labels and row count from the live quota-window durations instead of assuming fixed limits |
 | Menu bar style | System-monitor bars with adaptive text, blue fills, and quiet empty tracks |
-| Refresh behavior | Adaptive refresh instead of constant polling: 5 minutes normally, 3 minutes when low, 2 minutes when critical, with quick retry after transient errors |
+| Refresh behavior | Adaptive 2-10 minute polling, one-minute automatic request cooldown, and 1-15 minute outage retries |
 | Preferences | Session-only refresh cadence, notifications, and theme controls |
 | Notifications | Opt-in alerts for the moments users actually care about |
-| Signal Console | Explains whether data is live or unavailable |
+| Signal Console | Distinguishes live, stale, sign-in, connection, and compatibility states |
 | Setup Doctor | Local checks for Codex app, helper, live data, startup state, and notifications |
 | Diagnostics | Safe copy-only diagnostics that exclude prompts, cookies, auth files, session contents, histories, caches, reports, and logs |
 | Reset timing | Reset timing is visible in the dropdown |
@@ -191,6 +195,12 @@ CodexGauge.app/Contents/Resources/codex_status.py
 ```
 
 For live Codex quota, the app talks to the local Codex app-server through the bundled helper. The data path is live-only: Codex Gauge does not cache successful readings, create usage-history files, or scan Codex session files for fallback values. During a short live failure, the running app may keep its last in-memory reading visible for up to 10 minutes while clearly showing an error and retrying; that value is never written to disk.
+
+Retained readings are dimmed and marked with their last-check age, never labeled Live. They disappear when ten minutes old or when their reported quota reset passes. Repeated failures back off progressively; a changed ChatGPT installation or manual refresh can retry immediately. Bundled executable discovery reads the installed package's declared entrypoint, with older layouts retained as fallbacks.
+
+<img src="docs/design/app-rendered-signal-console/blue-ceramic-stale.png" alt="Native stale-reading state with dimmed sample quota and last-check age" width="390">
+
+_Native failure-state preview using static sample data, not account readings._
 
 It does **not** read browser cookies, does **not** read `~/.codex/auth.json`, and does **not** scan unrelated project folders, browser profiles, or Keychain.
 
@@ -276,6 +286,14 @@ python3 -m unittest discover -s tests -v
 ./script/release_check.sh
 ./script/soak_check.sh --iterations 3 --interval 0
 ```
+
+After installing, optionally verify the real app-server connection using only the normal macOS executable path:
+
+```bash
+env -i HOME="$HOME" PATH=/usr/bin:/bin:/usr/sbin:/sbin /usr/bin/python3 script/check_live_connection.py
+```
+
+This reads live quota and prints the CLI version and returned windows. It is deliberately separate from offline regression tests and does not save usage data.
 
 ## Public Release Notes
 
